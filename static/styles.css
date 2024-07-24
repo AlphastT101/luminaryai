@@ -1,0 +1,135 @@
+@keyframes rainbow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+  background-color: #0f1014;
+  background: linear-gradient(to bottom, #27232b, #090910);
+}
+
+.image-gen {
+  background-color: rgb(37 29 43);
+  width: 600px;
+  padding: 20px;
+  margin: 20px;
+  text-align: center;
+  border-radius: 20px;
+}
+
+
+#image-gen-btn {
+  position: relative;
+  border-radius: 20px;
+  background: linear-gradient(to right, #cc9aff, #363648);
+  text-align: center;
+  width: 160px;
+  height: 45px;
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-size: 15px;
+  overflow: hidden;
+  transition: transform 0.3s ease;
+  z-index: 1;
+}
+
+#image-gen-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to right, #363648, #cc9aff);
+  transition: opacity 0.5s ease;
+  opacity: 0;
+  z-index: -1;
+}
+
+#image-gen-btn:hover::before {opacity: 1;}
+#image-gen-btn:hover {transform: scale(1.02);}
+#image-gen-btn:active {transform: scale(0.96);}
+
+
+
+#generatedImage {
+  margin-top: 20px;
+  max-width: 100%;
+  border-radius: 10px;
+}
+
+#promptInput, #apiKeyInput {
+  background-color: #252d47;
+  color: #ffffff;
+  border: 2px solid #3f4d7a;
+  border-radius: 5px;
+  padding: 8px 12px;
+  margin-bottom: 20px;
+  /* width: 300px; */
+  font-size: 16px;
+  outline: none;
+}
+
+#promptInput::placeholder {
+    color: #8a8a8a;
+}
+
+#loading {
+  display: none;
+  color: #ffffff;
+  font-size: 15px;
+
+  width: 160px;
+  height: 45px;
+  background: linear-gradient(to right, #363648, #cc9aff);
+  border-radius: 20px;
+  text-align: center;
+  line-height: 45px; /* Center the text vertically */
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.2); /* Subtle shadow effect */
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+#loading::after {
+  content: ' ';
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  border-top-color: transparent; /* Creates a half-circle spinning effect */
+  animation: spin 1.5s linear infinite; /* Slower animation for a calmer effect */
+}
+
+#modelInput {
+  width: 227px;
+  height: 34px;
+  border-radius: 5px;
+
+  background-color: #252d47;
+  color: #8a8a8a;
+  border: 2px solid #3f4d7a;
+  border-radius: 5px;
+  /* padding: 8px 12px; */
+  margin-bottom: 35px;
+  font-size: 15px;
+}
+
+#modelInput option {
+  color: #FFFFFF;
+  background-color: #262645;
+}
+
+#modelInput option:hover {
+  background-color: #3f3f3f;
+}
