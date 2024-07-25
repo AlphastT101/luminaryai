@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, send_file, jsonify, send_from
 import requests
 import io
 from PIL import Image
-from bot_utilities.api_utils import poli, gen_text, check_token
+from bot_utilities.api_utils import poli, gen_text, check_token, get_id
 from bot_utilities.start_util import api_start
 from bot_utilities.api_models import models
 import random
@@ -60,13 +60,18 @@ def image():
     if engine == "poli":
         img_url = poli(prompt)
 
-    elif engine == "lumage-1":
+    elif engine == "lumage-1" or "lumage-2":
         headers = {"Authorization": f"Bot {bot_token}", "Content-Type": "application/json"}
 
         res = requests.post(f"https://discord.com/api/v9/guilds/{guild_id}/channels", json={"name": f"api-{random_string}", "permission_overwrites": [], "type": 0}, headers=headers)
         channel_info = res.json()
         channel_id = channel_info['id']
-        res = requests.post(f"https://discord.com/api/v9/channels/{send_req}/messages", json={"content": f"a!reqapi {channel_id} {prompt}"}, headers=headers)
+        # Do NOT change these variable's value without owner's permission/suggestion.
+        user_id = get_id(client, token)
+        engine_id = "1" if engine == "lumage-1" else "2"
+        message = f"a!reqapi `{user_id}` {channel_id} {engine_id} {prompt}"
+        # ^^^^ these
+        res = requests.post(f"https://discord.com/api/v9/channels/{send_req}/messages", json={"content": message}, headers=headers)
 
         while True:
             res = requests.get(f"https://discord.com/api/v9/channels/{channel_id}/messages", headers=headers)

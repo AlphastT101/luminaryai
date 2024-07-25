@@ -59,3 +59,10 @@ async def insert_token(mongodb, userid):
     key = await generate_api_key()
     collection.insert_one({"apitoken": key, "userid": userid})
     return key
+
+def get_id(mongodb, token):
+    db = mongodb["lumi-api"]
+    collection = db["apitokens"]
+    id_doc = collection.find_one({"apitoken": token})
+    user_id = id_doc["userid"]
+    return user_id

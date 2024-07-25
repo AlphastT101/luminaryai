@@ -354,7 +354,7 @@ def create_composite_image(image_urls, images_per_row=5, spacing=10, target_size
 async def vision(prompt, image_link):
     try:
         response = await openai_client.chat.completions.create(
-            model="gemini-pro-vision",
+            model="gemini-1.5-pro-latest",
             messages=[
             {
                 "role": "user",
