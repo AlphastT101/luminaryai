@@ -67,7 +67,7 @@ def ai_slash(bot, mongodb, member_histories_msg, is_generating):
         response_embed.set_footer(text="Reply from LuminaryAI Image Vision. LuminaryAI does not guarantee the accuracy of the response provided. The Vision model is currently in **beta**")
         await interaction.followup.send(embed=response_embed)
     
-    
+
     @commands.guild_only()
     @bot.tree.command(name="ask", description="Ask LuminaryAI a question!")
     @app_commands.describe(prompt="The question you want to ask LuminaryAI")
@@ -127,7 +127,7 @@ def ai_slash(bot, mongodb, member_histories_msg, is_generating):
         if exists: await exists.delete()
         channel = await guild.create_text_channel(str(interaction.user.id), category=category)
         sendapi = bot.get_channel(1254053747227889785)
-        await sendapi.send(f"a!reqapi {channel.id} {prompt}")
+        await sendapi.send(f"a!reqapi {interaction.user.id} {channel.id} {prompt}")
 
         def check(m):
             if m.content == "uhh can u say that again?":

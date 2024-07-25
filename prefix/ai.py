@@ -5,7 +5,6 @@ import aiohttp
 import datetime
 from bot_utilities.owner_utils import *
 
-
 def ai(bot, member_histories_msg, mongodb, is_generating):
 
     # @bot.command(name='activate')
@@ -97,8 +96,8 @@ def ai(bot, member_histories_msg, mongodb, is_generating):
         channel = await guild.create_text_channel(str(ctx.author.id), category=category)
 
         sendapi = bot.get_channel(1254053747227889785)
-        await sendapi.send(f"a!reqapi {channel.id} {prompt}")
-        
+        await sendapi.send(f"a!reqapi {ctx.author.id} {channel.id} {prompt}")
+
         def check(m):
             if m.content == "uhh can u say that again?":
                 return False
