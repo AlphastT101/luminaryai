@@ -127,7 +127,7 @@ def ai_slash(bot, mongodb, member_histories_msg, is_generating):
         if exists: await exists.delete()
         channel = await guild.create_text_channel(str(interaction.user.id), category=category)
         sendapi = bot.get_channel(1254053747227889785)
-        await sendapi.send(f"a!reqapi {interaction.user.id} {channel.id} {prompt}")
+        await sendapi.send(f"a!reqapi {interaction.user.id} {channel.id} 1 {prompt}")
 
         def check(m):
             if m.content == "uhh can u say that again?":
