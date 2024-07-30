@@ -2,8 +2,8 @@ from flask import Flask, render_template, request, send_file, jsonify, send_from
 import requests
 import io
 from PIL import Image
-from bot_utilities.api_utils import poli, gen_text, check_token, get_id
-from bot_utilities.start_util import api_start
+from bot_utilities.api_utils import poli, gen_text, check_token, get_id, open_available
+from bot_utilities.start_util import start
 from bot_utilities.api_models import models
 import random
 import string
@@ -21,7 +21,7 @@ flask_port = str(config["flask"]["port"])
 guild_id = str(config["flask"]["guild_id"])
 send_req = str(config["flask"]["send_req_channel"])
 client = MongoClient(mongodb)
-bot_token = api_start(client)
+bot_token, open_r = start(client)
 cache_folder = os.path.join(os.getcwd(), 'cache')
 os.makedirs(cache_folder, exist_ok=True)
 app = Flask(__name__)
@@ -49,10 +49,10 @@ def image():
         ratelimits[token].append(current_time)
 
     data = request.get_json()
-    try: prompt = data['prompt']
-    except KeyError: return jsonify({"error": "Invalid request, you MUST include a 'prompt' in the json."}), 400
-    try: engine = data['model']
-    except KeyError: return jsonify({"error": "Invalid request, you MUST include a 'model' in the json."}), 400
+    try:
+        prompt = data['prompt']
+        engine = data['model']
+    except KeyError: return jsonify({"error": "Invalid request, you MUST include a 'prompt' and 'model' in the json."}), 400
 
     characters = string.ascii_letters + string.digits
     random_string = ''.join(random.choice(characters) for _ in range(12))
@@ -60,7 +60,7 @@ def image():
     if engine == "poli":
         img_url = poli(prompt)
 
-    elif engine == "lumage-1" or "lumage-2":
+    elif engine == "sdxl-turbo" or "dalle3":
         headers = {"Authorization": f"Bot {bot_token}", "Content-Type": "application/json"}
 
         res = requests.post(f"https://discord.com/api/v9/guilds/{guild_id}/channels", json={"name": f"api-{random_string}", "permission_overwrites": [], "type": 0}, headers=headers)
@@ -68,8 +68,9 @@ def image():
         channel_id = channel_info['id']
         # Do NOT change these variable's value without owner's permission/suggestion.
         user_id = get_id(client, token)
-        engine_id = "1" if engine == "lumage-1" else "2"
+        engine_id = "1" if engine == "dalle3" else "2"
         message = f"a!reqapi `{user_id}` {channel_id} {engine_id} {prompt}"
+        seconds = 0
         # ^^^^ these
         res = requests.post(f"https://discord.com/api/v9/channels/{send_req}/messages", json={"content": message}, headers=headers)
 
@@ -83,9 +84,13 @@ def image():
                     do_break = True
 
             if do_break: break
-            else: time.sleep(3)
+            elif seconds>=120: # wait 2 minutes for the image
+                return jsonify({"error": "An error occured, this is probably our fault. Please share this error code with our developers: 'REQ_TIMEOUT/ENGINE_OFFLINE'"}), 520
+            else:
+                seconds+=3
+                time.sleep(3)
         requests.delete(f"https://discord.com/api/v9/channels/{channel_id}", headers=headers)
-    else: return jsonify({"error": "Unknown engine, available engines are: 'poli', 'lumage-1'."}), 400
+    else: return jsonify({"error": "Unknown engine, available engines are: 'poli', 'dalle3', 'sdxl-turbo'."}), 400
 
     img_response = requests.get(img_url)
     img = Image.open(io.BytesIO(img_response.content))
@@ -110,6 +115,37 @@ def image():
         ]
     })
 
+@app.route('/v1/chat/completions', methods=['POST'])
+def text():
+
+    if 'Authorization' in request.headers: token = request.headers['Authorization'].split()[1]
+    else: return jsonify({"error": "Auth failed, API token not found."}), 401
+
+    result = check_token(client, token)
+    if not result: return jsonify({"error": "Inavalid API token!, check your API token and try again. Support: https://discord.gg/hmMBe8YyJ4"}), 401
+
+    # Rate limiting logic
+    if token.startswith("luminary"):
+        current_time = time.time()
+        if token in ratelimits:
+            ratelimits[token] = [timestamp for timestamp in ratelimits[token] if current_time - timestamp < 60]
+            if len(ratelimits[token]) >= 10:
+                return jsonify({"error": "Rate limit exceeded, you can only make 10 requests per minute."}), 429
+        ratelimits[token].append(current_time)
+
+    data = request.get_json()
+    try:
+        messages = data['messages']
+        model = data['model']
+    except KeyError:
+        return jsonify({"error": "Invalid request, you MUST include a 'messages' and 'model' in the json."}), 400
+
+
+    if not model in open_available:
+        return jsonify({"error": f"Text model not found, current available models are: {open_available}"}), 404
+    
+    response = gen_text(open_r, messages, model)
+    return jsonify({"response": response})
 
 # OpenAI-compatible model list endpoint
 @app.route('/v1/models', methods=['GET'])
@@ -119,19 +155,6 @@ def model_list():
 @app.route('/cache/<filename>')
 def serve_file(filename):
     return send_from_directory(cache_folder, filename)
-
-@app.route('/text', methods=['POST'])
-def text():
-    data = request.get_json()
-    try:
-        prompt = data['prompt']
-    except KeyError:
-        return jsonify({"error": "Invalid request, you MUST include a 'prompt' in the json."}), 400
-    except Exception as e:
-        return "Ouch! An error occured, this is probably our fault. Please report this issue.", 1
-
-    response_data = gen_text(prompt)
-    return jsonify(response_data)
 
 
 if __name__ == '__main__':

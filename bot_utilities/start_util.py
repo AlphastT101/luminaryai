@@ -19,18 +19,3 @@ def start(client):
         api_token = api_token_doc["value"]
 
     return bot_token, api_token
-
-
-def api_start(client):
-    db = client["tokens"]
-    bot_collection = db["bot"]
-
-    bot_token_doc = bot_collection.find_one({"key": "bot_token"})
-
-    if bot_token_doc is None:
-        bot_token = input("Bot token is not found in MongoDB, Please enter a new bot token: ")
-        bot_collection.insert_one({"key": "bot_token", "value": bot_token})
-    else:
-        bot_token = bot_token_doc["value"]
-
-    return bot_token
