@@ -25,7 +25,6 @@ from bot_utilities.ai_utils import process_queue
 from api import app
 from bot_utilities.start_util import start
 
-
 def run_flask_app():
     port = int(os.environ.get("PORT", config["flask"]["port"]))
     app.run(host='0.0.0.0', port=port, debug=False)
