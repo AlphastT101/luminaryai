@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, send_file, jsonify, send_from
 import requests
 import io
 from PIL import Image
-from bot_utilities.api_utils import poli, gen_text, check_token, get_id, open_available
+from bot_utilities.api_utils import poli, gen_text, check_token, get_id, available, models_dict
 from bot_utilities.start_util import start
 from bot_utilities.api_models import models
 import random
@@ -147,6 +147,7 @@ def text():
     except KeyError:
         return jsonify({"error": "Invalid request, you MUST include a 'messages' and 'model' in the json."}), 400
 
+    if not model in available: return jsonify({"error": "The model you requested is not found. However you can request this model to be added! support: https://discord.gg/hmMBe8YyJ4"})
     if model == "gpt-4o" or "command-r-plus-online":
         headers = {"Authorization": f"Bot {bot_token}", "Content-Type": "application/json"}
         characters = string.ascii_letters + string.digits
@@ -158,8 +159,8 @@ def text():
         channel_id = channel_info['id']
         # Do NOT change these variable's value without owner's permission.
         user_id = get_id(client, token)
-        engine_id = "1t" if model == "gpt-4o" else "2t"
-        messagee = f"a!reqapi `{user_id}` {channel_id} {engine_id}"
+        engine_id = models_dict[model]
+        messagee = f"a!reqapi `{user_id}` {channel_id} {engine_id} {random_string}"
         seconds = 0
         file_path = f'/cache/{random_string}.txt'
         # ^^^^ these
@@ -168,32 +169,26 @@ def text():
         with open(file_path, 'w') as f:
             f.write(f"{messages}")
 
-        with open(file_path, 'rb') as file:
-            res = requests.post(
-                f"https://discord.com/api/v9/channels/{send_req}/messages",
-                headers=headers,
-                data={'content': messagee},
-                attachments={'file': file}
-            )
-        print(res.text)
         res = requests.post(f"https://discord.com/api/v9/channels/{send_req}/messages", json={"content": messagee}, headers=headers)
 
         while True:
             res = requests.get(f"https://discord.com/api/v9/channels/{channel_id}/messages", headers=headers)
             messages = res.json()
             do_break = False
-            failed = False
             for message in messages:
                 if message['content'] == "error":
-                    failed = True
-                else:
+                    os.remove(file_path)
+                    requests.delete(f"https://discord.com/api/v9/channels/{channel_id}", headers=headers)
+                    return jsonify({"error": "An internal server error occured, it's a known issue. We're working on it."}), 500
+                elif int(message['author']['id']) != 1254815403553722401:
                     response = message['content']
                     do_break = True
                     break
 
             if do_break: break
-            elif failed: return jsonify({"error": "An internal server error occured, it's a known issue. We're working on it."}), 500
             elif seconds>=120: # wait 2 minutes for the image
+                os.remove(file_path)
+                requests.delete(f"https://discord.com/api/v9/channels/{channel_id}", headers=headers)
                 return jsonify({"error": "An error occured, this is probably our fault. Please share this error code with our developers: 'REQ_TIMEOUT/ENGINE_OFFLINE'"}), 520
             else:
                 seconds+=3
@@ -201,9 +196,6 @@ def text():
         requests.delete(f"https://discord.com/api/v9/channels/{channel_id}", headers=headers)
 
     else: response = gen_text(open_r, messages, model)
-
-    # if not model in open_available:
-    #     return jsonify({"error": f"Text model not found, current available models are: {open_available}"}), 404
     
 
     return jsonify({"response": response})

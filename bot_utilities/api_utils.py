@@ -6,7 +6,7 @@ import requests
 
 
 
-open_models = {
+models_dict = {
     "openchat-7b":"openchat/openchat-7b:free",
     "openchat-3.5-7b":"openchat/openchat-7b:free",
     "qwen-2-7b-instruct":"qwen/qwen-2-7b-instruct:free",
@@ -19,13 +19,16 @@ open_models = {
     "mythomist-7b":"gryphe/mythomist-7b:free",
     "toppy-m-7b":"undi95/toppy-m-7b:free",
     "zephyr-7b-beta":"huggingfaceh4/zephyr-7b-beta:free",
-    "mistral-7b-instruct":"mistralai/mistral-7b-instruct:free"
+    "mistral-7b-instruct":"mistralai/mistral-7b-instruct:free",
+
+    "gpt-4o":"1t",
+    "command-r-plus-online":"2t"
 }
 
-open_available = [
+available = [
 'openchat-7b', 'openchat-3.5-7b', 'qwen-2-7b-instruct', 'gemma-2-9b-it', 'phi-3-mini-128k-instruct',
 'phi-3-medium-128k-instruct', 'llama-3-8b-instruct', 'gemma-7b-it', 'nous-capybara-7b', 'mythomist-7b',
-'toppy-m-7b', 'zephyr-7b-beta', 'mistral-7b-instruct',
+'toppy-m-7b', 'zephyr-7b-beta', 'mistral-7b-instruct', 'gpt-4o', 'command-r-plus-online'
 ]
 
 def poli(prompt):
@@ -77,7 +80,7 @@ def gen_text(api_key, msg_history, model):
     )
 
     completion = client.chat.completions.create(
-        model=open_models[model],
+        model=models_dict[model],
         messages=msg_history
     )
 
