@@ -3,36 +3,86 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>LuminaryAI API</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-    <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous"> -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
 </head>
 <body>
 
-    
-    <div class="image-gen" data-aos="zoom-out" data-aos-duration="3000">
-        <input type="text" id="apiKeyInput" placeholder="Enter API key"><br>
-        <input type="text" id="promptInput" placeholder="Enter Prompt"><br>
+    <div id="errorWindow" class="error-window"></div>
+    <div class="logo"><img src="/static/images/logo.png"></img></div>
+
+    <div class="overlay" id="overlay"></div>
+    <div class="settings" id="settingsWindow">
+        <p style="color: white;">Choose a model:</p>
         <select id="modelInput">
             <option value="poli">Poli</option>
-            <option value="lumage-1">Lumage-1</option>
+            <option value="dalle3">Dalle-3</option>
+            <option value="sdxl-turbo">SDXL-Turbo</option>
+            <option value="gpt-4o">GPT-4o</option>
+            <option value="command-r-plus-online">Command R+ (online)</option>
+            <option value="mistral-7b-instruct">Mistral-7b-instruct</option>
+            <option value="openchat-7b">OpenChat-7b</option>
+            <option value="openchat-3.5-7b">OpenChat-3.5-7b</option>
+            <option value="qwen-2-7b-instruct">Qwen-2-7b-instruct</option>
+            <option value="phi-3-mini-128k-instruct">Phi-3-mini-128k-instruct</option>
+            <option value="phi-3-medium-128k-instruct">Phi-3-medium-128k-instruct</option>
+            <option value="llama-3-8b-instruct">Llama-3-8b-instruct</option>
+            <option value="gemma-7b-it">Gemma-7b-it</option>
+            <option value="nous-capybara-7b">Nous-Capybara-7b</option>
+            <option value="mythomist-7b">Mythomist-7b</option>
+            <option value="toppy-m-7b">Toppy-M-7b</option>
+            <option value="zephyr-7b-beta">Zephyr-7b-beta</option>
         </select>
         <br>
-        <button type="button" id="image-gen-btn">Generate Image</button>
-        <div id="loading" style="display: none;"></div>
-        <img id="generatedImage" src="" alt="Generated Image" style="display:none;">
+        <p style="color: white;">Your API key: </p>
+        <input type="text" id="apiKeyInput" placeholder="Enter API key"><br>
+        <br>
+        <button type="button" id="closeSettings" class="closeSettings">Save</button>
     </div>
-    
 
-    <!-- <script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+    <!-- <div class="col"><img id="generatedImage" src="" alt="Generated Image" style="display:none;"></div> -->
+
+
+    <div class="chat-history container" style="max-width: 1000px; padding-bottom: 100px;">
+
+        <div class="text-user">
+            <i class="fa-solid fa-user"></i> You:
+            <p>Hi</p>
+        </div>
+
+        <div class="image-response">
+            <i class="fa-solid fa-robot"></i> AI:
+            <p>Hello! This is LuminaryAI's API playground. It's very simple to use. Just set your API token
+                by clicking the settings icon at the bottom of your screen and choose a model. Enjoy :)
+            </p>
+            <!-- <img src="http://127.0.0.1:6077/cache/8c247cba.png"> -->
+        </div>
+    </div>
+
+    <div class="utils container" style="max-width: 1000px;">
+        <div class="row d-flex align-items-start">
+            <div class="col-auto"><button type="button" id="settings"><i class="fa-solid fa-gear"></i></button></div>
+            <div class="col"><input type="text" id="promptInput" placeholder="Message AI"></div>
+
+            <div class="col-auto"><button type="button" id="send"><i class="fa-solid fa-paper-plane"></i></button></div>
+            <div class="col-auto" id="loading"><i class="fa-solid fa-circle-notch fa-spin"></i></div>
+        </div>
+    </div>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js" integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js" integrity="sha384-fbbOQedDUMZZ5KreZpsbe1LCZPVmfTnH7ois6mU1QK+m14rQ1l2bGBq41eYeM/fS" crossorigin="anonymous"></script> -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js" integrity="sha384-fbbOQedDUMZZ5KreZpsbe1LCZPVmfTnH7ois6mU1QK+m14rQ1l2bGBq41eYeM/fS" crossorigin="anonymous"></script>
     <script src="https://kit.fontawesome.com/cb5bb466c4.js" crossorigin="anonymous"></script>
     <script src="{{ url_for('static', filename='index.js') }}"></script>
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <script>
-        AOS.init();
+        AOS.init({
+            duration: 3000,
+            once: true, // Run animation only once
+        });
     </script>
 </body>
 </html>

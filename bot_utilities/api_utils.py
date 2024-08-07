@@ -10,7 +10,6 @@ models_dict = {
     "openchat-7b":"openchat/openchat-7b:free",
     "openchat-3.5-7b":"openchat/openchat-7b:free",
     "qwen-2-7b-instruct":"qwen/qwen-2-7b-instruct:free",
-    "gemma-2-9b-it":"google/gemma-2-9b-it:free",
     "phi-3-mini-128k-instruct":"microsoft/phi-3-mini-128k-instruct:free",
     "phi-3-medium-128k-instruct":"microsoft/phi-3-medium-128k-instruct:free",
     "llama-3-8b-instruct":"meta-llama/llama-3-8b-instruct:free",
@@ -26,7 +25,7 @@ models_dict = {
 }
 
 available = [
-'openchat-7b', 'openchat-3.5-7b', 'qwen-2-7b-instruct', 'gemma-2-9b-it', 'phi-3-mini-128k-instruct',
+'openchat-7b', 'openchat-3.5-7b', 'qwen-2-7b-instruct', 'phi-3-mini-128k-instruct',
 'phi-3-medium-128k-instruct', 'llama-3-8b-instruct', 'gemma-7b-it', 'nous-capybara-7b', 'mythomist-7b',
 'toppy-m-7b', 'zephyr-7b-beta', 'mistral-7b-instruct', 'gpt-4o', 'command-r-plus-online'
 ]
@@ -81,7 +80,7 @@ def gen_text(api_key, msg_history, model):
 
     completion = client.chat.completions.create(
         model=models_dict[model],
-        messages=msg_history
+        messages=msg_history,
+        max_tokens=3000
     )
-
     return completion.choices[0].message.content

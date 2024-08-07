@@ -33,8 +33,12 @@ def index():
 # OpenAI-compatible image generation endpoint
 @app.route('/v1/images/generations', methods=['POST'])
 def image():
-    if 'Authorization' in request.headers: token = request.headers['Authorization'].split()[1]
-    else: return jsonify({"error": "Auth failed, API token not found."}), 401
+    try:
+        if 'Authorization' in request.headers:
+            token = request.headers['Authorization'].split()[1]
+        else: return jsonify({"error": "Auth failed, API token not found."}), 401
+    except IndexError:
+        return jsonify({"error": "You MUST set your API token by clicking on the `settings` icon!"})
 
     result = check_token(client, token)
     if not result: return jsonify({"error": "Inavalid API token!, check your API token and try again. Support: https://discord.gg/hmMBe8YyJ4"}), 401
@@ -54,7 +58,8 @@ def image():
         engine = data['model']
     except KeyError: return jsonify({"error": "Invalid request, you MUST include a 'prompt' and 'model' in the json."}), 400
 
-
+    characters = string.ascii_letters + string.digits
+    random_string = ''.join(random.choice(characters) for _ in range(12))
 
     if engine == "poli":
         img_url = poli(prompt)
@@ -62,8 +67,6 @@ def image():
     elif engine == "sdxl-turbo" or "dalle3":
         headers = {"Authorization": f"Bot {bot_token}", "Content-Type": "application/json"}
 
-        characters = string.ascii_letters + string.digits
-        random_string = ''.join(random.choice(characters) for _ in range(12))
 
         res = requests.post(f"https://discord.com/api/v9/guilds/{guild_id}/channels", json={"name": f"api-{random_string}", "permission_overwrites": [], "type": 0}, headers=headers)
         channel_info = res.json()
@@ -125,8 +128,13 @@ def image():
 @app.route('/v1/chat/completions', methods=['POST'])
 def text():
 
-    if 'Authorization' in request.headers: token = request.headers['Authorization'].split()[1]
-    else: return jsonify({"error": "Auth failed, API token not found."}), 401
+    try:
+        if 'Authorization' in request.headers:
+            token = request.headers['Authorization'].split()[1]
+        else: return jsonify({"error": "Auth failed, API token not found."}), 401
+    except IndexError:
+        return jsonify({"error": "You MUST set your API token by clicking on the `settings` icon!"})
+
 
     result = check_token(client, token)
     if not result: return jsonify({"error": "Inavalid API token!, check your API token and try again. Support: https://discord.gg/hmMBe8YyJ4"}), 401
@@ -148,7 +156,7 @@ def text():
         return jsonify({"error": "Invalid request, you MUST include a 'messages' and 'model' in the json."}), 400
 
     if not model in available: return jsonify({"error": "The model you requested is not found. However you can request this model to be added! support: https://discord.gg/hmMBe8YyJ4"})
-    if model == "gpt-4o" or "command-r-plus-online":
+    if model == "gpt-4o" or model == "command-r-plus-online":
         headers = {"Authorization": f"Bot {bot_token}", "Content-Type": "application/json"}
         characters = string.ascii_letters + string.digits
         random_string = ''.join(random.choice(characters) for _ in range(12))

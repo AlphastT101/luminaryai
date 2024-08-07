@@ -28,7 +28,7 @@ from bot_utilities.start_util import start
 
 def run_flask_app():
     port = int(os.environ.get("PORT", config["flask"]["port"]))
-    app.run(host='0.0.0.0', port=port, debug=False)
+    app.run(host='0.0.0.0', port=port, debug=True)
 
 
 with open("config.yml", "r") as config_file: config = yaml.safe_load(config_file)
