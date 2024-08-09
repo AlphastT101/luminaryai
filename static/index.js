@@ -1,13 +1,4 @@
-// on img generate button click
-document.getElementById('send').addEventListener('click', async function() {
-    await process_request();
-});
-const promptInput = document.getElementById('promptInput');
-promptInput.addEventListener('keypress', function (event) {
-    if (event.key === 'Enter') {
-        process_request();
-    }
-});
+//// Settings button start ////
 document.getElementById('settings').addEventListener('click', function() {
     const overlay = document.getElementById('overlay');
     const settingsWindow = document.getElementById('settingsWindow');
@@ -31,32 +22,43 @@ document.getElementById('closeSettings').addEventListener('click', function() {
     overlay.classList.remove('show');
     settingsWindow.classList.remove('show');
 });
+//// settings button end ////
+
+
+
+
+
+//// API requests start ////
+const text_models = [
+    'gpt-4', 'gpt-4-turbo', 'gpt-3.5', 'gpt-3.5-turbo', 'qwen-2-7b-instruct', 'phi-3-mini-128k-instruct',
+    'phi-3-medium-128k-instruct', 'llama-3-8b-instruct', 'gemma-7b-it', 'nous-capybara-7b', 'mythomist-7b',
+    'toppy-m-7b', 'zephyr-7b-beta', 'mistral-7b-instruct', 'gpt-4o', 'command-r-plus-online'
+];
+
+document.getElementById('send').addEventListener('click', async function() {
+    await process_request();
+});
+
+const promptInput = document.getElementById('promptInput');
+promptInput.addEventListener('keypress', function (event) {
+    if (event.key === 'Enter') {
+        process_request();
+    }
+});
 
 let messages = [];
-
 async function process_request() {
     const prompt = document.getElementById('promptInput').value;
     const apiKey = document.getElementById('apiKeyInput').value;
     const model = document.getElementById('modelInput').value;
-    const img = document.getElementById('generatedImage');
+    const chatHistory = document.querySelector('.chat-history');
     const btn = document.getElementById('send');
-    const loading = document.getElementById('loading');
-    const errorWindow = document.getElementById('errorWindow');
-    const chatHistory = document.querySelector('.chat-history'); // Select parent container
-
-    const text_models = [
-        'gpt-4o', 'command-r-plus-online', 'openchat-7b', 'openchat-3.5-7b',
-        'qwen-2-7b-instruct', 'phi-3-mini-128k-instruct',
-        'phi-3-medium-128k-instruct', 'llama-3-8b-instruct', 'gemma-7b-it',
-        'nous-capybara-7b', 'mythomist-7b', 'toppy-m-7b', 'zephyr-7b-beta',
-        'mistral-7b-instruct'
-    ];
 
     function setUIBusyState(isBusy) {
         btn.style.display = isBusy ? 'none' : 'inline-block';
         loading.style.display = isBusy ? 'inline-block' : 'none';
     }
-
+    
     function showError(message) {
         errorWindow.textContent = message;
         errorWindow.classList.add('show');
@@ -65,12 +67,12 @@ async function process_request() {
         }, 6000); // Hide after 6 seconds
     }
 
+
+
     setUIBusyState(true);
 
     try {
-        if (!apiKey || !prompt) {
-            throw new Error("You must set your API key and a message to get a response.");
-        }
+        if (!apiKey || !prompt) {throw new Error("You must set your API key and a message to get a response.");}
 
         const newUserDiv = document.createElement('div');
         newUserDiv.className = 'text-user';
@@ -111,15 +113,22 @@ async function process_request() {
         const responseData = await response.json();
 
         if (text_models.includes(model)) {
-            messages.push({ "role": "assistant", "content": responseData.response });
+            answer = responseData.response
+            messages.push({ "role": "assistant", "content": answer});
             const newResponseDiv = document.createElement('div');
             newResponseDiv.className = 'text-response';
 
+            answer = answer.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'); //bold
+            answer = answer.replace(/\*(.*?)\*/g, '<em>$1</em>'); // italic
+            answer = answer.replace(/```(.*?)\n([\s\S]*?)```/g,
+                '<pre class="code-block-wrapper"><button class="copy-btn">Copy</button><code class="language-$1">$2</code></pre>'); // code block
+
             newResponseDiv.innerHTML = `
                 <i class="fa-solid fa-robot"></i> AI:
-                <p>${responseData.response}</p>
+                <p>${answer}</p>
             `;
             chatHistory.appendChild(newResponseDiv);
+            Prism.highlightAll();
         } else {
             const newResponseDiv = document.createElement('div');
             newResponseDiv.className = 'image-response';
@@ -138,3 +147,17 @@ async function process_request() {
         setUIBusyState(false);
     }
 }
+
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('copy-btn')) {
+        const codeBlock = e.target.nextElementSibling.innerText;
+        navigator.clipboard.writeText(codeBlock).then(() => {
+            e.target.textContent = 'Copied!';
+            setTimeout(() => {
+                e.target.textContent = 'Copy';
+            }, 5000);
+        }).catch(err => {
+            console.error('Failed to copy: ', err);
+        });
+    }
+});

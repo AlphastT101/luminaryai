@@ -4,7 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LuminaryAI API</title>
+
+    <link rel="stylesheet /" href="{{ url_for('static', filename='prism.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
 </head>
@@ -17,18 +20,21 @@
     <div class="settings" id="settingsWindow">
         <p style="color: white;">Choose a model:</p>
         <select id="modelInput">
-            <option value="poli">Poli</option>
-            <option value="dalle3">Dalle-3</option>
-            <option value="sdxl-turbo">SDXL-Turbo</option>
+            <option value="poli">Polinations.ai (image)</option>
+            <option value="dalle3">Dalle-3 (image)</option>
+            <option value="sdxl-turbo">SDXL-Turbo (image)</option>
             <option value="gpt-4o">GPT-4o</option>
+            <option value="gpt-4-turbo">GPT-4-Turbo</option>
+            <option value="gpt-4">GPT-4</option>
+            <option value="gpt-3.5-turbo">GPT-3.5-Turbo</option>
+            <option value="gpt-3.5">GPT-3.5</option>
             <option value="command-r-plus-online">Command R+ (online)</option>
             <option value="mistral-7b-instruct">Mistral-7b-instruct</option>
-            <option value="openchat-7b">OpenChat-7b</option>
-            <option value="openchat-3.5-7b">OpenChat-3.5-7b</option>
+            <option value="llama-3-8b-instruct">Llama-3-8b-instruct</option>
+
             <option value="qwen-2-7b-instruct">Qwen-2-7b-instruct</option>
             <option value="phi-3-mini-128k-instruct">Phi-3-mini-128k-instruct</option>
             <option value="phi-3-medium-128k-instruct">Phi-3-medium-128k-instruct</option>
-            <option value="llama-3-8b-instruct">Llama-3-8b-instruct</option>
             <option value="gemma-7b-it">Gemma-7b-it</option>
             <option value="nous-capybara-7b">Nous-Capybara-7b</option>
             <option value="mythomist-7b">Mythomist-7b</option>
@@ -41,8 +47,6 @@
         <br>
         <button type="button" id="closeSettings" class="closeSettings">Save</button>
     </div>
-
-    <!-- <div class="col"><img id="generatedImage" src="" alt="Generated Image" style="display:none;"></div> -->
 
 
     <div class="chat-history container" style="max-width: 1000px; padding-bottom: 100px;">
@@ -75,6 +79,10 @@
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js" integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js" integrity="sha384-fbbOQedDUMZZ5KreZpsbe1LCZPVmfTnH7ois6mU1QK+m14rQ1l2bGBq41eYeM/fS" crossorigin="anonymous"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/plugins/autoloader/prism-autoloader.min.js"></script>
+
     <script src="https://kit.fontawesome.com/cb5bb466c4.js" crossorigin="anonymous"></script>
     <script src="{{ url_for('static', filename='index.js') }}"></script>
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>

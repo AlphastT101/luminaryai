@@ -4,11 +4,19 @@ import random
 import string
 import requests
 
-
-
+system_prompt = {
+    "gpt-4": "I am GPT-4. I am not GPT-4-Turbo rather I am a normal GPT-4 powered by OpenAI.",
+    "gpt-4-turbo": "I am GPT-4-Turbo, powered by OpenAI. I am not GPT-4.",
+    "gpt-3.5": "I am GPT-3.5. I Always try to act as a GPT-3.5. I am a normal version of GPT-3.5 means I am not the turbo edition. Plus, I am not GPT-4 or GPT-4-turbo.",
+    "gpt-3.5-turbo": "I am GPT-3.5-turbo, I am not GPT-4-turbo. I am powered by OpenAI"
+}
+spml = ["gpt-4", "gpt-4-turbo", "gpt-3.5", "gpt-3.5-turbo"]
 models_dict = {
-    "openchat-7b":"openchat/openchat-7b:free",
-    "openchat-3.5-7b":"openchat/openchat-7b:free",
+    "gpt-4":"openchat/openchat-7b:free",
+    "gpt-4-turbo":"openchat/openchat-7b:free",
+    "gpt-3.5":"openchat/openchat-7b:free",
+    "gpt-3.5-turbo":"openchat/openchat-7b:free",
+
     "qwen-2-7b-instruct":"qwen/qwen-2-7b-instruct:free",
     "phi-3-mini-128k-instruct":"microsoft/phi-3-mini-128k-instruct:free",
     "phi-3-medium-128k-instruct":"microsoft/phi-3-medium-128k-instruct:free",
@@ -25,7 +33,7 @@ models_dict = {
 }
 
 available = [
-'openchat-7b', 'openchat-3.5-7b', 'qwen-2-7b-instruct', 'phi-3-mini-128k-instruct',
+'gpt-4', 'gpt-4-turbo', 'gpt-3.5', 'gpt-3.5-turbo', 'qwen-2-7b-instruct', 'phi-3-mini-128k-instruct',
 'phi-3-medium-128k-instruct', 'llama-3-8b-instruct', 'gemma-7b-it', 'nous-capybara-7b', 'mythomist-7b',
 'toppy-m-7b', 'zephyr-7b-beta', 'mistral-7b-instruct', 'gpt-4o', 'command-r-plus-online'
 ]
@@ -78,9 +86,14 @@ def gen_text(api_key, msg_history, model):
         api_key=api_key,
     )
 
+    system_ = msg_history[0]["role"]
+    if system_ == "system" and model in spml:
+        msg_history.insert(0, {"role": "system", "content": f"{system_prompt[model]} {system_}"})
+    elif system_ != "system" and model in spml:
+        msg_history.insert(0, {"role": "system", "content": system_prompt[model]})
+
     completion = client.chat.completions.create(
         model=models_dict[model],
         messages=msg_history,
-        max_tokens=3000
     )
     return completion.choices[0].message.content
