@@ -17,6 +17,14 @@ def bot_slash(bot,start_time, mongodb):
         if await check_blist(interaction, mongodb): return
         await interaction.response.send_message("bot is online")
 
+    @bot.tree.command(name="ping", description="See bot ping")
+    @commands.guild_only()
+    async def check(interaction: discord.Interaction):
+        if await check_blist(interaction, mongodb): return
+        await interaction.response.defer(ephemeral=False)
+        latency_ms = round(bot.latency * 1000)
+        await interaction.followup.send(content=f'**Pong! My Latency is `{latency_ms}ms`.**')
+
     @bot.tree.command(name="uptime", description="Shows bot uptime")
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def uptime(interaction: discord.Interaction):

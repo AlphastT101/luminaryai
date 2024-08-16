@@ -34,7 +34,7 @@ def moderation(bot):
                 try:
                     num_messages_int = int(num_messages)  # Convert the string to an integer
                     if num_messages_int < 1:
-                        await ctx.send(f"**How can i delete {num_messages_int} messages?**", delete_after=3)
+                        await ctx.send(f"**How can I delete {num_messages_int} messages?**", delete_after=3)
                     if num_messages_int == 1:
                         await ctx.send("**If you want to delete just one message, then please do this manually.**", delete_after=3)
                     else:
@@ -75,7 +75,6 @@ def moderation(bot):
             return
 
 
-            
         try:
             # Send a confirmation message to the moderator
             confirm_msg = await ctx.send(embed=discord.Embed(title="LuminaryAI - confirmation",description=f"**Are you sure you want to kick this member?**\n**Member: `{member}`**\n**Reason: `{reason}`**\n**Moderator: {ctx.author}**", color=0xc8dc6c))
@@ -108,9 +107,6 @@ def moderation(bot):
 
 
 
-
-
-
     @bot.command(name='ban')
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def kick(ctx, member: discord.Member = None, *, reason: str = "No reason provided"):
@@ -136,8 +132,6 @@ def moderation(bot):
             await ctx.send(embed=discord.Embed(description="**I don't have the necessary permission in this channel to perform this action!**",colour=0xFF0000))
             return
 
-
-            
         try:
             # Send a confirmation message to the moderator
             confirm_msg = await ctx.send(embed=discord.Embed(title="LuminaryAI - confirmation",description=f"Are you sure you want to ban this member?\n**Member: `{member}`**\n**Reason: `{reason}`**\n**Moderator: `{ctx.author}`**\n React with ✅ to confirm.",colour=0xc8dc6c))

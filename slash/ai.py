@@ -1,13 +1,10 @@
 import discord
-from discord import Embed, app_commands
+from discord import app_commands
 from discord.ext import commands
-from bot_utilities.ai_utils import vision
-import datetime
 from bot_utilities.owner_utils import *
-import json
-import datetime
+from bot_utilities.ai_utils import vision
 from bot_utilities.ai_utils import *
-from bot_utilities.api_utils import check_user, insert_token
+from bot_utilities.api_utils import check_user, insert_token, delete_token
 
 def ai_slash(bot, mongodb, member_histories_msg, is_generating):
 
@@ -49,8 +46,8 @@ def ai_slash(bot, mongodb, member_histories_msg, is_generating):
     #     else:
     #         await interaction.followup.send(embed=Embed(description="**❌ You don't have permission to use this comamnd.**", color=discord.Color.red()),)
 
-    @commands.guild_only()
     @bot.tree.command(name="vision", description="Vision an image")
+    @commands.guild_only()
     @app_commands.describe(message="Enter your message.")
     @app_commands.describe(image_link="Enter the image link.")
     async def vision_command(interaction: discord.Interaction, message: str, image_link: str):
@@ -68,8 +65,8 @@ def ai_slash(bot, mongodb, member_histories_msg, is_generating):
         await interaction.followup.send(embed=response_embed)
     
 
-    @commands.guild_only()
     @bot.tree.command(name="ask", description="Ask LuminaryAI a question!")
+    @commands.guild_only()
     @app_commands.describe(prompt="The question you want to ask LuminaryAI")
     async def ask(interaction: discord.Interaction, prompt: str):
         if await check_blist(interaction, mongodb): return
@@ -86,7 +83,6 @@ def ai_slash(bot, mongodb, member_histories_msg, is_generating):
             title="LuminaryAI - Loading",
             description="Please wait while I process your request.",
             color=0x99ccff,
-            timestamp=datetime.datetime.now(datetime.timezone.utc)
         )
         answer_embed.set_footer(text="This may take a few moments", icon_url=bot.user.avatar.url)
         answer = await interaction.followup.send(embed=answer_embed)
@@ -98,14 +94,13 @@ def ai_slash(bot, mongodb, member_histories_msg, is_generating):
             title="LuminaryAI - Response",
             description=generated_message,
             color=0x99ccff,
-            timestamp=datetime.datetime.now(datetime.timezone.utc)
         )
         answer_generated.set_footer(text="Thanks for using LuminaryAI!", icon_url=bot.user.avatar.url)
         await answer.edit(embed=answer_generated)
 
 
-    @commands.guild_only()
     @bot.tree.command(name="imagine", description="Imagine an image using LuminaryAI")
+    @commands.guild_only()
     @app_commands.describe(prompt="Enter the prompt for the image to generate.")
     async def imagine_pla(interaction: discord.Interaction, prompt: str):
         if await check_blist(interaction, mongodb): return
@@ -141,7 +136,6 @@ def ai_slash(bot, mongodb, member_histories_msg, is_generating):
             embed = discord.Embed(
                 title="LuminaryAI - Image Generation",
                 description=f"Requested by: `{interaction.user}`\nPrompt: `{prompt}`",
-                timestamp=datetime.datetime.now(datetime.timezone.utc),
                 color=discord.Color.blue()
             )
             embed.set_footer(icon_url=bot.user.avatar.url, text="Thanks for using LuminaryAI!")
@@ -153,8 +147,9 @@ def ai_slash(bot, mongodb, member_histories_msg, is_generating):
             is_generating[interaction.user.id] = False
             await channel.delete()
 
-    @commands.guild_only()
+
     @bot.tree.command(name='poli', description="Generate images using Polinations.ai")
+    @commands.guild_only()
     @app_commands.describe(prompt="Enter the prompt for the image to generate.")
     async def poli_gen(interaction: discord.Interaction, prompt: str):
         if await check_blist(interaction, mongodb): return
@@ -165,7 +160,6 @@ def ai_slash(bot, mongodb, member_histories_msg, is_generating):
                 title="LuminaryAI - Image generation",
                 description=f"Requested by: `{interaction.user}`\nPrompt: `{prompt}`.",
                 color=0x99ccff,
-                timestamp=datetime.datetime.now(datetime.timezone.utc)
             )
             send_embed.set_footer(icon_url=bot.user.avatar.url, text="Thanks for using LuminaryAI!")
             image = await poly_image_gen(session, prompt)
@@ -174,44 +168,19 @@ def ai_slash(bot, mongodb, member_histories_msg, is_generating):
             await delete_msg.delete()
             await interaction.followup.send(content="", embed=send_embed, file=file)
 
-    @commands.guild_only()
     @bot.tree.command(name="search", description="Seaech the web for images and texts!")
+    @commands.guild_only()
     @app_commands.describe(prompt="Enter prompt for the web to search!")
     async def search(interaction: discord.Interaction, prompt: str):
         if await check_blist(interaction, mongodb): return
         await interaction.response.defer(ephemeral=False)
-        
-        result = web_search(prompt)
         image_urls = search_image(prompt)
-        if result == "": result = "❌ aww nooo, **I couldn't find any results!**"
+        await create_and_send_embed(prompt, bot, interaction, image_urls)
 
-        if not image_urls:
-            no_results = discord.Embed(
-                title="LuminaryAI - No results",
-                description="❌ aww nooo, **I couldn't find any images!**",
-                color=discord.Colour.red(),
-                timestamp=datetime.datetime.now(datetime.timezone.utc)
-            )
-            await interaction.followup.send(embed=no_results)
-            return
 
-        file_path = create_composite_image(image_urls)
-        web_embed = discord.Embed(
-            title=f"Luminary - Web Search",
-            description=f"{result}",
-            color=0x99ccff,
-            timestamp=interaction.created_at)
-
-        file_composite = discord.File(file_path, filename="composite_image.png")
-        web_embed.set_image(url="attachment://composite_image.png")
-        web_embed.set_footer(text="Thanks for using LuminaryAI!", icon_url=bot.user.avatar.url)
-        
-        await interaction.followup.send(embed=web_embed, file=file_composite)
-        
-
-    @commands.guild_only()
     @bot.tree.command(name="generate-api-key", description="Generate an API key for LuminaryAI")
-    async def apikey(interaction: discord.Interaction):
+    @commands.guild_only()
+    async def create_api(interaction: discord.Interaction):
         if await check_blist(interaction, mongodb): return
         await interaction.response.defer(ephemeral=True)
         check = await check_user(mongodb, interaction.user.id)
@@ -222,3 +191,20 @@ def ai_slash(bot, mongodb, member_histories_msg, is_generating):
         
         token = await insert_token(mongodb, interaction.user.id)
         await interaction.followup.send(f"> ✅ **API token is generated successfully. Do not share this key with anyone, even they are from LuminaryAI!**\n* **Join our support server for help on how to use the API Key.**\n* **API token:**\n```bash\n{token}```\n")
+
+
+    @bot.tree.command(name="delete-api-key", description="Delete Your API key for LuminaryAI")
+    @commands.guild_only()
+    async def delete_api(interaction: discord.Interaction):
+        if await check_blist(interaction, mongodb): return
+        await interaction.response.defer(ephemeral=False)
+        check = await check_user(mongodb, interaction.user.id)
+    
+        if check:
+            deleted = await delete_token(mongodb, interaction.user.id)
+            if deleted:
+                await interaction.followup.send("> ✅ **API token is deleted successfully**")
+            else:
+                await interaction.followup.send("> ❌ **Failed to delete API token**")
+        else: await interaction.followup.send("> ❌ **You don't have an API key!**")
+        

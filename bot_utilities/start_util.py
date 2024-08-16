@@ -19,3 +19,24 @@ def start(client):
         api_token = api_token_doc["value"]
 
     return bot_token, api_token
+
+def spotify_token(client):
+    db = client["tokens"]
+    bot_collection = db["bot"]
+
+    spotify_id = bot_collection.find_one({"key": "spotify_id"})
+    spotify_secret = bot_collection.find_one({"key": "spotify_secret"})
+
+    if spotify_id is None:
+        spotify_id = input("Spotify ID is not found in MongoDB, Please enter a new ID: ")
+        bot_collection.insert_one({"key": "spotify_id", "value": spotify_id})
+    else:
+        spotify_id = spotify_id["value"]
+
+    if spotify_secret is None:
+        spotify_secret = input("Spotify secret is not found in MongoDB, Please enter a new secret token: ")
+        bot_collection.insert_one({"key": "spotify_secret", "value": spotify_secret})
+    else:
+        spotify_secret = spotify_secret["value"]
+
+    return spotify_id, spotify_secret

@@ -1,21 +1,21 @@
-import aiohttp
 import io
-import random
-from urllib.parse import quote
-from openai import AsyncOpenAI
-from PIL import Image
-import os
-from pymongo.mongo_client import MongoClient
-import requests
-from io import BytesIO
-import requests
-import asyncio
-from bot_utilities.prompt_sys import prompt
+import cv2
 import yaml
-from bot_utilities.start_util import *
+import random
+import discord
+import asyncio
+import aiohttp
+import requests
 import imagehash
 import numpy as np
-import cv2
+from PIL import Image
+from io import BytesIO
+from bs4 import BeautifulSoup
+from openai import AsyncOpenAI
+from urllib.parse import quote
+from bot_utilities.start_util import *
+from bot_utilities.prompt_sys import prompt
+from pymongo.mongo_client import MongoClient
 
 
 with open("config.yml", "r") as config_file:
@@ -23,13 +23,13 @@ with open("config.yml", "r") as config_file:
 
 mongodb = config["bot"]["mongodb"]
 client = MongoClient(mongodb)
-bot_token, GPT_KEY = start(client)
+bot_token, api_key = start(client)
 GPT_MODEL = config["bot"]["text_model"]
 request_queue = asyncio.Queue()
 
 openai_client = AsyncOpenAI(
-    api_key = GPT_KEY,
-    base_url = "https://api.naga.ac/v1"
+    base_url="https://openrouter.ai/api/v1",
+    api_key=api_key,
 )
 
 
@@ -176,58 +176,6 @@ async def generate_image_prodia(prompt, model, sampler, seed):
                         content = await response.content.read()
                         img_file_obj = io.BytesIO(content)
                         return img_file_obj
-
-def detect_nsfw_request(query):
-    nsfw_keywords = [
-        'nsfw', 'adult', 'explicit', '18+', 'porn', 'xxx', 'sexual', 'indecent', 'lewd', 
-        'obscene', 'raunchy', 'risqué', 'sensual', 'vulgar', 'naughty', 'kinky', 'dirty', 
-        'lustful', 'provocative', 'stimulating', 'sultry', 'titillating', 'unwholesome', 
-        'filthy', 'smutty', 'offensive', 'lascivious', 'carnal', 'salacious', 'X-rated', 
-        'prurient', 'perverted', 'lecherous', 'horny', 'fetish', 'erogenous', 'nude', 
-        'sordid', 'scandalous', 'private parts', 'intimate areas', 'sensitive anatomy',
-        'naked','boob','boobies','anal','dick','fucker','fuck','fucking','without clothes','pornhub','blowjob','cum','boobjob','xxxx','xxxxx','xxxxxxx','xxxxxxxx'
-    ]
-
-
-    # Convert query to lowercase for case-insensitive matching
-    query_lower = query.lower()
-
-    # Check if any NSFW keyword is present in the query
-    for keyword in nsfw_keywords:
-        if keyword in query_lower:
-            return True  # NSFW request detected
-
-    return False  # Safe request
-
-
-def search_photo(query):
-
-    base_url = "https://www.googleapis.com/customsearch/v1"
-    api_key = 'AIzaSyAh3oa-_3Zron_GNpXKnwxzIeuTrYrluFs'
-    cx = '126be3d6257454161'
-    params = {
-        'q': f"{query} image",
-        'searchType': 'image',
-        'key': api_key,
-        'cx': cx,
-    }
-
-    # Make the request to Google Custom Search API
-    response = requests.get(base_url, params=params)
-
-    if response.status_code == 200:
-        # Parse the JSON response
-        result = response.json()
-
-        # Check if there are image results
-        if 'items' in result and result['items']:
-            # Extract the URL of the first image
-            photo_url = result['items'][0]['link']
-            return photo_url
-        else:
-            return "No image found."
-    else:
-        return f"Error: {response.status_code}"
     
 
 def web_search(query):
@@ -262,93 +210,135 @@ def web_search(query):
     
 
 
-API_KEY = 'AIzaSyBNCNpIH26nsO_umj1LHMSMCo1jzmgkuaI'
-SEARCH_ENGINE_ID = 'a1d15feaa6af94024'
-
-# Function to search for images
 def search_image(query):
-    search_url = f"https://www.googleapis.com/customsearch/v1?key={API_KEY}&cx={SEARCH_ENGINE_ID}&searchType=image&q={query}"
-
+    search_url = f"https://www.bing.com/images/search?q={query}"
+    
     try:
         response = requests.get(search_url)
         response.raise_for_status()
-        data = response.json()
-        image_urls = [item['link'] for item in data.get('items', [])[:10]]
+        soup = BeautifulSoup(response.text, 'html.parser')
+
+        # Find all image tags
+        image_tags = soup.find_all('img', {'class': 'mimg'})
+        image_urls = [img['src'] for img in image_tags[:10]]
         
         return image_urls
     except requests.exceptions.RequestException as e:
+        print(f"Error searching for images: {e}")
         return None
 
 
-def create_composite_image(image_urls, images_per_row=5, spacing=10, target_size=(256, 256)):
+
+async def create_and_send_embed(query, client, interaction, image_urls, target_size=(256, 256)):
+    channel = client.get_channel(interaction.channel.id)
+
+    try: message = await channel.fetch_message(interaction.message.id)
+    except AttributeError: message = None
+
+    # Helper function to check for duplicates
+    def is_duplicate(img_hash, img_cv):
+        for buffer in buffers:
+            similarity = cv2.matchTemplate(buffer, img_cv, cv2.TM_CCOEFF_NORMED)
+            if np.max(similarity) > 0.15:
+                return True
+        return False
+
     images = []
     hashes = set()
     buffers = []
 
-    def is_duplicate(img_hash, img_cv):
-        # Check using imagehash
-        if img_hash in hashes:
-            return True
-        
-        # Check using OpenCV for structural similarity
-        for buffer in buffers:
-            similarity = cv2.matchTemplate(buffer, img_cv, cv2.TM_CCOEFF_NORMED)
-            if np.max(similarity) > 0.15:  # Adjust similarity threshold as needed
-                return True
-        
-        return False
+    async with aiohttp.ClientSession() as session:
+        for url in image_urls:
+            try:
+                async with session.get(url) as response:
+                    # Get the content type from the response headers
+                    content_type = response.headers.get('Content-Type')
+                    if content_type and 'image' in content_type:
+                        img_data = await response.read()
+                        
+                        # Special handling for GIFs
+                        if 'gif' in content_type:
+                            images.append((img_data, 'gif'))
+                            continue
 
-    for url in image_urls:
-        try:
-            response = requests.get(url)
-            img = Image.open(BytesIO(response.content))
-            img = img.resize(target_size, Image.LANCZOS)
-            
-            # Convert image to numpy array for OpenCV
-            img_cv = np.array(img)
-            img_cv = cv2.cvtColor(img_cv, cv2.COLOR_RGB2BGR)
-            
-            # Calculate image hash
-            img_hash = imagehash.average_hash(img)
+                        img = Image.open(BytesIO(img_data))
+                        img = img.resize(target_size, Image.LANCZOS)
 
-            # Check for duplicates
-            if is_duplicate(img_hash, img_cv):
+                        # Convert image to numpy array for OpenCV
+                        img_cv = np.array(img)
+                        img_cv = cv2.cvtColor(img_cv, cv2.COLOR_RGB2BGR)
+
+                        # Calculate image hash
+                        img_hash = imagehash.average_hash(img)
+
+                        # Check for duplicates
+                        if is_duplicate(img_hash, img_cv):
+                            continue
+
+                        # Add image and buffer if not duplicate
+                        hashes.add(img_hash)
+                        images.append((img_data, 'image'))
+                        buffers.append(img_cv)
+                    else:
+                        # If the content is not an image, skip it
+                        continue
+
+            except Exception as e:
                 continue
 
-            # Add image and buffer if not duplicate
-            hashes.add(img_hash)
-            images.append(img)
-            buffers.append(img_cv)
-
-        except Exception as e:
-            continue
-
     if not images:
-        return None
+        await channel.send("No valid images found.")
+        return
 
-    img_width, img_height = target_size
-    row_height = img_height + spacing
-    total_rows = (len(images) + images_per_row - 1) // images_per_row
-    composite_width = img_width * images_per_row + spacing * (images_per_row - 1)
-    composite_height = row_height * total_rows
-    composite_image = Image.new('RGBA', (composite_width, composite_height), color=(255, 255, 255, 0))
+    # Prepare a list of image URLs to include in embeds
+    attachment_urls = image_urls[:4]  # Adjust this as needed
 
-    # Paste images onto the composite image
-    x_offset = 0
-    y_offset = 0
-    for i, img in enumerate(images):
-        composite_image.paste(img, (x_offset, y_offset))
-        x_offset += img_width + spacing
-        if (i + 1) % images_per_row == 0:
-            y_offset += row_height
-            x_offset = 0
+    # Create a list of embeds
+    embeds = []
+    for i, img_url in enumerate(attachment_urls):
+        result = web_search(query)
+        description = (
+            f':mag: **Search Query:** {query}\n\n'
+            f'{result}'
+        )
+        embed = discord.Embed(description=description, color=0x99ccff, url="https://rajtech.me")
+        try: user = interaction.user; avatar_url = interaction.user.avatar.url
+        except AttributeError: user = interaction.author; avatar_url = interaction.author.avatar.url
+        embed.set_footer(text=f"Requested by {user}", icon_url=avatar_url)
 
-    directory = 'cache'
-    os.makedirs(directory, exist_ok=True)
-    file_path = os.path.join(directory, f'composite_image.png')
-    composite_image.save(file_path)
+        # Set image in embed
+        embed.set_image(url=img_url)
+        embeds.append(embed)
 
-    return file_path
+    if not message:
+        await interaction.followup.send(embed=embed)
+    else:
+        await channel.send(embeds=embeds, reference=message, mention_author=False)
+
+
+
+
+# async def upload_image_to_discord(image_data, channel_id):
+#     url = f'https://discord.com/api/v10/channels/{channel_id}/messages'
+    
+#     headers = {
+#         'Authorization': f'Bot MTI1MDEyODA5Nzk0MTAwMDIyMw.GxHB6g.W9LqL1XJDSGRjNcdcXBfFGxPnDCaCzZuyNd--A',
+#         'Content-Type': 'multipart/form-data'
+#     }
+    
+#     # Create a multipart form-data payload
+#     data = aiohttp.FormData()
+#     data.add_field('file', BytesIO(image_data), filename='image.png', content_type='image/png')
+#     data.add_field('payload_json', '{"content": ""}')  # Adding an empty message payload
+    
+#     async with aiohttp.ClientSession() as session:
+#         async with session.post(url, headers=headers, data=data) as response:
+#             if response.status == 200:
+#                 response_json = await response.json()
+#                 return response_json['attachments'][0]['url']
+#             else:
+#                 print(f"Failed to upload image: {response.status} {await response.text()}")
+#                 return None
 
 
 async def vision(prompt, image_link):

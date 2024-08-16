@@ -11,12 +11,6 @@ from discord.ui import Button
 
 def bbot(bot, start_time, mongodb):
 
-    @bot.command(name="ping")
-    async def ping(ctx):
-        wait = await ctx.send("**Please wait while I calculate my latency.**")
-        latency_ms = round(bot.latency * 1000)
-        await wait.edit(content=f'**Pong! My Latency is `{latency_ms}ms`.**')
-
 
     @bot.command(name="server")
     async def list_guilds(ctx):
@@ -243,8 +237,11 @@ def bbot(bot, start_time, mongodb):
 
 
 
-
-
+    @bot.command(name="ping")
+    async def ping(ctx):
+        wait = await ctx.send("**Please wait while I calculate my latency.**")
+        latency_ms = round(bot.latency * 1000)
+        await wait.edit(content=f'**Pong! My Latency is `{latency_ms}ms`.**')
 
     @bot.command(name="uptime")
     @commands.cooldown(1, 5, commands.BucketType.user)
@@ -256,7 +253,6 @@ def bbot(bot, start_time, mongodb):
         embed = discord.Embed(colour=0xc8dc6c)
         embed.add_field(name="LuminaryAI - Uptime", value=str(uptime_duration))
         await ctx.send(embed=embed)
-
 
     @bot.command(name='about')
     @commands.cooldown(1, 30, commands.BucketType.user)

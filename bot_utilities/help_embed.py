@@ -33,17 +33,17 @@ def get_chunk(embed, commands_list, start, count=5):
 information_commannds = [
     ("`/about`", "❯ About the bot"),
     ("`/help`", "❯ Command list"),
-    ("`ai.uptime`", "❯ Bot uptime"),
-    ("`ai.support`", "❯ Support server link"),
-    ("`ai.owner`", "❯ Shows owner of the bot"),
-    ("`ai.user {mention or id}`", "❯ Shows info of a user.")
+    ("`/uptime`", "❯ Bot uptime"),
+    ("`/support`", "❯ Support server link"),
+    ("`/owner`", "❯ Shows owner of the bot"),
+    ("`/userinfo {mention or id}`", "❯ Shows info of a user.")
 ]
 
 ai_commands = [
-    ('`ai.imagine {prompt}`', "❯ Generates images using Lumage-1."),
-    ('`ai.imagine.p {prompt}`', "❯ Generates images using pollinations.ai according to user-inputs. We prefer to use the slash command `/imagine`"),
-    ('`ai.ask {prompt}`', "❯ Generates answers according to user-inputs. Message history available"),
-    ('`ai.search {prompt}`', "❯ Search the web for text and images"),
+    ('`/imagine {prompt}`', "❯ Generates images using Lumage-1."),
+    ('`/poli {prompt}`', "❯ Generates images using pollinations.ai according to user-inputs. We prefer to use the slash command `/imagine`"),
+    ('`/ask {prompt}`', "❯ Generates answers according to user-inputs. Message history available"),
+    ('`/search {prompt}`', "❯ Search the web for text and images"),
     ('`/vision {prompt}`', "❯ Vision an image. This command is slash only."),
     ('`@luminaryai {prompt}`', "❯ Ping LuminaryAI to generate text and images."),
     ('`@luminaryai activate`', "❯ Enable AI responses, You need admin permissions to run this command."),
@@ -51,9 +51,9 @@ ai_commands = [
 ]
 
 fun_commands = [
-    ('`ai.rps {your move}`', "❯ Play RPS with the bot"),
-    ('`ai.randomfact`', "❯ Shows a random fact"),
-    ('`ai.wordle`', "❯ Play the wordle game!")
+    ('`/rps {your move}`', "❯ Play RPS with the bot"),
+    ('`/randomfact`', "❯ Shows a random fact"),
+    ('`/wordle`', "❯ Play the wordle game!")
 ]
 
 moderation_commands = [

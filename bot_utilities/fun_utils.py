@@ -1,6 +1,51 @@
-import discord
-from discord.ext import commands
 from PIL import Image, ImageDraw, ImageFont
+
+
+facts = [
+    "Honey never spoils. Archaeologists have found pots of honey in ancient Egyptian tombs that are over 3,000 years old and still perfectly edible.",
+    "The shortest war in history was between Britain and Zanzibar on August 27, 1896. Zanzibar surrendered after 38 minutes.",
+    "Cows have best friends and can become stressed when they are separated from them.",
+    "Bananas are berries, but strawberries aren't.",
+    "The Eiffel Tower can be 15 cm taller during the summer due to thermal expansion.",
+    "A 'jiffy' is an actual unit of time, equivalent to 1/100th of a second.",
+    "The first recorded game of baseball was played in 1846 in Hoboken, New Jersey.",
+    "The smell of freshly cut grass is actually a plant distress call.",
+    "Humans and giraffes have the same number of neck vertebrae (seven).",
+    "A group of flamingos is called a 'flamboyance.'",
+    "The dot over the letters 'i' and 'j' is called a tittle.",
+    "The longest word without a vowel is 'rhythms.'",
+    "The first known contraceptive was crocodile dung, used by ancient Egyptians.",
+    "Cows have regional accents.",
+    "There are more possible iterations of a game of chess than there are atoms in the known universe.",
+    "The average person will spend six months of their life waiting for red lights to turn green.",
+    "The world's largest desert is Antarctica.",
+    "The 'Waffle House Index' is an informal measure used by FEMA to determine the severity of a storm and the likely scale of assistance required for disaster recovery.",
+]
+
+
+words_list = [
+    "Apple", "Bacon", "Carry", "Doggy", "Eleph", "Flame", "Grass", "Happy", "Icing", "Jolly",
+    "Kitty", "Lemon", "Mango", "Noble", "Olive", "Pizza", "Queen", "Radar", "Sweet", "Tango",
+    "Umbra", "Venom", "Water", "Xenon", "Yacht", "Zebra", "Adept", "Bliss", "Candy", "Dwarf",
+    "Eagle", "Fairy", "Gears", "Hatch", "Icily", "Jelly", "Kazoo", "Lunar", "Magic", "Nerdy",
+    "Oasis", "Puppy", "Quick", "Rover", "Savvy", "Tiger", "Unity", "Vital", "Waltz", "Xerox",
+    "Yield", "Zesty", "Amigo", "Baker", "Cutey", "Daisy", "Evoke", "Fudge", "Giant", "Haven",
+    "Inked", "Juicy", "Kiosk", "Lemon", "Mocha", "Nymph", "Olive", "Piano", "Quota", "Rusts",
+    "Scone", "Table", "Unity", "Vocal", "Whirl", "Xylan", "Yogis", "Zappy", "Angel", "Beach",
+    "Candy", "Disco", "Earth", "Fable", "Globe", "Hasty", "Ivory", "Juice", "Kitty", "Lemon",
+    "Mocha", "Nylon", "Omega", "Panda", "Queen", "Ruler", "Sunny", "Table", "Unity", "Velum",
+    "Whisk", "Xerox", "Yogis", "Zebra"
+]
+choices = ["rock", "paper", "scissors"]
+outcomes = {
+    "rock": {"rock": "tie", "paper": "lose", "scissors": "win"},
+    "paper": {"rock": "win", "paper": "tie", "scissors": "lose"},
+    "scissors": {"rock": "lose", "paper": "win", "scissors": "tie"}
+}
+
+
+
+
 
 def wordleScore(target, guess):
     score_name = {2: 'green', 1: 'amber', 0: 'gray'}

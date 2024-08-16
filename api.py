@@ -5,6 +5,7 @@ from PIL import Image
 from bot_utilities.api_utils import poli, gen_text, check_token, get_id, available, models_dict
 from bot_utilities.start_util import start
 from bot_utilities.api_models import models
+# from discord.ext.ipc import Server
 import random
 import string
 import yaml
@@ -25,10 +26,16 @@ bot_token, open_r = start(client)
 cache_folder = os.path.join(os.getcwd(), 'cache')
 os.makedirs(cache_folder, exist_ok=True)
 app = Flask(__name__)
+# app.secret_key = os.urandom(24)
+#login_redirect = f"https://discord.com/api/oauth2/authorize?client_id={client_id}&redirect_uri={redirect_uri}&response_type=code&scope=identify"
 
 @app.route('/')
 def index():
     return render_template('index.html')
+
+# @app.route("/login")
+# def login():
+#     return redirect()
 
 # OpenAI-compatible image generation endpoint
 @app.route('/v1/images/generations', methods=['POST'])
@@ -188,7 +195,7 @@ def text():
                     os.remove(file_path)
                     requests.delete(f"https://discord.com/api/v9/channels/{channel_id}", headers=headers)
                     return jsonify({"error": "An internal server error occured, it's a known issue. We're working on it."}), 500
-                elif int(message['author']['id']) != 1254815403553722401:
+                elif int(message['author']['id']) != 1254815403553722401 and int(message['author']['id']) != 1212631443667423282:
                     response = message['content']
                     do_break = True
                     break

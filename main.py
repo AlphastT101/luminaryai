@@ -7,55 +7,63 @@ import asyncio
 import threading
 import time, requests
 
-from slash.bot import bot_slash
 from slash.ai import ai_slash
+from slash.fun import fun_slash
+from slash.bot import bot_slash
+from slash.information import information_slash
+from slash.moderation import moderation_slash
 
+from prefix.ai import ai
+from prefix.fun import fun
 from prefix.bot import bbot
 from prefix.music import music
-from prefix.fun import fun
-from prefix.general import general
-from prefix.ai import ai
 from prefix.moderation import moderation
+from prefix.information import information
 
-from events.on_cmd_error import on_cmd_error
 from events.on_messages import on_messages
 from events.member_join import member_join
+from events.on_cmd_error import on_cmd_error
 
-from bot_utilities.ai_utils import process_queue
 from api import app
-from bot_utilities.start_util import start
-
+from bot_utilities.start_util import *
+from bot_utilities.ai_utils import process_queue
 
 def run_flask_app():
     port = int(os.environ.get("PORT", config["flask"]["port"]))
-    app.run(host='0.0.0.0', port=port, debug=True)
+    app.run(host='0.0.0.0', port=port, debug=False)
 
 
 with open("config.yml", "r") as config_file: config = yaml.safe_load(config_file)
 mongodb = config["bot"]["mongodb"]
 client = MongoClient(mongodb)
 bot_token, api = start(client)
+sp_id, sp_secret = spotify_token(client)
 
+is_generating = {}
 flask_thread = None
 member_histories_msg = {}
-is_generating = {}
+start_time = time.time()
 intents = discord.Intents.all()
 intents.presences = False
 activity = discord.Game(name="/help")
 bot = commands.Bot(command_prefix=config["bot"]["prefix"], intents=intents, activity=activity, help_command=None, reconnect=False)
-start_time = time.time()
 
-bbot(bot, start_time, client)
-music(bot)
+
 fun(bot)
-general(bot)
-ai(bot, member_histories_msg, client, is_generating)
 moderation(bot)
+information(bot)
+bbot(bot, start_time, client)
+music(bot, sp_id, sp_secret)
+ai(bot, member_histories_msg, client, is_generating)
 
+fun_slash(bot, client)
+moderation_slash(bot, client)
+information_slash(bot, client)
 bot_slash(bot, start_time, client)
 ai_slash(bot, client, member_histories_msg, is_generating)
 
-on_cmd_error(bot)
+
+#on_cmd_error(bot)
 member_join(bot)
 
 @bot.command(name="cmd")
@@ -66,7 +74,6 @@ async def cmdd(ctx):
         return
 
 cmd_list = []
-# Populate cmd_list with the commands
 for command in bot.commands:
     cmd_prefix = "ai." + command.name
     cmd_list.append(cmd_prefix)
@@ -93,7 +100,6 @@ async def update_bio():
 
 @bot.event
 async def on_ready():
-    await bot.tree.sync()
     os.system('cls' if os.name == 'nt' else 'clear')
     print(f'We have logged in as {bot.user}')
     print(f"\033[1;38;5;46mCurrent model: {config['bot']['text_model']}\033[0m")
@@ -108,6 +114,8 @@ async def on_ready():
     flask_thread.start()
     
     print("API Engine has been started!")
+    await bot.tree.sync()
+    print("Slash commands synced!")
 
 @bot.event
 async def on_guild_join(guild):

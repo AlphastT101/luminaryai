@@ -132,6 +132,7 @@ pre {
   font-size: 17px;
 }
 
+
 #promptInput {
   background-color: rgb(37 29 43);
   color: #ffffff;
@@ -140,6 +141,17 @@ pre {
   outline: none;
   border: none;
   width: 100%;
+  height: auto;
+
+  box-sizing: border-box;
+  line-height: 22px; /* Adjust according to the font size */
+  min-height: 22px; /* Minimum height for 1 row */
+  max-height: 242px; /* Maximum height for 11 rows (22px per row * 11 rows) */
+  resize: none; /* Prevents resizing */
+  overflow: hidden;
+
+  overflow-y: auto; /* Show vertical scrollbar when needed */
+  overflow-x: hidden; /* Hide horizontal scrollbar */
 }
 #promptInput::placeholder {color: #8a8a8a;}
 
@@ -235,4 +247,28 @@ pre {
 }
 #apiKeyInput::placeholder{
   color: #bdbdbd;
+}
+
+
+
+/* The entire scrollbar */
+#promptInput::-webkit-scrollbar {
+  width: 8px; /* Width of the scrollbar */
+}
+
+/* The draggable part of the scrollbar */
+#promptInput::-webkit-scrollbar-thumb {
+  background-color: #757575; /* Color of the draggable part */
+  border-radius: 6px; /* Rounds the corners of the draggable part */
+}
+
+/* The part of the scrollbar not being dragged */
+#promptInput::-webkit-scrollbar-track {
+  background-color: #9c9c9c; /* Color of the track */
+  border-radius: 6px; /* Rounds the corners of the track */
+}
+
+/* The part of the scrollbar when you hover */
+#promptInput::-webkit-scrollbar-thumb:hover {
+  background-color: #555; /* Darker color when hovering over the scrollbar */
 }

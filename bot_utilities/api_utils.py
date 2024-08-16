@@ -1,5 +1,4 @@
 from openai import OpenAI
-# from bot_utilities.api_prompt import prompt
 import random
 import string
 import requests
@@ -10,6 +9,7 @@ system_prompt = {
     "gpt-3.5": "I am GPT-3.5. I Always try to act as a GPT-3.5. I am a normal version of GPT-3.5 means I am not the turbo edition. Plus, I am not GPT-4 or GPT-4-turbo.",
     "gpt-3.5-turbo": "I am GPT-3.5-turbo, I am not GPT-4-turbo. I am powered by OpenAI"
 }
+
 spml = ["gpt-4", "gpt-4-turbo", "gpt-3.5", "gpt-3.5-turbo"]
 models_dict = {
     "gpt-4":"openchat/openchat-7b:free",
@@ -17,25 +17,28 @@ models_dict = {
     "gpt-3.5":"openchat/openchat-7b:free",
     "gpt-3.5-turbo":"openchat/openchat-7b:free",
 
-    "qwen-2-7b-instruct":"qwen/qwen-2-7b-instruct:free",
-    "phi-3-mini-128k-instruct":"microsoft/phi-3-mini-128k-instruct:free",
-    "phi-3-medium-128k-instruct":"microsoft/phi-3-medium-128k-instruct:free",
-    "llama-3-8b-instruct":"meta-llama/llama-3-8b-instruct:free",
-    "gemma-7b-it":"google/gemma-7b-it:free",
-    "nous-capybara-7b":"nousresearch/nous-capybara-7b:free",
-    "mythomist-7b":"gryphe/mythomist-7b:free",
-    "toppy-m-7b":"undi95/toppy-m-7b:free",
-    "zephyr-7b-beta":"huggingfaceh4/zephyr-7b-beta:free",
-    "mistral-7b-instruct":"mistralai/mistral-7b-instruct:free",
+    "mistral":"mistralai/mistral-7b-instruct:free",
+    "llama-3":"meta-llama/llama-3-8b-instruct:free",
+    "llama-3.1":"meta-llama/llama-3.1-8b-instruct:free",
+    "gemma-2": "google/gemma-2-9b-it:free",
+
+    # "gemma":"google/gemma-7b-it:free",
+    # "qwen-2":"qwen/qwen-2-7b-instruct:free",
+    # "phi-3-mini":"microsoft/phi-3-mini-128k-instruct:free",
+    # "phi-3-medium":"microsoft/phi-3-medium-128k-instruct:free",
+    # "nous-capybara":"nousresearch/nous-capybara-7b:free",
+    # "mythomist":"gryphe/mythomist-7b:free",
+    # "toppy-m":"undi95/toppy-m-7b:free",
+    # "zephyr-beta":"huggingfaceh4/zephyr-7b-beta:free",
 
     "gpt-4o":"1t",
     "command-r-plus-online":"2t"
 }
 
 available = [
-'gpt-4', 'gpt-4-turbo', 'gpt-3.5', 'gpt-3.5-turbo', 'qwen-2-7b-instruct', 'phi-3-mini-128k-instruct',
-'phi-3-medium-128k-instruct', 'llama-3-8b-instruct', 'gemma-7b-it', 'nous-capybara-7b', 'mythomist-7b',
-'toppy-m-7b', 'zephyr-7b-beta', 'mistral-7b-instruct', 'gpt-4o', 'command-r-plus-online'
+'gpt-4', 'gpt-4-turbo', 'gpt-3.5', 'gpt-3.5-turbo',
+'llama-3','llama-3.1', 'gemma-2', 'mistral', 'gpt-4o',
+'command-r-plus-online'
 ]
 
 def poli(prompt):
@@ -72,6 +75,12 @@ async def insert_token(mongodb, userid):
     collection.insert_one({"apitoken": key, "userid": userid})
     return key
 
+async def delete_token(mongodb, userid):
+    db = mongodb["lumi-api"]
+    collection = db["apitokens"]
+    key = collection.delete_one({"userid": userid})
+    return "deleted" if key else None
+
 def get_id(mongodb, token):
     db = mongodb["lumi-api"]
     collection = db["apitokens"]
@@ -88,9 +97,9 @@ def gen_text(api_key, msg_history, model):
 
     system_ = msg_history[0]["role"]
     if system_ == "system" and model in spml:
-        msg_history.insert(0, {"role": "system", "content": f"{system_prompt[model]} {system_}"})
+        msg_history.insert(0, {"role": "system", "name": model , "content": f"{system_prompt[model]} {system_}"})
     elif system_ != "system" and model in spml:
-        msg_history.insert(0, {"role": "system", "content": system_prompt[model]})
+        msg_history.insert(0, {"role": "system","name": model, "content": system_prompt[model]})
 
     completion = client.chat.completions.create(
         model=models_dict[model],

@@ -29,17 +29,19 @@
             <option value="gpt-3.5-turbo">GPT-3.5-Turbo</option>
             <option value="gpt-3.5">GPT-3.5</option>
             <option value="command-r-plus-online">Command R+ (online)</option>
-            <option value="mistral-7b-instruct">Mistral-7b-instruct</option>
-            <option value="llama-3-8b-instruct">Llama-3-8b-instruct</option>
+            <option value="mistral">Mistral</option>
+            <option value="llama-3">Llama-3</option>
+            <option value="llama-3.1">Llama-3.1</option>
+            <option value="gemma-2">Gemma-2</option>
 
-            <option value="qwen-2-7b-instruct">Qwen-2-7b-instruct</option>
+            <!-- <option value="qwen-2-7b-instruct">Qwen-2-7b-instruct</option>
             <option value="phi-3-mini-128k-instruct">Phi-3-mini-128k-instruct</option>
             <option value="phi-3-medium-128k-instruct">Phi-3-medium-128k-instruct</option>
             <option value="gemma-7b-it">Gemma-7b-it</option>
             <option value="nous-capybara-7b">Nous-Capybara-7b</option>
             <option value="mythomist-7b">Mythomist-7b</option>
             <option value="toppy-m-7b">Toppy-M-7b</option>
-            <option value="zephyr-7b-beta">Zephyr-7b-beta</option>
+            <option value="zephyr-7b-beta">Zephyr-7b-beta</option> -->
         </select>
         <br>
         <p style="color: white;">Your API key: </p>
@@ -68,7 +70,9 @@
     <div class="utils container" style="max-width: 1000px;">
         <div class="row d-flex align-items-start">
             <div class="col-auto"><button type="button" id="settings"><i class="fa-solid fa-gear"></i></button></div>
-            <div class="col"><input type="text" id="promptInput" placeholder="Message AI"></div>
+            <div class="col">
+                <textarea id="promptInput" placeholder="Message AI" rows="1"></textarea>
+            </div>                     
 
             <div class="col-auto"><button type="button" id="send"><i class="fa-solid fa-paper-plane"></i></button></div>
             <div class="col-auto" id="loading"><i class="fa-solid fa-circle-notch fa-spin"></i></div>

@@ -1,8 +1,8 @@
-import yt_dlp as youtube_dl
-from discord.ext import commands
 import discord
-import pyshorteners
-import asyncio
+from discord import Color as color
+from discord import Embed as em
+from discord.ext import commands
+from bot_utilities.music_utils import search_song, get_audio_url
 
 
 # Define the FFMPEG options
@@ -11,37 +11,7 @@ FFMPEG_OPTIONS = {
     'options': '-vn',
 }
 
-# Function to shorten a URL using TinyURL
-def shorten_url(original_url):
-    s = pyshorteners.Shortener()
-    return s.tinyurl.short(original_url)
 
-
-
-
-
-
-join_first_embed = discord.Embed(
-    title="LumianryAI - music",
-    description="Please join a voice channel first.",
-    color=0xFF0000
-)
-join_first_embed.set_thumbnail(url="attachment://thumbnail.png")
-
-already_joined = discord.Embed(
-    title="LumianryAI - music",
-    description="Bot is already connected to a voice channel. use `ai.leave` to leave.",
-    color=0xFF0000
-)
-already_joined.set_thumbnail(url="attachment://thumbnail.png")
-
-
-pls_wait_embed = discord.Embed(
-    title="LumianryAI - music",
-    description="Please wait...",
-    color=0xFF0000
-)
-pls_wait_embed.set_thumbnail(url="attachment://thumbnail.png")
 
 no_result_embed = discord.Embed(
     title="LumianryAI - music",
@@ -108,51 +78,46 @@ alread_playing = discord.Embed(
     color=0x99ccff
 )
 alread_playing.set_thumbnail(url="attachment://thumbnail.png")
-def music(bot):
+def music(bot, sp_id, sp_secret):
+
+
     @bot.command(name='join')
-    @commands.cooldown(1, 20, commands.BucketType.user)
+    @commands.cooldown(1, 10, commands.BucketType.user)
     async def join(ctx):
+
         if ctx.author.voice is None:
-
-            await ctx.send(embed=join_first_embed)
+            await ctx.send(embed=em(description="> ❌ You're not in a voice channel.", color=color.red()))
             return
-
-        # Get the bot's Member object
-        bot_member = ctx.guild.get_member(bot.user.id)
 
         if ctx.voice_client is not None and ctx.voice_client.is_connected():
-
-            await ctx.send(embed=already_joined)
+            await ctx.send(embed=em(description="> ❌ I am already connected to a voice channel.", color=color.red()))
             return
-        else:
-            channel = ctx.author.voice.channel
 
-            # Check if the bot has necessary permissions in the voice channel
-            required_permissions = ["connect", "speak", "send_messages"]
-            missing_permissions = [perm for perm in required_permissions if not getattr(channel.permissions_for(bot_member), perm)]
+        bot_member = ctx.guild.get_member(bot.user.id)
+        channel = ctx.author.voice.channel
 
-            if missing_permissions:
-                perms_embed = discord.Embed(
-                    title="LumianryAI - missing perms",
-                    description=f"I don't have the following permissions in the voice channel:\n{', '.join(missing_permissions)}",
-                    color=0xFF0000
-                )
-                file = discord.File("images/music.png", filename="thumbnail.png")
-                perms_embed.set_thumbnail(url="attachment://thumbnail.png")
-                await ctx.send(embed=perms_embed, file=file)
-                return
+        # Check if the bot has necessary permissions in the voice channel
+        required_permissions = ["connect", "speak", "send_messages"]
+        missing_permissions = [perm for perm in required_permissions if not getattr(channel.permissions_for(bot_member), perm)]
 
-            if ctx.voice_client is None:
-                voice_channel = await channel.connect()
-                await ctx.guild.change_voice_state(channel=channel, self_mute=False, self_deaf=True)
-            else:
-                voice_channel = ctx.voice_client.channel
-
-            joined_embed = discord.Embed(
-                description=f"**Joined {channel}**",
-                color=0x99ccff
+        if missing_permissions:
+            perms_embed = discord.Embed(
+                title="LumianryAI - missing perms",
+                description=f"> **❌ I don't have the following permissions in the voice channel:**\n\n{', '.join(missing_permissions)}",
+                color=0xFF0000
             )
-            await ctx.send(embed=joined_embed)
+            await ctx.send(embed=perms_embed)
+            return
+
+        await channel.connect()
+        await ctx.guild.change_voice_state(channel=channel, self_mute=False, self_deaf=True)
+        ctx.voice_client.stop()
+
+        joined_embed = discord.Embed(
+            description=f"**> Joined {channel}**",
+            color=0x99ccff
+        )
+        await ctx.send(embed=joined_embed)
 
 
 
@@ -160,7 +125,7 @@ def music(bot):
     server_loops = {}  # Dictionary to store loop status for each server
 
     @bot.command(name='loop')
-    @commands.cooldown(1, 20, commands.BucketType.user)
+    @commands.cooldown(1, 10, commands.BucketType.user)
     async def toggle_loop(ctx):
         server_id = ctx.guild.id
         if server_id not in server_loops:
@@ -177,79 +142,43 @@ def music(bot):
             await ctx.send(embed=loop_enabled)
 
     @bot.command(name='play')
-    @commands.cooldown(1, 15, commands.BucketType.user)
+    @commands.cooldown(1, 10, commands.BucketType.user)
     async def play(ctx, *, song_name):
-        server_id = ctx.guild.id
-        if server_id not in server_loops:
-            server_loops[server_id] = False
 
-
-        file = discord.File("images/music.png", filename="thumbnail.png")
-        wait = await ctx.send(embed=pls_wait_embed, file=file)
-
-        if ctx.author.voice is None or ctx.author.voice.channel is None:
-            await wait.edit(embed=join_first_embed)
+        if ctx.author.voice is None:
+            await ctx.send(embed=em(description="> **❌ You're not in a voice channel.**", color=color.red()))
             return
 
-        channel = ctx.author.voice.channel
-        voice_channel = ctx.voice_client
-
-        # Check if the bot is already in a voice channel
-        if voice_channel is None and channel is not None:
-            await wait.edit(embed=not_in_voice)
+        if ctx.voice_client is None:
+            await ctx.send(embed=em(description="> **❌ I am not in a voice channl. Use `ai.join`.**", color=color.red()))
             return
-        if not voice_channel.is_playing():
-            # Download the song information using yt_dlp
-            ydl_opts = {'format': 'bestaudio', 'noplaylist': True, 'no_warnings': True}
-            with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-                info = ydl.extract_info(f"ytsearch:{song_name}", download=False)
-                video_url = info['entries'][0]['webpage_url']
-                if 'entries' in info and info['entries']:
-                    # Get the first entry (song) in the search results
-                    first_entry = info['entries'][0]
 
-                    # Extract the song name and video link and duration
-                    song_name = first_entry.get('title', 'Unknown Title')
-                    video_link = first_entry.get('url', 'Unknown Link')
-                    duration = first_entry.get('duration', 0)
+        if ctx.author.voice.channel != ctx.voice_client.channel:
+            await ctx.send(embed=em(description="> **❌ You have to be in the same to channel to use music commands.**", color=color.red()))
+            return
 
-                    # Shorten the video link
-                    shortened_video_link = shorten_url(video_link)
-                    # Format the duration in a user-friendly way
-                    duration_formatted = str(round(duration / 60, 2)) + " minutes"
+        if ctx.voice_client.is_playing:
+            ctx.voice_client.stop()
+            #await ctx.send("> **❌ I am already playing a song.**\n> *Looking for the queue system? help us by joining our support server*")
 
-                    # Play the song
-                    # Wrap the FFmpegPCMAudio source with PCMVolumeTransformer
-                    audio_source = discord.FFmpegPCMAudio(video_link, **FFMPEG_OPTIONS)
-                    volume_transformer = discord.PCMVolumeTransformer(audio_source, volume=0.5)  # Default volume at 50%
+        wait = await ctx.send(embed=em(description="> **🕒 Please wait while I process the playback.**", color=color.blue()))
 
-                    voice_channel.play(volume_transformer)
+        if ctx.guild.id not in server_loops:
+            server_loops[ctx.guild.id] = False
 
-                    playing_embed = discord.Embed(
-                        title="LumianryAI - music",
-                        description=f"Now playing: {song_name}\n\n [Video link]({video_url}) \n[Audio link]({shortened_video_link})\n Song duration: {duration_formatted}",
-                        color=0x99ccff
-                    )
-                    file = discord.File("music.png", filename="thumbnail.png")
-                    playing_embed.set_thumbnail(url="attachment://thumbnail.png")
-                    await wait.edit(embed=playing_embed)
-                    await asyncio.sleep(duration)  # Wait for the song to finish
-                    loop = server_loops[server_id]  # Get loop status for the current server
+        song = await get_audio_url(song_name)
+        if not song:
+            await wait.edit(embed=em(description="> **❌ Sorry, it seems that our music engine is offline.**"))
+        name = song.get('title')
+        channel = song.get('channel')
+        duration = song.get('duration')
+        video_url = song.get('url')
+        audio_url = song.get('audio_url')
 
-                    while loop:
-                        loop = server_loops[server_id]  # Get loop status for the current server
-                        if loop:
-                            voice_channel.stop()
-                            voice_channel.play(discord.FFmpegPCMAudio(video_link, **FFMPEG_OPTIONS))
-                            await asyncio.sleep(duration)  # Wait for the song to finish
-                        elif loop == False and not voice_channel.is_playing():
-                            await ctx.voice_client.disconnect()
-                            break
-                else:
-                    await wait.edit(embed=no_result_embed)
+        audio_source = discord.FFmpegPCMAudio(audio_url, **FFMPEG_OPTIONS)
+        ctx.voice_client.play(audio_source)
 
-        else:
-            await wait.edit(embed=alread_playing)
+        await wait.edit(embed=em(description=f"> **🎧 Now playing:** [`{name}`]({video_url})\n\n* Duration: `{duration}`\n* Channel: `{channel}`", color=color.purple()))
 
     @bot.command(name='leave')
     @commands.cooldown(1, 10, commands.BucketType.user)

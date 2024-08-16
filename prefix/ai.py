@@ -155,35 +155,22 @@ def ai(bot, member_histories_msg, mongodb, is_generating):
 
         wait = discord.Embed(
             title="LuminaryAI - loading",
-            description="Please wait while i process your request.",
+            description="Please wait while I process your request.",
             timestamp=ctx.message.created_at,
             color=0x99ccff,
         )
         wait.set_footer(text=f"Thanks for using {bot.user}!", icon_url=bot.user.avatar.url)
         file_web_search = discord.File('images/web_search.png', filename='web_search.png')
         wait.set_thumbnail(url='attachment://web_search.png')
-        wait = await ctx.send(embed=wait, file=file_web_search)
-        result = web_search(query)
-        if result == "":
-            result = "> ❌ **Aww, no results found!**"
+        wait_message = await ctx.send(embed=wait, file=file_web_search)
 
+        # Get image URLs from the search query
         image_urls = search_image(query)
         if not image_urls:
-            await ctx.send("> ❌**Aww, no results found!**")
+            await wait_message.delete()
+            await ctx.send("> ❌ **Aww, no results found!**")
             return
 
-        file_path = create_composite_image(image_urls)
 
-        web_embed = discord.Embed(
-            title=f"Luminary - Web Search",
-            description=f"{result}",
-            color=0x99ccff,
-            timestamp=ctx.message.created_at
-        )
-
-        file_composite = discord.File(file_path, filename="composite_image.png")
-        web_embed.set_image(url="attachment://composite_image.png")
-        web_embed.set_footer(text="Thanks for using LuminaryAI!", icon_url=bot.user.avatar.url)
-
-        await wait.delete()
-        await ctx.reply(embed=web_embed, file=file_composite)
+        await create_and_send_embed(query, bot, ctx, image_urls)
+        await wait_message.delete()
