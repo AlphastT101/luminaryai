@@ -2,14 +2,7 @@ import discord
 from discord import Color as color
 from discord import Embed as em
 from discord.ext import commands
-from bot_utilities.music_utils import search_song, get_audio_url
-
-
-# Define the FFMPEG options
-FFMPEG_OPTIONS = {
-    'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
-    'options': '-vn',
-}
+from bot_utilities.music_utils import *
 
 
 
@@ -78,8 +71,9 @@ alread_playing = discord.Embed(
     color=0x99ccff
 )
 alread_playing.set_thumbnail(url="attachment://thumbnail.png")
-def music(bot, sp_id, sp_secret):
 
+
+def music(bot, sp_id, sp_secret):
 
     @bot.command(name='join')
     @commands.cooldown(1, 10, commands.BucketType.user)
@@ -122,63 +116,75 @@ def music(bot, sp_id, sp_secret):
 
 
 
-    server_loops = {}  # Dictionary to store loop status for each server
+    # server_loops = {}
 
-    @bot.command(name='loop')
-    @commands.cooldown(1, 10, commands.BucketType.user)
-    async def toggle_loop(ctx):
-        server_id = ctx.guild.id
-        if server_id not in server_loops:
-            server_loops[server_id] = True  # Initialize loop status for the server if not present
+    # @bot.command(name='loop')
+    # @commands.cooldown(1, 10, commands.BucketType.user)
+    # async def toggle_loop(ctx):
+    #     server_id = ctx.guild.id
+    #     if server_id not in server_loops:
+    #         server_loops[server_id] = True  # Initialize loop status for the server if not present
 
-            await ctx.send(embed=loop_enabled)
-        elif server_loops[server_id] == True:
-            server_loops[server_id] = False
+    #         await ctx.send(embed=loop_enabled)
+    #     elif server_loops[server_id] == True:
+    #         server_loops[server_id] = False
 
-            await ctx.send(embed=loop_disabled)
-        elif server_loops[server_id] == False:
-            server_loops[server_id] = True
+    #         await ctx.send(embed=loop_disabled)
+    #     elif server_loops[server_id] == False:
+    #         server_loops[server_id] = True
 
-            await ctx.send(embed=loop_enabled)
+    #         await ctx.send(embed=loop_enabled)
+
 
     @bot.command(name='play')
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def play(ctx, *, song_name):
-
         if ctx.author.voice is None:
             await ctx.send(embed=em(description="> **❌ You're not in a voice channel.**", color=color.red()))
             return
 
         if ctx.voice_client is None:
-            await ctx.send(embed=em(description="> **❌ I am not in a voice channl. Use `ai.join`.**", color=color.red()))
+            await ctx.send(embed=em(description="> **❌ I am not in a voice channel. Use `ai.join`.**", color=color.red()))
             return
 
         if ctx.author.voice.channel != ctx.voice_client.channel:
-            await ctx.send(embed=em(description="> **❌ You have to be in the same to channel to use music commands.**", color=color.red()))
+            await ctx.send(embed=em(description="> **❌ You have to be in the same channel to use music commands.**", color=color.red()))
             return
-
-        if ctx.voice_client.is_playing:
-            ctx.voice_client.stop()
-            #await ctx.send("> **❌ I am already playing a song.**\n> *Looking for the queue system? help us by joining our support server*")
 
         wait = await ctx.send(embed=em(description="> **🕒 Please wait while I process the playback.**", color=color.blue()))
 
-        if ctx.guild.id not in server_loops:
-            server_loops[ctx.guild.id] = False
-
         song = await get_audio_url(song_name)
         if not song:
-            await wait.edit(embed=em(description="> **❌ Sorry, it seems that our music engine is offline.**"))
+            await wait.edit(embed=em(description="> **❌ Sorry, it seems that our music engine is offline.**", color=color.red()))
+            return
+
         name = song.get('title')
         channel = song.get('channel')
+        f_duration = song.get('f_duration')
         duration = song.get('duration')
         video_url = song.get('url')
-        audio_url = song.get('audio_url')
+        audio_url = song.get('audiouri')
+        thumbnail = song.get('thumbnail')
 
-        audio_source = discord.FFmpegPCMAudio(audio_url, **FFMPEG_OPTIONS)
-        ctx.voice_client.play(audio_source)
+        if ctx.guild.id not in guild_queues:
+            guild_queues[ctx.guild.id] = []
 
-        await wait.edit(embed=em(description=f"> **🎧 Now playing:** [`{name}`]({video_url})\n\n* Duration: `{duration}`\n* Channel: `{channel}`", color=color.purple()))
+        guild_queues[ctx.guild.id].append({
+            'title': name,
+            'channel': channel,
+            'f_duration': f_duration,
+            'url': video_url,
+            'audio_url': audio_url,
+            'thumbnail': thumbnail,
+            'duration': duration
+        })
+
+        embed = em(description=f"> **🎧 Track Queued:** `{name}` by `{channel}`.", color=color.purple())
+        await wait.edit(embed=embed)
+        if not ctx.voice_client.is_playing():
+            await play_next_song(ctx.voice_client, ctx, bot)
+
+
 
     @bot.command(name='leave')
     @commands.cooldown(1, 10, commands.BucketType.user)
@@ -238,11 +244,9 @@ def music(bot, sp_id, sp_secret):
     @bot.command(name='resume')
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def stop(ctx):
-        # Check if the bot is in a voice channel
         if ctx.voice_client is not None:
-            # Check if the user is in the same voice channel as the bot
             if ctx.author.voice is not None and ctx.author.voice.channel == ctx.voice_client.channel:
-                # Stop playing and disconnect from the voice channel
+
                 ctx.voice_client.resume()
 
                 await ctx.send(embed=playback_resumed)
@@ -255,20 +259,16 @@ def music(bot, sp_id, sp_secret):
     @bot.command(name='volume')
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def volume(ctx, volume_str: str):
-        # Check if the bot is in a voice channel
+
         if ctx.voice_client is not None:
-            # Check if the user is in the same voice channel as the bot
             if ctx.author.voice is not None and ctx.author.voice.channel == ctx.voice_client.channel:
                 try:
-                    # Convert the volume from a percentage to a float (0.0 to 1.0)
+
                     volume_percentage = int(volume_str)
                     volume = volume_percentage / 100.0
-                    # Set the volume; ensure it's within the valid range (0.0 to 1.0)
-                    # if 0.0 <= volume <= 1.0:
                     ctx.voice_client.source.volume = volume
                     await ctx.send(embed=discord.Embed(description=f"**Volume has been successfully set to {volume_percentage}%**", color=0x99ccff))
-                    # else:
-                    #     await ctx.send(embed=discord.Embed(description="**Please provide an integer between 0 and 100 for the volume.**"))
+
                 except ValueError:
                     await ctx.send(embed=discord.Embed(description="**Please provide a valid integer to set the volume.**\n\nExample:\n```ai.volume 70```", color=0x99ccff))
             else:

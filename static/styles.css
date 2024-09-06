@@ -1,9 +1,3 @@
-@keyframes rainbow {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
 body {
   height: 100vh;
   margin: 0; /* Remove default margin */
@@ -11,6 +5,19 @@ body {
   background-repeat: no-repeat;
 }
 
+@keyframes fadee {
+  0% {opacity: 0;}
+  100% {opacity: 1;}
+}
+
+.logo, .chat-history, .utils{
+  opacity: 0;
+  transition: opacity 0.7s ease-in-out, visibility 1s ease-in-out;
+
+  animation-name: fadee;
+  animation-duration: 2s;
+  visibility: hidden;
+}
 
 .logo {
   position: fixed;
@@ -18,12 +25,12 @@ body {
   left: 50%;
   transform: translate(-50%, -50%);
   text-align: center;
-  z-index: 1;
 }
 .logo img{
   width: 160px;
   z-index: 1;
 }
+
 
 .error-window {
   visibility: hidden;
@@ -47,7 +54,7 @@ body {
 
 .chat-history{
   padding: 10px;
-  margin-top: 20px;
+  /* margin-top: 20px; */
 }
 
 .text-response, .image-response{
@@ -123,6 +130,7 @@ pre {
   transform: translateX(-50%);
   z-index: 1000;
   padding: 10px;
+
 }
 #settings{
   background-color: rgb(37, 29, 43);
@@ -156,18 +164,14 @@ pre {
 #promptInput::placeholder {color: #8a8a8a;}
 
 #send {
-  background-color: rgb(134, 127, 141);
+  background-color: rgb(72, 68, 76);
   padding: 10px 12px;
   color: white;
   border: none;
   border-radius: 50%;
   font-size: 15px;
 }
-#loading{
-  display: none;
-  color: rgb(255, 255, 255);
-  font-size: 30px;
-}
+
 
 .settings {
   visibility: hidden;
@@ -207,8 +211,9 @@ pre {
   border: none;
   background-color: rgb(80, 79, 107);
   padding: 10px;
-  margin: 0px 39%;
+  margin: 0px 30%;
   color: white;
+  width: 85px;
 }
 
 
@@ -237,14 +242,23 @@ pre {
 #apiKeyInput{
   width: 227px;
   height: 34px;
-  border-radius: 5px;
-  background-color: #252d47;
   color: #b0b0b0;
-  border: 2px solid #3f4d7a;
-  border-radius: 5px;
   margin-bottom: 35px;
   font-size: 15px;
+
+  border: none;
+  outline: none;
+  border-radius: 15px;
+  background-color: #ccc;
+  box-shadow: inset 2px 5px 10px rgba(0,0,0,0.3);
+  transition: 300ms ease-in-out;
 }
+#apiKeyInput:focus {
+  background-color: white;
+  transform: scale(1.05);
+  box-shadow: 10px 10px 50px #969696, -10px -10px 50px #ffffff;
+}
+
 #apiKeyInput::placeholder{
   color: #bdbdbd;
 }
@@ -271,4 +285,72 @@ pre {
 /* The part of the scrollbar when you hover */
 #promptInput::-webkit-scrollbar-thumb:hover {
   background-color: #555; /* Darker color when hovering over the scrollbar */
+}
+
+/* From Uiverse.io by ZacharyCrespin */ 
+#loading {
+  --size: 14px;
+  --color: white;
+  width: 30px;
+  height: 30px;
+  position: relative;
+  margin-top: 5px;
+  display: none;
+  margin-right: 10px;
+}
+
+#loading::after,#loading::before {
+  box-sizing: border-box;
+  position: absolute;
+  content: "";
+  width: var(--size);
+  height: var(--size);
+  top: 50%;
+  animation: up 2.4s cubic-bezier(0, 0, 0.24, 1.21) infinite;
+  left: 50%;
+  background: var(--color);
+  box-shadow: 0 0 calc(var(--size) / 3) rgba(0, 0, 0, 0.25);
+}
+
+#loading::after {
+  background: var(--color);
+  top: calc(50% - var(--size));
+  left: calc(50% - var(--size));
+  animation: down 2.4s cubic-bezier(0, 0, 0.24, 1.21) infinite;
+}
+
+@keyframes down {
+  0%, 100% {
+    transform: none;
+  }
+
+  25% {
+    transform: translateX(100%);
+  }
+
+  50% {
+    transform: translateX(100%) translateY(100%);
+  }
+
+  75% {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes up {
+  0%, 100% {
+    transform: none;
+  }
+
+  25% {
+    transform: translateX(-100%);
+  }
+
+  50% {
+    transform: translateX(-100%) translateY(-100%);
+  }
+
+  75% {
+    transform: translateY(-100%);
+  }
 }

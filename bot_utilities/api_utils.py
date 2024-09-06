@@ -32,7 +32,6 @@ models_dict = {
     # "zephyr-beta":"huggingfaceh4/zephyr-7b-beta:free",
 
     "gpt-4o":"1t",
-    "command-r-plus-online":"2t"
 }
 
 available = [
@@ -58,8 +57,7 @@ def check_token(mongodb, token):
     collection = db["apitokens"]
 
     result = collection.find_one({"apitoken": token})
-    if result: return True
-    else: return False
+    return result
 
 async def check_user(mongodb, userid):
     db = mongodb["lumi-api"]

@@ -166,3 +166,4 @@ cython_debug/
 *.exe
 *.yml
 cache/
+fh_xeh_fr/

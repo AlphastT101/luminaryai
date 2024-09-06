@@ -183,14 +183,30 @@ def ai_slash(bot, mongodb, member_histories_msg, is_generating):
     async def create_api(interaction: discord.Interaction):
         if await check_blist(interaction, mongodb): return
         await interaction.response.defer(ephemeral=True)
+        role = interaction.guild.get_role(1279261339574861895)  # Fetch the role
+        
+        if interaction.guild.id != 1144903052717985806:
+            await interaction.followup.send("> :x: **You're not allowed to generate an API key in this server. Join XET to generate an API key: https://discord.com/invite/hmMBe8YyJ4**")
+            guild = bot.get_guild(1144903052717985806)
+            channel = guild.get_channel(1279262113503645706)
+            await channel.send(f"{interaction.user.mention} | {interaction.user.id} Failed to generate an API key in {interaction.guild}")
+            return
+
+        if role not in interaction.user.roles:  # Check if the user has the role
+            await interaction.followup.send("> :x: **You don't have the required role `verified` to generate an API key.**")
+            channel = interaction.guild.get_channel(1279262113503645706)
+            await channel.send(f"{interaction.user.mention} | {interaction.user.id} Failed to generate an API key in {interaction.guild} as the user is not verified")
+            return
+        
         check = await check_user(mongodb, interaction.user.id)
-    
+        
         if check:
             await interaction.followup.send("> ❌ **You already have an API token! You can generate only one API token.**")
             return
         
         token = await insert_token(mongodb, interaction.user.id)
-        await interaction.followup.send(f"> ✅ **API token is generated successfully. Do not share this key with anyone, even they are from LuminaryAI!**\n* **Join our support server for help on how to use the API Key.**\n* **API token:**\n```bash\n{token}```\n")
+        await interaction.followup.send(f"> ✅ **API token is generated successfully. Do not share this key with anyone, even if they are from LuminaryAI!**\n* **Join our support server for help on how to use the API Key.**\n* **API token:**\n```bash\n{token}```\n")
+
 
 
     @bot.tree.command(name="delete-api-key", description="Delete Your API key for LuminaryAI")
@@ -199,7 +215,19 @@ def ai_slash(bot, mongodb, member_histories_msg, is_generating):
         if await check_blist(interaction, mongodb): return
         await interaction.response.defer(ephemeral=False)
         check = await check_user(mongodb, interaction.user.id)
-    
+        role = interaction.guild.get_role(1279261339574861895)  # Fetch the role
+
+        if interaction.guild.id != 1144903052717985806:
+            await interaction.followup.send("> :x: **You're not allowed to delete API key in this server. Join XET to generate an API key:  https://discord.com/invite/hmMBe8YyJ4**")
+            guild = bot.get_guild(1144903052717985806)
+            channel = guild.get_channel(1279262113503645706)
+            await channel.send(f"{interaction.user.mention} | {interaction.user.id} Failed to delete API key in {interaction.guild}")
+            return
+        if role not in interaction.user.roles:  # Check if the user has the role
+            await interaction.followup.send("> :x: **You don't have the required role `verified` to delete an API key.**")
+            channel = interaction.guild.get_channel(1279262113503645706)
+            await channel.send(f"{interaction.user.mention} | {interaction.user.id} Failed to delete API key in {interaction.guild} as the user is not verified.")
+            return
         if check:
             deleted = await delete_token(mongodb, interaction.user.id)
             if deleted:
@@ -207,4 +235,3 @@ def ai_slash(bot, mongodb, member_histories_msg, is_generating):
             else:
                 await interaction.followup.send("> ❌ **Failed to delete API token**")
         else: await interaction.followup.send("> ❌ **You don't have an API key!**")
-        

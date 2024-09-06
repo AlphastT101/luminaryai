@@ -63,7 +63,7 @@ bot_slash(bot, start_time, client)
 ai_slash(bot, client, member_histories_msg, is_generating)
 
 
-#on_cmd_error(bot)
+on_cmd_error(bot)
 member_join(bot)
 
 @bot.command(name="cmd")

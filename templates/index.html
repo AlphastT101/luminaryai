@@ -7,28 +7,42 @@
 
     <link rel="stylesheet /" href="{{ url_for('static', filename='prism.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='loader.css') }}">
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+
+
+    <!-- Font awsome premium links -->
+    <!-- <link rel="stylesheet" data-purpose="Layout StyleSheet" title="Web Awesome" href="/css/app-wa-09b459cf485d4b1f3304947240314c05.css?vsn=d"> -->
+    <link rel="stylesheet" href="https://site-assets.fontawesome.com/releases/v6.6.0/css/all.css">
+    <link rel="stylesheet" href="https://site-assets.fontawesome.com/releases/v6.6.0/css/sharp-duotone-solid.css">
+    <link rel="stylesheet" href="https://site-assets.fontawesome.com/releases/v6.6.0/css/sharp-thin.css">
+    <link rel="stylesheet" href="https://site-assets.fontawesome.com/releases/v6.6.0/css/sharp-solid.css">
+    <link rel="stylesheet" href="https://site-assets.fontawesome.com/releases/v6.6.0/css/sharp-regular.css">
+    <link rel="stylesheet" href="https://site-assets.fontawesome.com/releases/v6.6.0/css/sharp-light.css">
+
 </head>
 <body>
+
 
     <div id="errorWindow" class="error-window"></div>
     <div class="logo"><img src="/static/images/logo.png"></img></div>
 
     <div class="overlay" id="overlay"></div>
     <div class="settings" id="settingsWindow">
-        <p style="color: white;">Choose a model:</p>
+        <p style="color: white;"><i class="fa-duotone fa-solid fa-microchip-ai" style="font-size: 20px;"></i> Choose a model:</p>
         <select id="modelInput">
             <option value="poli">Polinations.ai (image)</option>
             <option value="dalle3">Dalle-3 (image)</option>
             <option value="sdxl-turbo">SDXL-Turbo (image)</option>
+            <option value="flux">Flux (image)</option>
             <option value="gpt-4o">GPT-4o</option>
             <option value="gpt-4-turbo">GPT-4-Turbo</option>
             <option value="gpt-4">GPT-4</option>
             <option value="gpt-3.5-turbo">GPT-3.5-Turbo</option>
             <option value="gpt-3.5">GPT-3.5</option>
-            <option value="command-r-plus-online">Command R+ (online)</option>
+            <!-- <option value="command-r-plus-online">Command R+ (online)</option> -->
             <option value="mistral">Mistral</option>
             <option value="llama-3">Llama-3</option>
             <option value="llama-3.1">Llama-3.1</option>
@@ -42,24 +56,18 @@
             <option value="mythomist-7b">Mythomist-7b</option>
             <option value="toppy-m-7b">Toppy-M-7b</option>
             <option value="zephyr-7b-beta">Zephyr-7b-beta</option> -->
-        </select>
-        <br>
-        <p style="color: white;">Your API key: </p>
-        <input type="text" id="apiKeyInput" placeholder="Enter API key"><br>
-        <br>
-        <button type="button" id="closeSettings" class="closeSettings">Save</button>
+        </select> <br>
+
+        <p style="color: white;"><i class="fa-duotone fa-solid fa-key" style="font-size: 20px;"></i> Your API key: </p>
+        <input type="password" id="apiKeyInput" placeholder="Enter API key" style="background-color: #252d47;"><br><br>
+        <button type="button" id="closeSettings" class="closeSettings"><i class="fa-duotone fa-solid fa-floppy-disk-circle-arrow-right"></i>  Save</button>
     </div>
 
 
     <div class="chat-history container" style="max-width: 1000px; padding-bottom: 100px;">
-
-        <div class="text-user">
-            <i class="fa-solid fa-user"></i> You:
-            <p>Hi</p>
-        </div>
-
+        <div class="text-user"> <i class="fa-solid fa-user"></i> You: <p>Hi</p> </div>
         <div class="image-response">
-            <i class="fa-solid fa-robot"></i> AI:
+            <i class="fa-duotone fa-solid fa-microchip-ai" style="font-size: 25px;"></i> <bold>AI:</bold>
             <p>Hello! This is LuminaryAI's API playground. It's very simple to use. Just set your API token
                 by clicking the settings icon at the bottom of your screen and choose a model. Enjoy :)
             </p>
@@ -69,30 +77,30 @@
 
     <div class="utils container" style="max-width: 1000px;">
         <div class="row d-flex align-items-start">
-            <div class="col-auto"><button type="button" id="settings"><i class="fa-solid fa-gear"></i></button></div>
+            <div class="col-auto"><button type="button" id="settings"><i class="fa-duotone fa-solid fa-sliders"></i></button></div>
             <div class="col">
                 <textarea id="promptInput" placeholder="Message AI" rows="1"></textarea>
             </div>                     
 
-            <div class="col-auto"><button type="button" id="send"><i class="fa-solid fa-paper-plane"></i></button></div>
-            <div class="col-auto" id="loading"><i class="fa-solid fa-circle-notch fa-spin"></i></div>
+            <div class="col-auto"><button type="button" id="send"><i class="fa-duotone fa-solid fa-paper-plane-top"></i></button></div>
+            <div id="loading"></div>
+
         </div>
     </div>
-
 
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js" integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js" integrity="sha384-fbbOQedDUMZZ5KreZpsbe1LCZPVmfTnH7ois6mU1QK+m14rQ1l2bGBq41eYeM/fS" crossorigin="anonymous"></script>
-    
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/components/prism-core.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/plugins/autoloader/prism-autoloader.min.js"></script>
 
-    <script src="https://kit.fontawesome.com/cb5bb466c4.js" crossorigin="anonymous"></script>
+
+    <!-- <script src="https://kit.fontawesome.com/cb5bb466c4.js" crossorigin="anonymous"></script> -->
     <script src="{{ url_for('static', filename='index.js') }}"></script>
+    <script src="{{ url_for('static', filename='loader.js') }}"></script>
+    <script src="{{ url_for('static', filename='prism.js') }}"></script>
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <script>
         AOS.init({
-            duration: 3000,
+            duration: 2000,
             once: true, // Run animation only once
         });
     </script>

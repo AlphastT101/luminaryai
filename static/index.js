@@ -56,6 +56,8 @@ promptInput.addEventListener('keypress', function (event) {
 });
 
 async function formatText(answer) {
+
+    answer = escapeHTML(answer);
     // Code Block: ```language code ```
     answer = answer.replace(/```(\w+)?\n([\s\S]*?)```/g,
         '<pre class="code-block-wrapper"><button class="copy-btn">Copy</button><code class="language-$1">$2</code></pre>');
@@ -101,6 +103,15 @@ async function formatText(answer) {
     return answer;
 }
 
+function escapeHTML(html) {
+    return html
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
 let messages = [];
 async function process_request() {
     const prompt = document.getElementById('promptInput').value;
@@ -131,8 +142,14 @@ async function process_request() {
             throw new Error("You must set your API key and a message to get a response.");
         }
 
+        window.scrollTo({
+            top: document.body.scrollHeight,
+            behavior: 'smooth'
+        });
+
         const newUserDiv = document.createElement('div');
         newUserDiv.className = 'text-user';
+        newUserDiv.dataset.aos = 'fade'; // Set data-aos attribute
 
         const formatted_prompt = await formatText(prompt);
         newUserDiv.innerHTML = `
@@ -177,25 +194,34 @@ async function process_request() {
 
             const newResponseDiv = document.createElement('div');
             newResponseDiv.className = 'text-response';
+            newResponseDiv.dataset.aos = 'fade'; // Set data-aos attribute
 
             const formatted_answer = await formatText(answer);
             newResponseDiv.innerHTML = `
-                <i class="fa-solid fa-robot"></i> AI:
+                <i class="fa-duotone fa-solid fa-microchip-ai" style="font-size: 25px;"></i> AI:
                 <p>${formatted_answer}</p>
             `;
             chatHistory.appendChild(newResponseDiv);
             Prism.highlightAll();
-        } else {
+        }
+        else {
             const newResponseDiv = document.createElement('div');
             newResponseDiv.className = 'image-response';
+            newResponseDiv.dataset.aos = 'fade'; // Set data-aos attribute
 
             newResponseDiv.innerHTML = `
-                <i class="fa-solid fa-robot"></i> AI:
+                <i class="fa-duotone fa-solid fa-microchip-ai" style="font-size: 25px;"></i> AI:
                 <p>Here is your requested image: </p>
                 <img src="${responseData.data[0].url}">
             `;
             chatHistory.appendChild(newResponseDiv);
         }
+
+        window.scrollTo({
+            top: document.body.scrollHeight,
+            behavior: 'smooth'
+        });
+
     } catch (error) {
         console.error(error);
         showError(error.message);
