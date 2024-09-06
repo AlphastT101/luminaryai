@@ -26,61 +26,25 @@ models = {
             "owned_by": "openai"
         },
         {
-            "id": "qwen-2-7b-instruct",
-            "object": "model",
-            "created": 0,
-            "owned_by": "alibaba"
-        },
-        {
-            "id": "phi-3-mini-128k-instruct",
-            "object": "model",
-            "created": 0,
-            "owned_by": "neuralmagic"
-        },
-        {
-            "id": "phi-3-medium-128k-instruct",
-            "object": "model",
-            "created": 0,
-            "owned_by": "neuralmagic"
-        },
-        {
-            "id": "llama-3-8b-instruct",
+            "id": "llama-3",
             "object": "model",
             "created": 0,
             "owned_by": "meta"
         },
         {
-            "id": "gemma-7b-it",
+            "id": "llama-3.1",
+            "object": "model",
+            "created": 0,
+            "owned_by": "meta"
+        },
+        {
+            "id": "gemma",
             "object": "model",
             "created": 0,
             "owned_by": "gemma"
         },
         {
-            "id": "nous-capybara-7b",
-            "object": "model",
-            "created": 0,
-            "owned_by": "nousresearch"
-        },
-        {
-            "id": "mythomist-7b",
-            "object": "model",
-            "created": 0,
-            "owned_by": "togethercomputer"
-        },
-        {
-            "id": "toppy-m-7b",
-            "object": "model",
-            "created": 0,
-            "owned_by": "togethercomputer"
-        },
-        {
-            "id": "zephyr-7b-beta",
-            "object": "model",
-            "created": 0,
-            "owned_by": "togethercomputer"
-        },
-        {
-            "id": "mistral-7b-instruct",
+            "id": "mistral",
             "object": "model",
             "created": 0,
             "owned_by": "mistral"
@@ -90,12 +54,6 @@ models = {
             "object": "model",
             "created": 0,
             "owned_by": "openai"
-        },
-        {
-            "id": "command-r-plus-online",
-            "object": "model",
-            "created": 0,
-            "owned_by": "cohere"
         },
         {
             "id": "sdxl-turbo",

@@ -31,15 +31,14 @@ models_dict = {
     # "toppy-m":"undi95/toppy-m-7b:free",
     # "zephyr-beta":"huggingfaceh4/zephyr-7b-beta:free",
 
-    "gpt-4o":"1t",
+    # "gpt-4o":"1t",
 }
 
 available = [
 'gpt-4', 'gpt-4-turbo', 'gpt-3.5', 'gpt-3.5-turbo',
-'llama-3','llama-3.1', 'gemma-2', 'mistral', 'gpt-4o',
-'command-r-plus-online'
+'llama-3','llama-3.1', 'gemma-2', 'mistral'
 ]
-
+# 'gpt-4o', 'command-r-plus-online'
 def poli(prompt):
     seed = random.randint(1, 100000)
     image_url = f"https://image.pollinations.ai/prompt/{prompt}?seed={seed}"
@@ -104,3 +103,25 @@ def gen_text(api_key, msg_history, model):
         messages=msg_history,
     )
     return completion.choices[0].message.content
+
+
+def get_t_sbot(mongodb):
+    db = mongodb['tokens']
+    collection = db['bot']
+
+    # Try to find the bot token
+    sbot = collection.find_one({"key": "sbot"})
+    
+    if sbot is None:
+        # Token not found; prompt for input
+        print("get_t_sbot: 404 Not Found, enter password for sbot:")
+        sbot_value = input("> ")
+        
+        # Securely handle the token (in real-world scenarios, use encryption)
+        collection.insert_one({"key": "sbot", "value": sbot_value})
+        
+        # Return the newly entered value
+        return sbot_value
+    else:
+        # Return the existing token
+        return sbot['value']
