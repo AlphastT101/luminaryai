@@ -101,8 +101,16 @@ def ai_slash(bot, mongodb, member_histories_msg, is_generating):
 
     @bot.tree.command(name="imagine", description="Imagine an image using LuminaryAI")
     @commands.guild_only()
-    @app_commands.describe(prompt="Enter the prompt for the image to generate.")
-    async def imagine_pla(interaction: discord.Interaction, prompt: str):
+    @app_commands.describe(
+        prompt="Enter the prompt for the image to generate.",
+        model="Select the model to use.")
+    @app_commands.choices(model=[
+        app_commands.Choice(name="Flux (Best)", value="flux"),
+        app_commands.Choice(name="Dalle3", value="dalle3"),
+        app_commands.Choice(name="SDXL-Turbo", value="sdxl-turbo"),
+        app_commands.Choice(name="Polinations.ai", value="poli")
+    ])
+    async def imagine_pla(interaction: discord.Interaction, prompt: str, model: app_commands.Choice[str]):
         if await check_blist(interaction, mongodb): return
         await interaction.response.defer(ephemeral=False)
 
@@ -116,36 +124,20 @@ def ai_slash(bot, mongodb, member_histories_msg, is_generating):
         is_generating[interaction.user.id] = True
         req = await interaction.followup.send("> **Please wait while I process your request.**")
 
-        guild = bot.get_guild(1253765266115133442)
-        category = discord.utils.get(guild.categories, name="dalle3")
-        exists = discord.utils.get(guild.text_channels, name=str(interaction.user.id))
-        if exists: await exists.delete()
-        channel = await guild.create_text_channel(str(interaction.user.id), category=category)
-        sendapi = bot.get_channel(1254053747227889785)
-        await sendapi.send(f"a!reqapi {interaction.user.id} {channel.id} 1 {prompt}")
-
-        def check(m):
-            if m.content == "uhh can u say that again?":
-                return False
-            return m.content.startswith("https://files.shapes.inc/") and m.channel.id == channel.id
+        link = await image_generate(model.value, prompt)
 
         try:
-            msg = await bot.wait_for('message', check=check, timeout=120)
-            if not msg:
-                await req.edit("> **❌ Excepted a link from the API, recived a string instead.")
             embed = discord.Embed(
                 title="LuminaryAI - Image Generation",
                 description=f"Requested by: `{interaction.user}`\nPrompt: `{prompt}`",
                 color=discord.Color.blue()
             )
             embed.set_footer(icon_url=bot.user.avatar.url, text="Thanks for using LuminaryAI!")
-            embed.set_image(url=msg.content)
+            embed.set_image(url=link)
             await req.edit(content="", embed=embed)
-        except asyncio.TimeoutError:
-            await req.edit(content="> **❌ Request timed out. Please try again later.**")
-        finally:
             is_generating[interaction.user.id] = False
-            await channel.delete()
+        except Exception as e:
+            req.edit(content="> **❌ Ouch! something went wrong.**")
 
 
     @bot.tree.command(name='poli', description="Generate images using Polinations.ai")

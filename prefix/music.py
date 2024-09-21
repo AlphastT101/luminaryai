@@ -115,27 +115,6 @@ def music(bot, sp_id, sp_secret):
 
 
 
-
-    # server_loops = {}
-
-    # @bot.command(name='loop')
-    # @commands.cooldown(1, 10, commands.BucketType.user)
-    # async def toggle_loop(ctx):
-    #     server_id = ctx.guild.id
-    #     if server_id not in server_loops:
-    #         server_loops[server_id] = True  # Initialize loop status for the server if not present
-
-    #         await ctx.send(embed=loop_enabled)
-    #     elif server_loops[server_id] == True:
-    #         server_loops[server_id] = False
-
-    #         await ctx.send(embed=loop_disabled)
-    #     elif server_loops[server_id] == False:
-    #         server_loops[server_id] = True
-
-    #         await ctx.send(embed=loop_enabled)
-
-
     @bot.command(name='play')
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def play(ctx, *, song_name):
@@ -151,38 +130,71 @@ def music(bot, sp_id, sp_secret):
             await ctx.send(embed=em(description="> **❌ You have to be in the same channel to use music commands.**", color=color.red()))
             return
 
-        wait = await ctx.send(embed=em(description="> **🕒 Please wait while I process the playback.**", color=color.blue()))
-
-        song = await get_audio_url(song_name)
-        if not song:
-            await wait.edit(embed=em(description="> **❌ Sorry, it seems that our music engine is offline.**", color=color.red()))
+        wait = await ctx.send(embed=em(description="> **🕒 Searching for songs...**", color=color.blue()))
+        songs = await search(song_name, ctx)
+    
+        if not songs:
+            await wait.edit(embed=em(description="> **❌ No songs found.**", color=color.red()))
             return
 
-        name = song.get('title')
-        channel = song.get('channel')
-        f_duration = song.get('f_duration')
-        duration = song.get('duration')
-        video_url = song.get('url')
-        audio_url = song.get('audiouri')
-        thumbnail = song.get('thumbnail')
+        embed = em(title="Choose a song", description="Type a number from 1 to 5 to select a song, or 'c' to cancel.", color=color.blue())
+        for i, song in enumerate(songs[:5], start=1):
+            embed.add_field(name='\u200b', value=f"[`{i}. {song['title']}`]({song['url']})", inline=False)
 
-        if ctx.guild.id not in guild_queues:
-            guild_queues[ctx.guild.id] = []
-
-        guild_queues[ctx.guild.id].append({
-            'title': name,
-            'channel': channel,
-            'f_duration': f_duration,
-            'url': video_url,
-            'audio_url': audio_url,
-            'thumbnail': thumbnail,
-            'duration': duration
-        })
-
-        embed = em(description=f"> **🎧 Track Queued:** `{name}` by `{channel}`.", color=color.purple())
         await wait.edit(embed=embed)
-        if not ctx.voice_client.is_playing():
-            await play_next_song(ctx.voice_client, ctx, bot)
+        def check(m): return m.author == ctx.author and m.channel == ctx.channel and (m.content.isdigit() or m.content.lower() == 'c')
+
+        try: msg = await bot.wait_for('message', check=check, timeout=30.0)
+        except asyncio.TimeoutError:
+            await ctx.send(embed=em(description="> **❌ You took too long to respond.**", color=color.red()))
+            return
+
+        if msg.content.lower() == 'c':
+            await ctx.send(embed=em(description="> **❌ Selection cancelled.**", color=color.red()))
+            return
+
+        if msg.content.isdigit():
+            index = int(msg.content)
+            if 1 <= index <= 5:
+                selected_song = songs[index - 1]
+                message = await ctx.send(embed=em(description=f"> **🎧 You selected:** `{selected_song['title']}`", color=color.green()))
+
+                # Get audio details and add to queue
+                song = await get_audio_url(selected_song['url'])  # Call to get audio URL
+                if not song:
+                    await ctx.send(embed=em(description="> **❌ Sorry, it seems that our music engine is offline.**", color=color.red()))
+                    return
+
+                name = song.get('title')
+                channel = song.get('channel')
+                f_duration = song.get('f_duration')
+                duration = song.get('duration')
+                video_url = song.get('url')
+                audio_url = song.get('audiouri')
+                thumbnail = song.get('thumbnail')
+
+                # Add song details to the queue
+                if ctx.guild.id not in guild_queues:
+                    guild_queues[ctx.guild.id] = []
+
+                guild_queues[ctx.guild.id].append({
+                    'title': name,
+                    'channel': channel,
+                    'f_duration': f_duration,
+                    'url': video_url,
+                    'audio_url': audio_url,
+                    'thumbnail': thumbnail,
+                    'duration': duration
+                })
+
+                await message.edit(embed=em(description=f"> **🎧 Track Queued:** `{name}` by `{channel}`.", color=color.purple()))
+                if not ctx.voice_client.is_playing():
+                    await play_next_song(ctx.voice_client, ctx, bot)
+
+            else:
+                await ctx.send(embed=em(description="> **❌ Invalid selection.**", color=color.red()))
+        else:
+            await ctx.send(embed=em(description="> **❌ Invalid input.**", color=color.red()))
 
 
 

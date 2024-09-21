@@ -88,39 +88,20 @@ def ai(bot, member_histories_msg, mongodb, is_generating):
 
         is_generating[ctx.author.id] = True
         req = await ctx.reply("> **Please wait while I process your request.**")
-
-        guild = bot.get_guild(1253765266115133442)
-        category = discord.utils.get(guild.categories, name="dalle3")
-        exists = discord.utils.get(guild.text_channels, name=str(ctx.author.id))
-        if exists: await exists.delete()
-        channel = await guild.create_text_channel(str(ctx.author.id), category=category)
-
-        sendapi = bot.get_channel(1254053747227889785)
-        await sendapi.send(f"a!reqapi {ctx.author.id} {channel.id} 1 {prompt}")
-
-        def check(m):
-            if m.content == "uhh can u say that again?":
-                return False
-            return m.content.startswith("https://files.shapes.inc/") and m.channel.id == channel.id
+        link = await image_generate("flux", prompt)
 
         try:
-            msg = await bot.wait_for('message', check=check, timeout=120)
-            if not msg:
-                await req.edit("> **❌ Excepted a link from the API, recived a string instead.")
             embed = discord.Embed(
                 title="LuminaryAI - Image Generation",
-                description=f"Requested by: `{ctx.author}`\nPrompt: `{prompt}`",
-                timestamp=ctx.message.created_at,
+                description=f"Requested by: `{ctx.author}`\nPrompt: `{prompt}`\nModel: `Flux`\n\nModel is selected `Flux` by default in prefix commands, if you want to choose a specific model, please use the `/imagine` command!",
                 color=discord.Color.blue()
             )
             embed.set_footer(icon_url=bot.user.avatar.url, text="Thanks for using LuminaryAI!")
-            embed.set_image(url=msg.content)
+            embed.set_image(url=link)
             await req.edit(content="", embed=embed)
-        except asyncio.TimeoutError:
-            await req.edit(content="> **❌ Request timed out. Please try again later.**")
-        finally:
             is_generating[ctx.author.id] = False
-            await channel.delete()
+        except Exception as e:
+            req.edit(content="> **❌ Ouch! something went wrong.**")
 
 
     @bot.command(name='poli')

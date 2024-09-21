@@ -14,7 +14,7 @@ import logging
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
 
-def search(query: str, ctx):
+async def search(query: str, ctx):
     ydl_opts = {
         'format': 'bestaudio/best',
         'restrictfilenames': True,
@@ -115,12 +115,12 @@ async def search_song(name, id, secret):
 #                 return None
             
 async def get_audio_url(query):
-    random_filename = f"{uuid.uuid4()}"
+    #random_filename = f"{uuid.uuid4()}"
     
     ydl_opts = {
         'format': 'bestaudio/best',
         'noplaylist': True,
-        'outtmpl': f'{random_filename}.%(ext)s',
+        #'outtmpl': f'{random_filename}.%(ext)s',
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',
             'preferredcodec': 'mp3',
@@ -150,20 +150,20 @@ async def get_audio_url(query):
     thumbnail = result.get('thumbnail')
     audiouri = result.get('url')
 
-    final_filename = f"{random_filename}.mp3"
+    #final_filename = f"{random_filename}.mp3"
     # Return the first video's details
     return {
         'title': title,
         'url': url,
         'audiouri': audiouri,
-        'url_local': f"https://audio.serveo.net/mp3/{final_filename}",
+        #'url_local': f"https://audio.serveo.net/mp3/{final_filename}",
         'channel': channel,
         'f_duration': f"{f_duration // 60}m {f_duration % 60}s",
         'duration': duration,
         'thumbnail': thumbnail
     }
 
-# music_utils.py
+
 guild_queues = {}
 FFMPEG_OPTIONS = {
     'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
@@ -171,14 +171,14 @@ FFMPEG_OPTIONS = {
 }
 
 async def play_next_song(vc, ctx, bot, loop:bool = None):
-    if guild_queues[ctx.guild.id]:
+    #if guild_queues[ctx.guild.id]:
+    if ctx.guild.id in guild_queues and len(guild_queues[ctx.guild.id]) > 0:
         next_song = guild_queues[ctx.guild.id][0]
         audio_source = discord.FFmpegPCMAudio(next_song['audio_url'], **FFMPEG_OPTIONS)
 
         def after_playing(e):
-            guild_queues[ctx.guild.id].pop(0)
-            if e:
-                print(f"Error playing song: {e}")
+            try: guild_queues[ctx.guild.id].pop(0)
+            except Exception as e: pass
             if controls_view.repeat:
                 # Re-add the last song to the queue for repeat mode
                 guild_queues[ctx.guild.id].append(next_song)

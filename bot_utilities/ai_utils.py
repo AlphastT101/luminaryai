@@ -31,7 +31,17 @@ openai_client = AsyncOpenAI(
     base_url="https://openrouter.ai/api/v1",
     api_key=api_key,
 )
+openai_client_ = AsyncOpenAI(
+    base_url="http://127.0.0.1/v1",
+    api_key="aner123!",
+)
 
+async def image_generate(model, prompt):
+    response = await openai_client_.images.generate(
+        prompt=prompt,
+        model=model
+    )
+    return response.data[0].url
 
 async def generate_response_cmd(ctx, user_input, history=[]):
 
