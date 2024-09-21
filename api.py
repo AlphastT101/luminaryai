@@ -17,19 +17,18 @@ from collections import defaultdict
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
-# Setup logging
+# only show errors
 log = logging.getLogger('werkzeug')
 warnings.filterwarnings("ignore", message="Using the in-memory storage for tracking rate limits")
 log.setLevel(logging.ERROR)
 
-# Initialize Flask app
 app = Flask(__name__)
 
-# Initialize Flask-Limiter
+# Flask-Limiter
 limiter = Limiter(
     get_remote_address,
     app=app,
-    default_limits=["10 per minute"]  # Default global rate limit for IP
+    default_limits=["200 per minute"]  # Default global rate limit for IP
 )
 
 # Load configuration
@@ -55,7 +54,7 @@ def index():
     return render_template('index.html')
 
 @app.route('/v1/images/generations', methods=['POST'])
-@limiter.limit("10 per minute")  # Rate limit by IP address
+@limiter.limit("200 per minute")  # Rate limit by IP address
 def image():
     # Extract and validate token
     token = request.headers.get('Authorization', '').split()[1] if 'Authorization' in request.headers else None
@@ -82,7 +81,7 @@ def image():
     current_time = time.time()
     if token.startswith("luminary"):
         token_rate_limits[token] = [timestamp for timestamp in token_rate_limits[token] if current_time - timestamp < 60]
-        if len(token_rate_limits[token]) >= 10:
+        if len(token_rate_limits[token]) >= 200:
             return jsonify({"error": "Rate limit exceeded for this API token, you can only make 10 requests per minute."}), 429
         token_rate_limits[token].append(current_time)
 
@@ -180,7 +179,7 @@ def text():
     current_time = time.time()
     if token.startswith("luminary"):
         token_rate_limits[token] = [timestamp for timestamp in token_rate_limits[token] if current_time - timestamp < 60]
-        if len(token_rate_limits[token]) >= 10:
+        if len(token_rate_limits[token]) >= 200:
             return jsonify({"error": "Rate limit exceeded for this API token, you can only make 10 requests per minute."}), 429
         token_rate_limits[token].append(current_time)
 
