@@ -1,3 +1,6 @@
+import time
+start_time = time.time()
+
 import discord
 from discord.ext import commands, tasks
 import os
@@ -5,7 +8,7 @@ from pymongo.mongo_client import MongoClient
 import yaml
 import asyncio
 import threading
-import time, requests
+import requests
 
 from slash.ai import ai_slash
 from slash.fun import fun_slash
@@ -42,11 +45,10 @@ sp_id, sp_secret = spotify_token(client)
 is_generating = {}
 flask_thread = None
 member_histories_msg = {}
-start_time = time.time()
 intents = discord.Intents.all()
 intents.presences = False
 activity = discord.Game(name="/help")
-bot = commands.Bot(command_prefix=config["bot"]["prefix"], intents=intents, activity=activity, help_command=None, reconnect=False)
+bot = commands.AutoShardedBot(command_prefix=config["bot"]["prefix"], intents=intents, activity=activity, help_command=None, reconnect=False)
 
 
 fun(bot)
@@ -63,7 +65,7 @@ bot_slash(bot, start_time, client)
 ai_slash(bot, client, member_histories_msg, is_generating)
 
 
-#on_cmd_error(bot)
+on_cmd_error(bot)
 member_join(bot)
 
 @bot.command(name="cmd")
@@ -116,6 +118,9 @@ async def on_ready():
     print("API Engine has been started!")
     await bot.tree.sync()
     print("Slash commands synced!")
+    print(f'Shard count: {bot.shard_count}')
+    time_difference = time.time() - start_time
+    print(f"Booted in {time_difference}s")
 
 @bot.event
 async def on_guild_join(guild):

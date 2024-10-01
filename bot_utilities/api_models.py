@@ -72,6 +72,12 @@ models = {
             "object": "model",
             "created": 0,
             "owned_by": "polinations.ai"
-        }
+        },
+        {
+            "id": "flux",
+            "object": "model",
+            "created": 0,
+            "owned_by": "flux"
+        },
     ]
 }

@@ -14,29 +14,25 @@ async def about_embed(start_time, bot):
     current_time = time.time()
     difference = int(round(current_time - start_time))
     uptime_duration = datetime.timedelta(seconds=difference)
+    users = sum(guild.member_count for guild in bot.guilds)
+    guilds = len(bot.guilds)
 
     about = Embed(
         title='About LuminaryAI',
         description=(
-            "[Support server](<https://discord.com/invite/hmMBe8YyJ4>)\n"
-            "[Discord bot list](<https://top.gg/bot/1110111253256482826>)\n"
+            "[Site](<https://xet.netlify.app>)\n"
             "[Invite bot](<https://discord.com/oauth2/authorize?client_id=1110111253256482826&permissions=8&scope=bot>)\n"
-            "[Discord bot list vote](<https://top.gg/bot/1110111253256482826/vote>)\n"
-            "[Site](<https://luminaryai.netlify.app>)\n"
-            "[Terms of Service](<https://luminaryai.netlify.app/tos>)\n\n"
+            "[Support server](<https://discord.com/invite/hmMBe8YyJ4>)\n"
+            "[API Playground](http://45.139.50.97:6077)\n"
+            "[Terms of Service](<https://luminaryai.netlify.app/tos>)\n"
+            "[Discord bot list vote](<https://top.gg/bot/1110111253256482826/vote>)\n\n"
             "LuminaryAI is your Discord bot powered by artificial intelligence. "
-            "It utilizes cutting-edge AI features to enrich your server's experience, providing automated moderation, text filtering, image generation, and more!"
+            "It utilizes cutting-edge AI features to enrich your server's experience, providing automated moderation, text filtering, image generation, and more!\n\n"
+
+            f"**Internal Statics**\n* **RAM:** {ram_text}\n* **CPU:** {cpu_text}\n* **AI Engine:** Luminary\n\n"
+            f"**Bot Statics**\n* **Users:** {users}\n* **Guilds:** {guilds}\n* **Uptime:** {str(uptime_duration)}"
         ),
         color=0x99ccff
     )
-    about.add_field(name='Owner', value="alphast101", inline=True)
-    about.add_field(name='Used languages', value="Python 3.11 | discord.py 2.3.2", inline=True)
-    about.add_field(name='Uptime', value=str(uptime_duration), inline=True)
-    about.add_field(name='AI engine', value="Luminary", inline=True)
-    about.add_field(name='Total guilds', value=f'{len(bot.guilds)}', inline=True)
-    about.add_field(name='Users', value=f'{sum(guild.member_count for guild in bot.guilds)}', inline=True)
-    about.add_field(name='RAM usage', value=f"{ram_text}", inline=True)
-    about.add_field(name='CPU usage', value=f"{cpu_text}", inline=True)
     about.set_image(url="attachment://ai.png")
-
     return about

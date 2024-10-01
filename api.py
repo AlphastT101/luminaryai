@@ -1,21 +1,24 @@
-from flask import Flask, render_template, request, jsonify, send_from_directory
-import requests
 import io
-from PIL import Image
-from bot_utilities.api_utils import poli, gen_text, check_token, get_id, available, models_dict, get_t_sbot
-from bot_utilities.start_util import start
-from bot_utilities.api_models import models
-import logging
+import os
+import yaml
+import time
 import random
 import string
-import yaml
-from pymongo.mongo_client import MongoClient
-import os
-import time
+import logging
 import warnings
-from collections import defaultdict
+import requests
+from PIL import Image
+from flask_cors import CORS
 from flask_limiter import Limiter
+from collections import defaultdict
+from pymongo.mongo_client import MongoClient
 from flask_limiter.util import get_remote_address
+from flask import Flask, render_template, request, jsonify, send_from_directory
+
+from bot_utilities.start_util import start
+from bot_utilities.api_models import models
+from bot_utilities.api_utils import poli, gen_text, check_token, get_id, available, models_dict, get_t_sbot
+
 
 # only show errors
 log = logging.getLogger('werkzeug')
@@ -23,7 +26,7 @@ warnings.filterwarnings("ignore", message="Using the in-memory storage for track
 log.setLevel(logging.ERROR)
 
 app = Flask(__name__)
-
+CORS(app)
 # Flask-Limiter
 limiter = Limiter(
     get_remote_address,
@@ -51,7 +54,7 @@ token_rate_limits = defaultdict(list)
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return "hi, what are you doing here?"
 
 @app.route('/v1/images/generations', methods=['POST'])
 @limiter.limit("200 per minute")  # Rate limit by IP address
