@@ -22,7 +22,7 @@ from bot_utilities.api_utils import poli, gen_text, check_token, get_id, get_t_s
 # Setup logging
 log = logging.getLogger('uvicorn')
 warnings.filterwarnings("ignore", message="Using the in-memory storage for tracking rate limits")
-# log.setLevel(logging.ERROR)
+log.setLevel(logging.ERROR)
 
 app = FastAPI()
 app.add_middleware(
@@ -35,66 +35,77 @@ app.add_middleware(
 
 # Load configuration
 with open("config.yml", "r") as config_file:
+    global config
     config = yaml.safe_load(config_file)
-mongodb = config["bot"]["mongodb"]
 flask_port = str(config["flask"]["port"])
-guild_id = str(config["flask"]["guild_id"])
-guild_id_verify = str(config["flask"]["guild_id_verify"])
-send_req = str(config["flask"]["send_req_channel"])
-webhook = str(config["bot"]["webhook_images"])
-global clientdb
-clientdb = MongoClient(mongodb)
-sbot = get_t_sbot(clientdb)
-bot_token, open_r = start(clientdb)
-cache_folder = os.path.join(os.getcwd(), 'cache')
-os.makedirs(cache_folder, exist_ok=True)
+token_rate_limits = defaultdict(list) # Rate limit dictionaries
 
-# Rate limit dictionaries
-token_rate_limits = defaultdict(list)
+@app.on_event("startup")
+async def startup_event():
+    global clientdb, sbot, bot_token, open_r, mongodb, guild_id, guild_id_verify, send_req, webhook
+    print("INFO: API engine has started, loading utils...")
+
+    mongodb = config["bot"]["mongodb"]
+    guild_id = str(config["flask"]["guild_id"])
+    webhook = str(config["bot"]["webhook_images"])
+    send_req = str(config["flask"]["send_req_channel"])
+    guild_id_verify = str(config["flask"]["guild_id_verify"])
+
+    clientdb = MongoClient(mongodb)
+    sbot = get_t_sbot(clientdb)
+    bot_token, open_r = start(clientdb)
+
+    cache_folder = os.path.join(os.getcwd(), 'cache')
+    os.makedirs(cache_folder, exist_ok=True)
+
+    print("INFO: Utils are loaded. API is now functional.")
 
 @app.get('/')
 async def index():
-    return "hi, what are you doing here?"
+    return "hi, what are you doing here? there is nothing to view in our api endpoint."
 
 @app.post('/v1/images/generations')
 async def image(request: Request):
-    # Extract and validate token
-    token = request.headers.get('Authorization', '').split()[1] if 'Authorization' in request.headers else None
-    if not token:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Auth failed, API token not found in the JSON.")
+
+    # get token, prompt, model from the json
+    try:
+        token = request.headers.get('Authorization', '').split()[1] if 'Authorization' in request.headers else None
+        if not token: raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Auth failed, API is token not found in the JSON.")
+        data = await request.json()
+        prompt = data['prompt']
+        engine = data['model']
+    except KeyError: raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You MUST include 'prompt' and 'model' in the JSON.")
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=500, detail="An internal server error occured, please try again a few moments later.")
 
     # Check token validity
     result = await check_token(clientdb, token)
+    if not result: raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API token!")
+
+    # Rate limiting by token
+    current_time = time.time()
+    if token.startswith("luminary"):
+        token_rate_limits[token] = [timestamp for timestamp in token_rate_limits[token] if current_time - timestamp < 60]
+        if len(token_rate_limits[token]) >= 200:
+            raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Rate limit exceeded for this API token.")
+        token_rate_limits[token].append(current_time)
+
+    # variables to make requests to discord api
     headers = {"Authorization": f"Bot {bot_token}", "Content-Type": "application/json"}
     sheader = {'Authorization': sbot}
-    if not result:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API token!")
 
+    # Fetch the userID and check if the user has the verified role or not, if user is owner, then skip verification.
     user_id = str(await get_id(clientdb, token))
     if not user_id.startswith('owner'):
         async with httpx.AsyncClient() as client:
             member_response = await client.get(f"https://discord.com/api/v10/guilds/{guild_id_verify}/members/{user_id}", headers=headers)
             member_data = member_response.json()
             user_roles = member_data.get('roles', [])
-            if "1279261339574861895" not in user_roles:
+            if "1279261339574861895" not in user_roles: # 1279261339574861895 is the role id, DO NOT CHANGE IT
                 raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Your account is not verified.")
 
-    # Rate limiting by token
-    current_time = time.time()
-    if token.startswith("luminary"):
-        token_rate_limits[token] = [timestamp for timestamp in token_rate_limits[token] if current_time - timestamp < 60]
-        if len(token_rate_limits[token]) >= 1:
-            raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Rate limit exceeded for this API token.")
-        token_rate_limits[token].append(current_time)
-
-    # Handle request and generate image
-    data = await request.json()
-    try:
-        prompt = data['prompt']
-        engine = data['model']
-    except KeyError:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You MUST include 'prompt' and 'model' in the JSON.")
-
+    # Now, the user is verified, ratelimits are not exceed, token is valid. Continue to generate the image.
     characters = string.ascii_letters + string.digits
     random_string = ''.join(random.choice(characters) for _ in range(12))
 
@@ -116,25 +127,25 @@ async def image(request: Request):
                 do_break = False
                 failed = False
                 for message in messages:
-                    if message['content'].startswith("https://"):
+                    if message['content'].startswith("https://"): # generated image URL starts with https://
                         img_url = message['content']
                         do_break = True
                         break
-                    elif message['content'] == "error":
+                    elif message['content'] == "error": # the bot returns "error" when it fails
                         failed = True
 
-                if do_break: 
+                if do_break: # break when the image generation is done
                     break
-                elif failed:
+                elif failed: # return 500 if failed
                     await client.delete(f"https://discord.com/api/v9/channels/{channel_id}", headers=headers)
                     raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An internal server error occurred.")
-                elif seconds >= 120:
+                elif seconds >= 80: # if it takes more than 80 seconds to generate the image, then it's probably failed
                     await client.delete(f"https://discord.com/api/v9/channels/{channel_id}", headers=headers)
                     raise HTTPException(status_code=status.HTTP_520_UNKNOWN_ERROR, detail="An error occurred, this is probably our fault.")
                 else:
                     seconds += 1
                     await asyncio.sleep(1)
-            await client.delete(f"https://discord.com/api/v9/channels/{channel_id}", headers=headers)
+            await client.delete(f"https://discord.com/api/v9/channels/{channel_id}", headers=headers) # delete after generation
     else:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown engine.")
 
@@ -179,18 +190,37 @@ async def image(request: Request):
 
 @app.post('/v1/chat/completions')
 async def text(request: Request):
-    # Extract and validate token
-    token = request.headers.get('Authorization', '').split()[1] if 'Authorization' in request.headers else None
-    if not token:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Auth failed, API token not found in the JSON.")
+
+    # get token, messages, model from the json
+    try:
+        token = request.headers.get('Authorization', '').split()[1] if 'Authorization' in request.headers else None
+        if not token: raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Auth failed, API is token not found in the JSON.")
+        data = await request.json()
+        messages = data['messages']
+        model = data['model']
+        if model not in available: raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Model is not available.")
+    except KeyError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You MUST include 'messages' and 'model' in the JSON.")
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=500, detail="An internal server error occured, please try again a few moments later.")
 
     # Check token validity
     result = await check_token(clientdb, token)
-    headers = {"Authorization": f"Bot {bot_token}", "Content-Type": "application/json"}
-    if not result:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API token!")
+    if not result: raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API token!")
 
+    # Rate limiting logic by token
+    current_time = time.time()
+    if token.startswith("luminary"):
+        token_rate_limits[token] = [timestamp for timestamp in token_rate_limits[token] if current_time - timestamp < 60]
+        if len(token_rate_limits[token]) >= 15:
+            raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Rate limit exceeded for this API token. >15RPS")
+
+        token_rate_limits[token].append(current_time)
+
+    # Fetch the userID and check if the user has the verified role or not, if user is owner, then skip verification.
     user_id = str(await get_id(clientdb, token))
+    headers = {"Authorization": f"Bot {bot_token}", "Content-Type": "application/json"}
     if not user_id.startswith('owner'):
         async with httpx.AsyncClient() as client:
             member_response = await client.get(f"https://discord.com/api/v10/guilds/{guild_id_verify}/members/{user_id}", headers=headers)
@@ -199,26 +229,7 @@ async def text(request: Request):
             if "1279261339574861895" not in user_roles:
                 raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Your account is not verified.")
 
-    # Rate limiting by token
-    current_time = time.time()
-    if token.startswith("luminary"):
-        token_rate_limits[token] = [timestamp for timestamp in token_rate_limits[token] if current_time - timestamp < 60]
-        if len(token_rate_limits[token]) >= 1:
-            raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Rate limit exceeded for this API token. >15RPS")
-
-        token_rate_limits[token].append(current_time)
-
-    # Handle request data
-    data = await request.json()
-    try:
-        messages = data['messages']
-        model = data['model']
-    except KeyError:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You MUST include 'messages' in the JSON.")
-
-    if model not in available:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Model is not available.")
-
+    # Now, the user is verified, ratelimits are not exceed, token is valid. Continue to text generation.
     response = await gen_text(open_r, messages, model)
     return JSONResponse(content={"choices": [{"message": {"content": response}}]})
 
