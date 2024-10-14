@@ -77,7 +77,7 @@ async def image(request: Request):
     except KeyError: raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You MUST include 'prompt' and 'model' in the JSON.")
     except Exception as e:
         print(e)
-        raise HTTPException(status_code=500, detail="An internal server error occured, please try again a few moments later.")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An internal server error occured, please try again a few moments later.")
 
     # Check token validity
     result = await check_token(clientdb, token)
@@ -141,7 +141,7 @@ async def image(request: Request):
                     raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An internal server error occurred.")
                 elif seconds >= 80: # if it takes more than 80 seconds to generate the image, then it's probably failed
                     await client.delete(f"https://discord.com/api/v9/channels/{channel_id}", headers=headers)
-                    raise HTTPException(status_code=status.HTTP_520_UNKNOWN_ERROR, detail="An error occurred, this is probably our fault.")
+                    raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An error occurred, this is probably our fault.")
                 else:
                     seconds += 1
                     await asyncio.sleep(1)
@@ -203,7 +203,7 @@ async def text(request: Request):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You MUST include 'messages' and 'model' in the JSON.")
     except Exception as e:
         print(e)
-        raise HTTPException(status_code=500, detail="An internal server error occured, please try again a few moments later.")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An internal server error occured, please try again a few moments later.")
 
     # Check token validity
     result = await check_token(clientdb, token)

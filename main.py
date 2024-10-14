@@ -7,7 +7,6 @@ import os
 from pymongo.mongo_client import MongoClient
 import yaml
 import asyncio
-import threading
 import requests
 
 from slash.ai import ai_slash
