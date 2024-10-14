@@ -45,6 +45,8 @@ ai_commands = [
     ('`/ask {prompt}`', "❯ Generates answers according to user-inputs. Message history available"),
     ('`/search {prompt}`', "❯ Search the web for text and images"),
     ('`/vision {prompt}`', "❯ Vision an image. This command is slash only."),
+    ('`/generate-api-key`', "❯ Generates an API key for our API, join our support server for more info."),
+    ('`/delete-api-key`', "❯ deletes your API key for our API."),
     ('`@luminaryai {prompt}`', "❯ Ping LuminaryAI to generate text and images."),
     ('`@luminaryai activate`', "❯ Enable AI responses, You need admin permissions to run this command."),
     ('`@luminaryai deactivate`', "❯ Disable AI responses. You need admin permissions to run this command.")

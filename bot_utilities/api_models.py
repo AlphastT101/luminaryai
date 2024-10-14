@@ -50,12 +50,6 @@ models = {
             "owned_by": "mistral"
         },
         {
-            "id": "gpt-4o",
-            "object": "model",
-            "created": 0,
-            "owned_by": "openai"
-        },
-        {
             "id": "sdxl-turbo",
             "object": "model",
             "created": 0,

@@ -1,9 +1,14 @@
 from openai import OpenAI
 
-client = OpenAI(
-    api_key = "api key",
-    base_url = "http://45.139.50.97:6077/v1"
+openai = OpenAI(
+    api_key = "aner123!",
+    base_url = "http://127.0.0.1/v1"
 )
+# response = openai.images.generate(
+#     prompt="A sunset over a mountain range",
+#     model="dalle3"
+# )
+# print(response.data[0].url)
 
 message = []
 while True:
@@ -13,25 +18,14 @@ while True:
     "content": user
   }
   message.append(user_dict)
-  completion = client.chat.completions.create(
-    model="gpt-3.5-turbo",
+  completion = openai.chat.completions.create(
+    model="gpt-4-turbo",
     messages=message
   )
 
   ai_dict = {
     "role": "assistant",
-    "content": completion.response
+    "content": completion.choices[0].message.content
   }
   message.append(ai_dict)
-  print(f"AI: {completion.response}")
-
-
-
-
-
-# response = client.images.generate(
-#     prompt=input("You: "),
-#     model="sdxl-turbo"
-# )
-
-# print(response.data[0].url)
+  print(f"AI: {completion.choices[0].message.content}")

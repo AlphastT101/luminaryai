@@ -1,4 +1,4 @@
-from openai import OpenAI
+from openai import AsyncOpenAI
 import random
 import string
 import requests
@@ -39,7 +39,7 @@ available = [
 'llama-3','llama-3.1', 'gemma-2', 'mistral'
 ]
 # 'gpt-4o', 'command-r-plus-online'
-def poli(prompt):
+async def poli(prompt):
     seed = random.randint(1, 100000)
     image_url = f"https://image.pollinations.ai/prompt/{prompt}?seed={seed}"
     response = requests.get(image_url)
@@ -51,7 +51,7 @@ async def generate_api_key(prefix='luminary'):
     return api_key
 
 
-def check_token(mongodb, token):
+async def check_token(mongodb, token):
     db = mongodb["lumi-api"]
     collection = db["apitokens"]
 
@@ -78,7 +78,7 @@ async def delete_token(mongodb, userid):
     key = collection.delete_one({"userid": userid})
     return "deleted" if key else None
 
-def get_id(mongodb, token):
+async def get_id(mongodb, token):
     db = mongodb["lumi-api"]
     collection = db["apitokens"]
     id_doc = collection.find_one({"apitoken": token})
@@ -86,8 +86,8 @@ def get_id(mongodb, token):
     return user_id
 
 
-def gen_text(api_key, msg_history, model):
-    client = OpenAI(
+async def gen_text(api_key, msg_history, model):
+    client = AsyncOpenAI(
         base_url="https://openrouter.ai/api/v1",
         api_key=api_key,
     )
@@ -98,30 +98,26 @@ def gen_text(api_key, msg_history, model):
     elif system_ != "system" and model in spml:
         msg_history.insert(0, {"role": "system","name": model, "content": system_prompt[model]})
 
-    completion = client.chat.completions.create(
+    completion = await client.chat.completions.create(
         model=models_dict[model],
         messages=msg_history,
     )
-    return completion.choices[0].message.content
+    try:
+        return completion.choices[0].message.content
+    except Exception as e:
+        return "A massive error occured, please try again a few moments later,"
 
 
 def get_t_sbot(mongodb):
     db = mongodb['tokens']
     collection = db['bot']
-
-    # Try to find the bot token
     sbot = collection.find_one({"key": "sbot"})
     
     if sbot is None:
-        # Token not found; prompt for input
         print("get_t_sbot: 404 Not Found, enter password for sbot:")
         sbot_value = input("> ")
-        
-        # Securely handle the token (in real-world scenarios, use encryption)
         collection.insert_one({"key": "sbot", "value": sbot_value})
-        
-        # Return the newly entered value
         return sbot_value
+
     else:
-        # Return the existing token
         return sbot['value']

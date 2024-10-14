@@ -31,10 +31,14 @@ from api import app
 from bot_utilities.start_util import *
 from bot_utilities.ai_utils import process_queue
 
-def run_flask_app():
+def run_api():
     port = int(os.environ.get("PORT", config["flask"]["port"]))
-    app.run(host='0.0.0.0', port=port, debug=False)
+    import uvicorn
+    uvicorn.run("api:app", host='0.0.0.0', port=port, log_level="warning")
 
+async def run_flask_app_async():
+    loop = asyncio.get_running_loop()
+    await loop.run_in_executor(None, run_api)  # This will run run_flask_app in a separate thread
 
 with open("config.yml", "r") as config_file: config = yaml.safe_load(config_file)
 mongodb = config["bot"]["mongodb"]
@@ -86,19 +90,18 @@ on_messages(bot, cmd_list, member_histories_msg, client)
 async def sync_slash_cmd():
     await bot.tree.sync()
 
-bio = """
-Smart AI bot packed with features on Discord.
+bio = """Smart AI bot packed with features on Discord. Managed and developed by XET.
 
-Site: https://luminaryai.netlify.app
+Site: https://xet.one
 Support: https://discord.gg/hmMBe8YyJ4
-TOS: https://luminaryai.netlify.app/tos"""
+API Playground: https://play.xet.one"""
 
 @tasks.loop(seconds=30)
 async def update_bio():
     url = "https://discord.com/api/v9/applications/@me"
     headers = {"Authorization": f"Bot {bot_token}"}
     data = {"description": bio}
-    response = requests.patch(url=url, headers=headers, json=data)
+    requests.patch(url=url, headers=headers, json=data)
 
 @bot.event
 async def on_ready():
@@ -111,10 +114,8 @@ async def on_ready():
     update_bio.start()
     asyncio.create_task(process_queue())
 
-    # Run Flask app in a separate thread
-    flask_thread = threading.Thread(target=run_flask_app, daemon=True)
-    flask_thread.start()
-    
+    asyncio.create_task(run_flask_app_async())
+
     print("API Engine has been started!")
     await bot.tree.sync()
     print("Slash commands synced!")

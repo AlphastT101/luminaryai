@@ -23,7 +23,6 @@ imagehash
 gifmaker
 opencv-python
 scikit-image
-flask
+fastapi
 youtube_dl
 bs4
-flask_limiter

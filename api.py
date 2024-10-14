@@ -6,32 +6,31 @@ import random
 import string
 import logging
 import warnings
-import requests
+import httpx
+import asyncio
 from PIL import Image
-from flask_cors import CORS
-from flask_limiter import Limiter
+from fastapi import FastAPI, Request, HTTPException, status
+from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from collections import defaultdict
 from pymongo.mongo_client import MongoClient
-from flask_limiter.util import get_remote_address
-from flask import Flask, render_template, request, jsonify, send_from_directory
 
 from bot_utilities.start_util import start
 from bot_utilities.api_models import models
-from bot_utilities.api_utils import poli, gen_text, check_token, get_id, available, models_dict, get_t_sbot
+from bot_utilities.api_utils import poli, gen_text, check_token, get_id, get_t_sbot, available
 
-
-# only show errors
-log = logging.getLogger('werkzeug')
+# Setup logging
+log = logging.getLogger('uvicorn')
 warnings.filterwarnings("ignore", message="Using the in-memory storage for tracking rate limits")
-log.setLevel(logging.ERROR)
+# log.setLevel(logging.ERROR)
 
-app = Flask(__name__)
-CORS(app)
-# Flask-Limiter
-limiter = Limiter(
-    get_remote_address,
-    app=app,
-    default_limits=["200 per minute"]  # Default global rate limit for IP
+app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Load configuration
@@ -43,213 +42,192 @@ guild_id = str(config["flask"]["guild_id"])
 guild_id_verify = str(config["flask"]["guild_id_verify"])
 send_req = str(config["flask"]["send_req_channel"])
 webhook = str(config["bot"]["webhook_images"])
-client = MongoClient(mongodb)
-sbot = get_t_sbot(client)
-bot_token, open_r = start(client)
+global clientdb
+clientdb = MongoClient(mongodb)
+sbot = get_t_sbot(clientdb)
+bot_token, open_r = start(clientdb)
 cache_folder = os.path.join(os.getcwd(), 'cache')
 os.makedirs(cache_folder, exist_ok=True)
 
 # Rate limit dictionaries
 token_rate_limits = defaultdict(list)
 
-@app.route('/')
-def index():
+@app.get('/')
+async def index():
     return "hi, what are you doing here?"
 
-@app.route('/v1/images/generations', methods=['POST'])
-@limiter.limit("200 per minute")  # Rate limit by IP address
-def image():
+@app.post('/v1/images/generations')
+async def image(request: Request):
     # Extract and validate token
     token = request.headers.get('Authorization', '').split()[1] if 'Authorization' in request.headers else None
     if not token:
-        return jsonify({"error": "Auth failed, API token not found."}), 401
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Auth failed, API token not found in the JSON.")
 
     # Check token validity
-    result = check_token(client, token)
+    result = await check_token(clientdb, token)
     headers = {"Authorization": f"Bot {bot_token}", "Content-Type": "application/json"}
     sheader = {'Authorization': sbot}
     if not result:
-        return jsonify({"error": "Invalid API token! Check your API token and try again. Support: https://discord.gg/hmMBe8YyJ4"}), 401
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API token!")
 
-    user_id = str(get_id(client, token))
+    user_id = str(await get_id(clientdb, token))
     if not user_id.startswith('owner'):
-        response = requests.get(f"https://discord.com/api/v10/guilds/{guild_id_verify}/roles/1279261339574861895", headers=headers)
-        member_response = requests.get(f"https://discord.com/api/v10/guilds/{guild_id_verify}/members/{user_id}", headers=headers)
-        member_data = member_response.json()
-        user_roles = member_data.get('roles', [])
-        if "1279261339574861895" not in user_roles:
-            return jsonify({"error": "Your account is not verified, please verify yourself in our XET discord server."}), 401
+        async with httpx.AsyncClient() as client:
+            member_response = await client.get(f"https://discord.com/api/v10/guilds/{guild_id_verify}/members/{user_id}", headers=headers)
+            member_data = member_response.json()
+            user_roles = member_data.get('roles', [])
+            if "1279261339574861895" not in user_roles:
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Your account is not verified.")
 
     # Rate limiting by token
     current_time = time.time()
     if token.startswith("luminary"):
         token_rate_limits[token] = [timestamp for timestamp in token_rate_limits[token] if current_time - timestamp < 60]
-        if len(token_rate_limits[token]) >= 200:
-            return jsonify({"error": "Rate limit exceeded for this API token, you can only make 10 requests per minute."}), 429
+        if len(token_rate_limits[token]) >= 1:
+            raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Rate limit exceeded for this API token.")
         token_rate_limits[token].append(current_time)
 
     # Handle request and generate image
-    data = request.get_json()
+    data = await request.json()
     try:
         prompt = data['prompt']
         engine = data['model']
     except KeyError:
-        return jsonify({"error": "Invalid request, you MUST include a 'prompt' and 'model' in the JSON."}), 400
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You MUST include 'prompt' and 'model' in the JSON.")
 
     characters = string.ascii_letters + string.digits
     random_string = ''.join(random.choice(characters) for _ in range(12))
 
+    img_url = ""
     if engine == "poli":
-        img_url = poli(prompt)
+        img_url = await poli(prompt)
     elif engine in ["sdxl-turbo", "dalle3", "flux"]:
-        res = requests.post(f"https://discord.com/api/v9/guilds/{guild_id}/channels", json={"name": f"api-{random_string}", "permission_overwrites": [], "type": 0}, headers=headers)
-        channel_info = res.json()
-        channel_id = channel_info['id']
-        engine_id = "1254085308614709318" if engine == "dalle3" else "1265594684084981832" if engine == "sdxl-turbo" else "1280547383330996265"
-        seconds = 0
-        res = requests.post(f'https://discord.com/api/v9/channels/{channel_id}/messages', json={"content": f"<@{engine_id}> Generate an image of {prompt}"}, headers=sheader)
+        async with httpx.AsyncClient() as client:
+            res = await client.post(f"https://discord.com/api/v9/guilds/{guild_id}/channels", json={"name": f"api-{random_string}", "permission_overwrites": [], "type": 0}, headers=headers)
+            channel_info = res.json()
+            channel_id = channel_info['id']
+            engine_id = "1254085308614709318" if engine == "dalle3" else "1265594684084981832" if engine == "sdxl-turbo" else "1280547383330996265"
+            seconds = 0
+            await client.post(f'https://discord.com/api/v9/channels/{channel_id}/messages', json={"content": f"<@{engine_id}> Generate an image of {prompt}"}, headers=sheader)
 
-        while True:
-            res = requests.get(f"https://discord.com/api/v9/channels/{channel_id}/messages", headers=headers)
-            messages = res.json()
-            do_break = False
-            failed = False
-            for message in messages:
-                if message['content'].startswith("https://"):
-                    img_url = message['content']
-                    do_break = True
+            while True:
+                res = await client.get(f"https://discord.com/api/v9/channels/{channel_id}/messages", headers=headers)
+                messages = res.json()
+                do_break = False
+                failed = False
+                for message in messages:
+                    if message['content'].startswith("https://"):
+                        img_url = message['content']
+                        do_break = True
+                        break
+                    elif message['content'] == "error":
+                        failed = True
+
+                if do_break: 
                     break
-                elif message['content'] == "error":
-                    failed = True
-
-            if do_break: break
-            elif failed: return jsonify({"error": "An internal server error occurred, we're working on it."}), 500
-            elif seconds >= 120:
-                return jsonify({"error": "An error occurred, this is probably our fault. Please share this error code with our developers: 'REQ_TIMEOUT/ENGINE_OFFLINE'"}), 520
-            else:
-                seconds += 3
-                time.sleep(3)
-        requests.delete(f"https://discord.com/api/v9/channels/{channel_id}", headers=headers)
+                elif failed:
+                    await client.delete(f"https://discord.com/api/v9/channels/{channel_id}", headers=headers)
+                    raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An internal server error occurred.")
+                elif seconds >= 120:
+                    await client.delete(f"https://discord.com/api/v9/channels/{channel_id}", headers=headers)
+                    raise HTTPException(status_code=status.HTTP_520_UNKNOWN_ERROR, detail="An error occurred, this is probably our fault.")
+                else:
+                    seconds += 1
+                    await asyncio.sleep(1)
+            await client.delete(f"https://discord.com/api/v9/channels/{channel_id}", headers=headers)
     else:
-        return jsonify({"error": "Unknown engine, available engines are: 'poli', 'dalle3', 'sdxl-turbo', 'flux'."}), 400
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown engine.")
 
-    img_response = requests.get(img_url)
-    img = Image.open(io.BytesIO(img_response.content))
-    img_io = io.BytesIO()
-    img.save(img_io, 'PNG')
-    img_io.seek(0)
-    file_path = os.path.join('cache', f'{random_string}.png')
-    os.makedirs('cache', exist_ok=True)
-    with open(file_path, 'wb') as f:
-        f.write(img_io.getbuffer())
-    with open(file_path, 'rb') as f:
-        response = requests.post(webhook, files={'file': f})
-    response = response.json()
-    discord_image_url = response['attachments'][0]['url']
-    os.remove(file_path)
-    return jsonify({
-        "data": [
-            {"url": discord_image_url},
-            {"serveo": f"https://xet.serveo.net/cache/{random_string}.png"}
-        ]
-    })
+    upload2discord = bool(config["flask"]["upload2discord"])
+    logging_enabled = bool(config["flask"]["logging"])
 
-@app.route('/v1/chat/completions', methods=['POST'])
-@limiter.limit("10 per minute")  # Rate limit by IP address
-def text():
+    if upload2discord:
+        async with httpx.AsyncClient() as client:
+            img_response = await client.get(img_url)
+            img = Image.open(io.BytesIO(img_response.content))
+            img_io = io.BytesIO()
+            img.save(img_io, 'PNG')
+            img_io.seek(0)
+            file_path = os.path.join('cache', f'{random_string}.png')
+            with open(file_path, 'wb') as f:
+                f.write(img_io.getbuffer())
+            with open(file_path, 'rb') as f:
+                response = await client.post(webhook, files={'file': f})
+            response = response.json()
+            img_url = response['attachments'][0]['url']
+            os.remove(file_path)
+
+    if logging_enabled:
+        async with httpx.AsyncClient() as client:
+            try:
+                req = await client.post(
+                    f'https://discord.com/api/v9/channels/1279262113503645706/messages',
+                    json={"content": f"<@{user_id}> | {engine}\n`{img_url}`\n\n`{prompt}`"},
+                    headers=headers
+                )
+                req.raise_for_status()  # Raises an error for bad responses (4xx and 5xx)
+            except httpx.HTTPStatusError as exc:
+                print(f"WARNING: FAILED TO LOG IMAGE, ERROR: {exc.response.text}")
+            except Exception as e:
+                print(f"WARNING: An unexpected error occurred: {str(e)}")
+
+
+    return JSONResponse(content={"data": [{"url": img_url}, {"serveo": f"https://xet.serveo.net/cache/{random_string}.png"}]})
+
+
+
+
+@app.post('/v1/chat/completions')
+async def text(request: Request):
     # Extract and validate token
     token = request.headers.get('Authorization', '').split()[1] if 'Authorization' in request.headers else None
     if not token:
-        return jsonify({"error": "Auth failed, API token not found."}), 401
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Auth failed, API token not found in the JSON.")
 
     # Check token validity
-    result = check_token(client, token)
+    result = await check_token(clientdb, token)
     headers = {"Authorization": f"Bot {bot_token}", "Content-Type": "application/json"}
     if not result:
-        return jsonify({"error": "Invalid API token! Check your API token and try again. Support: https://discord.gg/hmMBe8YyJ4"}), 401
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API token!")
 
-    user_id = str(get_id(client, token))
+    user_id = str(await get_id(clientdb, token))
     if not user_id.startswith('owner'):
-        response = requests.get(f"https://discord.com/api/v10/guilds/{guild_id_verify}/roles/1279261339574861895", headers=headers)
-        member_response = requests.get(f"https://discord.com/api/v10/guilds/{guild_id_verify}/members/{user_id}", headers=headers)
-        member_data = member_response.json()
-        user_roles = member_data.get('roles', [])
-
-        if "1279261339574861895" not in user_roles:
-            return jsonify({"error": "Your account is not verified, please verify yourself in our XET discord server."}), 401
+        async with httpx.AsyncClient() as client:
+            member_response = await client.get(f"https://discord.com/api/v10/guilds/{guild_id_verify}/members/{user_id}", headers=headers)
+            member_data = member_response.json()
+            user_roles = member_data.get('roles', [])
+            if "1279261339574861895" not in user_roles:
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Your account is not verified.")
 
     # Rate limiting by token
     current_time = time.time()
     if token.startswith("luminary"):
         token_rate_limits[token] = [timestamp for timestamp in token_rate_limits[token] if current_time - timestamp < 60]
-        if len(token_rate_limits[token]) >= 200:
-            return jsonify({"error": "Rate limit exceeded for this API token, you can only make 10 requests per minute."}), 429
+        if len(token_rate_limits[token]) >= 1:
+            raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Rate limit exceeded for this API token. >15RPS")
+
         token_rate_limits[token].append(current_time)
 
-    # Handle request and generate response
-    data = request.get_json()
+    # Handle request data
+    data = await request.json()
     try:
         messages = data['messages']
         model = data['model']
     except KeyError:
-        return jsonify({"error": "Invalid request, you MUST include 'messages' and 'model' in the JSON."}), 400
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You MUST include 'messages' in the JSON.")
 
     if model not in available:
-        return jsonify({"error": "The model you requested is not found. However, you can request this model to be added! support: https://discord.gg/hmMBe8YyJ4"})
-    
-    # if model == "gpt-4o":
-    #     characters = string.ascii_letters + string.digits
-    #     random_string = ''.join(random.choice(characters) for _ in range(12))
-    #     res = requests.post(f"https://discord.com/api/v9/guilds/{guild_id}/channels", json={"name": f"api-{random_string}", "permission_overwrites": [], "type": 0}, headers=headers)
-    #     channel_info = res.json()
-    #     channel_id = channel_info['id']
-    #     engine_id = models_dict[model]
-    #     messagee = f"a!reqapi `{user_id}` {channel_id} {engine_id} {random_string}"
-    #     seconds = 0
-    #     file_path = os.path.join('cache', f'{random_string}.txt')
-    #     os.makedirs('cache', exist_ok=True)
-    #     with open(file_path, 'w') as f:
-    #         f.write(f"{messages}")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Model is not available.")
 
-    #     res = requests.post(f"https://discord.com/api/v9/channels/{send_req}/messages", json={"content": messagee}, headers=headers)
+    response = await gen_text(open_r, messages, model)
+    return JSONResponse(content={"choices": [{"message": {"content": response}}]})
 
-    #     while True:
-    #         res = requests.get(f"https://discord.com/api/v9/channels/{channel_id}/messages", headers=headers)
-    #         messages = res.json()
-    #         do_break = False
-    #         for message in messages:
-    #             if message['content'] == "error":
-    #                 os.remove(file_path)
-    #                 requests.delete(f"https://discord.com/api/v9/channels/{channel_id}", headers=headers)
-    #                 return jsonify({"error": "An internal server error occurred, we're working on it."}), 500
-    #             elif int(message['author']['id']) not in [1254815403553722401, 1212631443667423282]:
-    #                 response = message['content']
-    #                 do_break = True
-    #                 break
 
-    #         if do_break: break
-    #         elif seconds >= 120:
-    #             os.remove(file_path)
-    #             requests.delete(f"https://discord.com/api/v9/channels/{channel_id}", headers=headers)
-    #             return jsonify({"error": "An error occurred, this is probably our fault. Please share this error code with our developers: 'REQ_TIMEOUT/ENGINE_OFFLINE'"}), 520
-    #         else:
-    #             seconds += 3
-    #             time.sleep(3)
-    #     requests.delete(f"https://discord.com/api/v9/channels/{channel_id}", headers=headers)
-
-    response = gen_text(open_r, messages, model)
-
-    return jsonify({"response": response})
-
-# OpenAI-compatible model list endpoint
-@app.route('/v1/models', methods=['GET'])
-def model_list():
-    return jsonify(models)
-
-@app.route('/cache/<filename>')
-def serve_file(filename):
-    return send_from_directory(cache_folder, filename)
+@app.get('/v1/models')
+async def model_list():
+    return JSONResponse(content=models)
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", flask_port))
-    app.run(host='0.0.0.0', port=port, debug=True)
+    import uvicorn
+    uvicorn.run("api:app", host='0.0.0.0', port=port, log_level="warning")
