@@ -38,7 +38,7 @@ models = {
             "owned_by": "meta"
         },
         {
-            "id": "gemma",
+            "id": "gemma-2",
             "object": "model",
             "created": 0,
             "owned_by": "gemma"

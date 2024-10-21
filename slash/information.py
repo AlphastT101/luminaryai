@@ -41,11 +41,13 @@ def information_slash(bot, mongodb):
 
 
     @bot.tree.command(name='support', description="Shows support server invite link")
+    @commands.guild_only()
     async def support(interaction: discord.Interaction):
         if await check_blist(interaction, mongodb): return
         await interaction.response.send_message("> **Support server invite link:** [here](https://discord.com/invite/hmMBe8YyJ4)")
 
     @bot.tree.command(name='owner', description="Shows bot owner")
+    @commands.guild_only()
     async def owner(interaction: discord.Interaction):
         if await check_blist(interaction, mongodb): return
         await interaction.response.send_message("> **My owner is:** [AlphasT101](https://alphast101.netlify.app)")

@@ -4,7 +4,7 @@ from discord.ext import commands
 from bot_utilities.owner_utils import *
 from bot_utilities.ai_utils import vision
 from bot_utilities.ai_utils import *
-from bot_utilities.api_utils import check_user, insert_token, delete_token
+from bot_utilities.api_utils import check_user, insert_token, delete_token, get_api_stat
 
 def ai_slash(bot, mongodb, member_histories_msg, is_generating):
 
@@ -170,7 +170,7 @@ def ai_slash(bot, mongodb, member_histories_msg, is_generating):
         await create_and_send_embed(prompt, bot, interaction, image_urls)
 
 
-    @bot.tree.command(name="generate-api-key", description="Generate an API key for LuminaryAI")
+    @bot.tree.command(name="generate-api-key", description="Generate an API key for XET")
     @commands.guild_only()
     async def create_api(interaction: discord.Interaction):
         if await check_blist(interaction, mongodb): return
@@ -202,7 +202,7 @@ def ai_slash(bot, mongodb, member_histories_msg, is_generating):
 
 
 
-    @bot.tree.command(name="delete-api-key", description="Delete Your API key for LuminaryAI")
+    @bot.tree.command(name="delete-api-key", description="Delete Your API key for XET")
     @commands.guild_only()
     async def delete_api(interaction: discord.Interaction):
         if await check_blist(interaction, mongodb): return
@@ -230,3 +230,19 @@ def ai_slash(bot, mongodb, member_histories_msg, is_generating):
             else:
                 await interaction.followup.send("> ❌ **Failed to delete API token**")
         else: await interaction.followup.send("> ❌ **You don't have an API key!**")
+
+
+    @bot.tree.command(name="api-stats", description="View our API stats")
+    @commands.guild_only()
+    async def delete_api(interaction: discord.Interaction):
+        if await check_blist(interaction, mongodb): return
+        await interaction.response.defer(ephemeral=False)
+        stats = await get_api_stat(mongodb)
+
+        embed = discord.Embed(
+            title="XET API Stats",
+            description=stats,
+            color=discord.Color.blue()
+        )
+        embed.set_footer(text="Current XET API Stats")
+        await interaction.followup.send(embed=embed)

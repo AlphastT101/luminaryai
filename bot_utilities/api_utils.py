@@ -45,7 +45,7 @@ async def poli(prompt):
     response = requests.get(image_url)
     return response.url
 
-async def generate_api_key(prefix='luminary'):
+async def generate_api_key(prefix='XET'):
     random_string = ''.join(random.choices(string.ascii_letters + string.digits, k=40))
     api_key = f'{prefix}-{random_string}'
     return api_key
@@ -107,6 +107,35 @@ async def gen_text(api_key, msg_history, model):
     except Exception as e:
         return "A massive error occured, please try again a few moments later,"
 
+async def save_api_stats(new_api_stats, mongodb):
+    db = mongodb['lumi-api']
+    collection = db['stats']
+    
+    # Fetch the existing api_stats from the database
+    stats = collection.find_one({"key": "api_stats"})
+    
+    # Initialize the existing stats if they don't exist
+    if stats is None:
+        existing_stats = {}
+    else:
+        existing_stats = stats.get("value", {})
+    
+    # Update the existing stats with new values
+    for key, new_value in new_api_stats.items():
+        if key in existing_stats:
+            existing_stats[key] += new_value  # Increment existing value
+        else:
+            existing_stats[key] = new_value  # Add new key-value pair
+    
+    # Update the database with the new api_stats
+    collection.update_one(
+        {"key": "api_stats"},
+        {"$set": {"value": existing_stats}},
+        upsert=True  # Create a new document if it doesn't exist
+    )
+
+    return existing_stats  # Return the updated stats if needed
+
 
 def get_t_sbot(mongodb):
     db = mongodb['tokens']
@@ -121,3 +150,27 @@ def get_t_sbot(mongodb):
 
     else:
         return sbot['value']
+
+
+async def delete_channel(channel_id, headers, httpx):
+    async with httpx.AsyncClient() as client:
+        try:
+            await client.delete(f"https://discord.com/api/v9/channels/{channel_id}", headers=headers)
+        except httpx.HTTPError as e:
+            print(f"Failed to delete channel: {str(e)}")
+        
+async def get_api_stat(mongodb):
+    db = mongodb['lumi-api']
+    collection = db['stats']
+    stats = collection.find_one({"key": "api_stats"})
+
+    if stats and 'value' in stats:
+        model_stats = stats['value']
+        formatted_stats = []
+
+        for model_name, total_requests in model_stats.items():
+            formatted_stats.append(f"**{model_name}:** `{total_requests}`")
+
+        return "\n".join(formatted_stats)
+    else:
+        return "No API stats found."

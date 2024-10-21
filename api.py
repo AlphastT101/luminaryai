@@ -2,22 +2,22 @@ import io
 import os
 import yaml
 import time
+import httpx
 import random
 import string
 import logging
-import warnings
-import httpx
 import asyncio
+import warnings
 from PIL import Image
-from fastapi import FastAPI, Request, HTTPException, status
-from fastapi.responses import JSONResponse
-from fastapi.middleware.cors import CORSMiddleware
 from collections import defaultdict
+from fastapi.responses import JSONResponse
 from pymongo.mongo_client import MongoClient
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, Request, HTTPException, status, BackgroundTasks
 
 from bot_utilities.start_util import start
 from bot_utilities.api_models import models
-from bot_utilities.api_utils import poli, gen_text, check_token, get_id, get_t_sbot, available
+from bot_utilities.api_utils import poli, gen_text, check_token, get_id, get_t_sbot, available, save_api_stats, delete_channel
 
 # Setup logging
 log = logging.getLogger('uvicorn')
@@ -39,6 +39,39 @@ with open("config.yml", "r") as config_file:
     config = yaml.safe_load(config_file)
 flask_port = str(config["flask"]["port"])
 token_rate_limits = defaultdict(list) # Rate limit dictionaries
+global api_stats
+api_stats = {}
+
+
+async def sync_api_stats():
+    global api_stats
+    while True:
+        await save_api_stats(api_stats, clientdb)
+        api_stats = {}  # Resetting api_stats
+        await asyncio.sleep(20)
+
+async def log_message(user_id, engine, img_url, prompt, headers):
+    async with httpx.AsyncClient() as client:
+        try:
+
+            embed = {
+                "title": "Image Generated",
+                "description": f"User: <@{user_id}>\n\n **Prompt:**\n```{prompt}```",
+                "color": 0x3498db,  # Blue color
+                "image": {"url": img_url}
+            }
+
+            data = {"embeds": [embed]} # Embed must be sent inside a list
+            req = await client.post(
+                f'https://discord.com/api/v9/channels/1279262113503645706/messages',
+                json=data,
+                headers=headers
+            )
+            req.raise_for_status()  # Raises an error for bad responses (4xx and 5xx)
+        except httpx.HTTPStatusError as exc:
+            print(f"WARNING: FAILED TO LOG IMAGE, ERROR: {exc.response.text}")
+        except Exception as e:
+            print(f"WARNING: An unexpected error occurred: {str(e)}")
 
 @app.on_event("startup")
 async def startup_event():
@@ -58,6 +91,8 @@ async def startup_event():
     cache_folder = os.path.join(os.getcwd(), 'cache')
     os.makedirs(cache_folder, exist_ok=True)
 
+    asyncio.create_task(sync_api_stats())
+
     print("INFO: Utils are loaded. API is now functional.")
 
 @app.get('/')
@@ -65,7 +100,7 @@ async def index():
     return "hi, what are you doing here? there is nothing to view in our api endpoint."
 
 @app.post('/v1/images/generations')
-async def image(request: Request):
+async def image(request: Request, background_tasks: BackgroundTasks):
 
     # get token, prompt, model from the json
     try:
@@ -103,7 +138,7 @@ async def image(request: Request):
             member_data = member_response.json()
             user_roles = member_data.get('roles', [])
             if "1279261339574861895" not in user_roles: # 1279261339574861895 is the role id, DO NOT CHANGE IT
-                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Your account is not verified.")
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Your account is not verified/You left the XET server.")
 
     # Now, the user is verified, ratelimits are not exceed, token is valid. Continue to generate the image.
     characters = string.ascii_letters + string.digits
@@ -122,30 +157,34 @@ async def image(request: Request):
             await client.post(f'https://discord.com/api/v9/channels/{channel_id}/messages', json={"content": f"<@{engine_id}> Generate an image of {prompt}"}, headers=sheader)
 
             while True:
-                res = await client.get(f"https://discord.com/api/v9/channels/{channel_id}/messages", headers=headers)
-                messages = res.json()
-                do_break = False
-                failed = False
-                for message in messages:
-                    if message['content'].startswith("https://"): # generated image URL starts with https://
-                        img_url = message['content']
-                        do_break = True
-                        break
-                    elif message['content'] == "error": # the bot returns "error" when it fails
-                        failed = True
+                try:
+                    res = await client.get(f"https://discord.com/api/v9/channels/{channel_id}/messages", headers=headers)
+                    messages = res.json()
+                    do_break = False
+                    failed = False
+                    for message in messages:
+                        if message['content'].startswith("https://"): # generated image URL starts with https://
+                            img_url = message['content']
+                            do_break = True
+                            break
+                        elif message['content'] == "error": # the bot returns "error" when it fails
+                            failed = True
 
-                if do_break: # break when the image generation is done
-                    break
-                elif failed: # return 500 if failed
-                    await client.delete(f"https://discord.com/api/v9/channels/{channel_id}", headers=headers)
+                    if do_break: # break when the image generation is done
+                        break
+                    elif failed: # return 500 if failed
+                        background_tasks.add_task(delete_channel, channel_id, headers, httpx)
+                        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An internal server error occurred.")
+                    elif seconds >= 50: # if it takes more than 50 seconds to generate the image, then it's probably failed
+                        background_tasks.add_task(delete_channel, channel_id, headers, httpx)
+                        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An error occurred, this is probably our fault.")
+                    else:
+                        seconds += 1.5
+                        await asyncio.sleep(1.5)
+                except Exception as e:
+                    background_tasks.add_task(delete_channel, channel_id, headers, httpx)
                     raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An internal server error occurred.")
-                elif seconds >= 80: # if it takes more than 80 seconds to generate the image, then it's probably failed
-                    await client.delete(f"https://discord.com/api/v9/channels/{channel_id}", headers=headers)
-                    raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An error occurred, this is probably our fault.")
-                else:
-                    seconds += 1
-                    await asyncio.sleep(1)
-            await client.delete(f"https://discord.com/api/v9/channels/{channel_id}", headers=headers) # delete after generation
+            background_tasks.add_task(delete_channel, channel_id, headers, httpx) # delete after generation
     else:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown engine.")
 
@@ -168,21 +207,9 @@ async def image(request: Request):
             img_url = response['attachments'][0]['url']
             os.remove(file_path)
 
-    if logging_enabled:
-        async with httpx.AsyncClient() as client:
-            try:
-                req = await client.post(
-                    f'https://discord.com/api/v9/channels/1279262113503645706/messages',
-                    json={"content": f"<@{user_id}> | {engine}\n`{img_url}`\n\n`{prompt}`"},
-                    headers=headers
-                )
-                req.raise_for_status()  # Raises an error for bad responses (4xx and 5xx)
-            except httpx.HTTPStatusError as exc:
-                print(f"WARNING: FAILED TO LOG IMAGE, ERROR: {exc.response.text}")
-            except Exception as e:
-                print(f"WARNING: An unexpected error occurred: {str(e)}")
+    if logging_enabled: background_tasks.add_task(log_message, user_id, engine, img_url, prompt, headers)
 
-
+    api_stats[engine] = api_stats.get(engine, 0) + 1
     return JSONResponse(content={"data": [{"url": img_url}, {"serveo": f"https://xet.serveo.net/cache/{random_string}.png"}]})
 
 
@@ -198,12 +225,14 @@ async def text(request: Request):
         data = await request.json()
         messages = data['messages']
         model = data['model']
-        if model not in available: raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Model is not available.")
     except KeyError:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You MUST include 'messages' and 'model' in the JSON.")
     except Exception as e:
         print(e)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An internal server error occured, please try again a few moments later.")
+    
+    if model not in available:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Model is not available.")
 
     # Check token validity
     result = await check_token(clientdb, token)
@@ -231,6 +260,7 @@ async def text(request: Request):
 
     # Now, the user is verified, ratelimits are not exceed, token is valid. Continue to text generation.
     response = await gen_text(open_r, messages, model)
+    api_stats[model] = api_stats.get(model, 0) + 1
     return JSONResponse(content={"choices": [{"message": {"content": response}}]})
 
 

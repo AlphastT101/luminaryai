@@ -26,6 +26,7 @@ def bot_slash(bot,start_time, mongodb):
         await interaction.followup.send(content=f'**Pong! My Latency is `{latency_ms}ms`.**')
 
     @bot.tree.command(name="uptime", description="Shows bot uptime")
+    @commands.guild_only()
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def uptime(interaction: discord.Interaction):
         if await check_blist(interaction, mongodb): return
