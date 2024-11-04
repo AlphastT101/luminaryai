@@ -1,0 +1,12 @@
+bot:
+  prefix: "ai."
+  text_model: "o1"
+  mongodb: ""
+  webhook_images: ""
+flask:
+  port: 80
+  guild_id: 123
+  send_req_channel: 123
+  guild_id_verify: 123
+  upload2discord: False
+  logging: True
