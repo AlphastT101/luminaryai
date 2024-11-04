@@ -1,7 +1,8 @@
-from openai import AsyncOpenAI
+import httpx
 import random
 import string
 import requests
+from openai import AsyncOpenAI
 
 system_prompt = {
     "gpt-4": "I am GPT-4. I am not GPT-4-Turbo rather I am a normal GPT-4 powered by OpenAI.",
@@ -39,6 +40,8 @@ available = [
 'llama-3','llama-3.1', 'gemma-2', 'mistral'
 ]
 # 'gpt-4o', 'command-r-plus-online'
+
+
 async def poli(prompt):
     seed = random.randint(1, 100000)
     image_url = f"https://image.pollinations.ai/prompt/{prompt}?seed={seed}"
@@ -155,10 +158,10 @@ def get_t_sbot(mongodb):
 async def delete_channel(channel_id, headers, httpx):
     async with httpx.AsyncClient() as client:
         try:
-            await client.delete(f"https://discord.com/api/v9/channels/{channel_id}", headers=headers)
+            req = await client.delete(f"https://discord.com/api/v9/channels/{channel_id}", headers=headers)
         except httpx.HTTPError as e:
             print(f"Failed to delete channel: {str(e)}")
-        
+
 async def get_api_stat(mongodb):
     db = mongodb['lumi-api']
     collection = db['stats']
@@ -174,3 +177,26 @@ async def get_api_stat(mongodb):
         return "\n".join(formatted_stats)
     else:
         return "No API stats found."
+
+async def log_message(user_id, engine, img_url, prompt, headers):
+    async with httpx.AsyncClient() as client:
+        try:
+
+            embed = {
+                "title": "Image Generated",
+                "description": f"**User**: <@{user_id}>\n**Model:** {engine}\n\n **Prompt:**\n```{prompt}```",
+                "color": 0x3498db,  # Blue color
+                "image": {"url": img_url}
+            }
+
+            data = {"embeds": [embed]} # Embed must be sent inside a list
+            req = await client.post(
+                f'https://discord.com/api/v9/channels/1279262113503645706/messages',
+                json=data,
+                headers=headers
+            )
+            req.raise_for_status()  # Raises an error for bad responses (4xx and 5xx)
+        except httpx.HTTPStatusError as exc:
+            print(f"WARNING: FAILED TO LOG IMAGE, ERROR: {exc.response.text}")
+        except Exception as e:
+            print(f"WARNING: An unexpected error occurred: {str(e)}")

@@ -8,21 +8,21 @@ import string
 import logging
 import asyncio
 import warnings
+import requests
 from PIL import Image
 from collections import defaultdict
+from bot_utilities.start_util import start
+from bot_utilities.api_models import models
 from fastapi.responses import JSONResponse
 from pymongo.mongo_client import MongoClient
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi import FastAPI, Request, HTTPException, status, BackgroundTasks
-
-from bot_utilities.start_util import start
-from bot_utilities.api_models import models
-from bot_utilities.api_utils import poli, gen_text, check_token, get_id, get_t_sbot, available, save_api_stats, delete_channel
+from fastapi import FastAPI, Request, status, BackgroundTasks
+from bot_utilities.api_utils import poli, gen_text, check_token, get_id, get_t_sbot, available, save_api_stats, delete_channel, log_message
 
 # Setup logging
 log = logging.getLogger('uvicorn')
-warnings.filterwarnings("ignore", message="Using the in-memory storage for tracking rate limits")
 log.setLevel(logging.ERROR)
+warnings.filterwarnings("ignore", message="Using the in-memory storage for tracking rate limits")
 
 app = FastAPI()
 app.add_middleware(
@@ -49,29 +49,6 @@ async def sync_api_stats():
         await save_api_stats(api_stats, clientdb)
         api_stats = {}  # Resetting api_stats
         await asyncio.sleep(20)
-
-async def log_message(user_id, engine, img_url, prompt, headers):
-    async with httpx.AsyncClient() as client:
-        try:
-
-            embed = {
-                "title": "Image Generated",
-                "description": f"User: <@{user_id}>\n\n **Prompt:**\n```{prompt}```",
-                "color": 0x3498db,  # Blue color
-                "image": {"url": img_url}
-            }
-
-            data = {"embeds": [embed]} # Embed must be sent inside a list
-            req = await client.post(
-                f'https://discord.com/api/v9/channels/1279262113503645706/messages',
-                json=data,
-                headers=headers
-            )
-            req.raise_for_status()  # Raises an error for bad responses (4xx and 5xx)
-        except httpx.HTTPStatusError as exc:
-            print(f"WARNING: FAILED TO LOG IMAGE, ERROR: {exc.response.text}")
-        except Exception as e:
-            print(f"WARNING: An unexpected error occurred: {str(e)}")
 
 @app.on_event("startup")
 async def startup_event():
@@ -105,25 +82,30 @@ async def image(request: Request, background_tasks: BackgroundTasks):
     # get token, prompt, model from the json
     try:
         token = request.headers.get('Authorization', '').split()[1] if 'Authorization' in request.headers else None
-        if not token: raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Auth failed, API is token not found in the JSON.")
+        if not token: return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"detail": "API token is not found in the JSON."})
         data = await request.json()
         prompt = data['prompt']
         engine = data['model']
-    except KeyError: raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You MUST include 'prompt' and 'model' in the JSON.")
+    except KeyError: return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"detail": "You MUST include 'prompt' and 'model' in the JSON."})
     except Exception as e:
         print(e)
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An internal server error occured, please try again a few moments later.")
+        return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content={"detail": "An internal server error occured, please try again a few moments later."})
 
-    # Check token validity
+    if not engine in ["sdxl-turbo", "dalle3", "flux", "poli"]:
+        return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"detail":"Unknown engine. Available engines are: 'sdxl-turbo', 'dalle3', 'flux.1', 'poli'"})
+
+    api_stats[engine] = api_stats.get(engine, 0) + 1 # API Stats + 1
+ 
+    # Check token
     result = await check_token(clientdb, token)
-    if not result: raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API token!")
+    if not result: return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"detail": "Unauthorized, check your API token and try again."})
 
     # Rate limiting by token
     current_time = time.time()
     if token.startswith("luminary"):
         token_rate_limits[token] = [timestamp for timestamp in token_rate_limits[token] if current_time - timestamp < 60]
         if len(token_rate_limits[token]) >= 200:
-            raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Rate limit exceeded for this API token.")
+            return JSONResponse(status_code=status.HTTP_429_TOO_MANY_REQUESTS, content={"detail": "Rate limit exceeded for this API token."})
         token_rate_limits[token].append(current_time)
 
     # variables to make requests to discord api
@@ -138,7 +120,7 @@ async def image(request: Request, background_tasks: BackgroundTasks):
             member_data = member_response.json()
             user_roles = member_data.get('roles', [])
             if "1279261339574861895" not in user_roles: # 1279261339574861895 is the role id, DO NOT CHANGE IT
-                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Your account is not verified/You left the XET server.")
+                return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"detail":"Your account is not verified/You left the XET server."})
 
     # Now, the user is verified, ratelimits are not exceed, token is valid. Continue to generate the image.
     characters = string.ascii_letters + string.digits
@@ -172,21 +154,16 @@ async def image(request: Request, background_tasks: BackgroundTasks):
 
                     if do_break: # break when the image generation is done
                         break
-                    elif failed: # return 500 if failed
+                    elif failed or seconds >= 50: # return 500 if failed or seconds>50
                         background_tasks.add_task(delete_channel, channel_id, headers, httpx)
-                        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An internal server error occurred.")
-                    elif seconds >= 50: # if it takes more than 50 seconds to generate the image, then it's probably failed
-                        background_tasks.add_task(delete_channel, channel_id, headers, httpx)
-                        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An error occurred, this is probably our fault.")
+                        return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content={"detail": "Shapes.inc faced a server error."})
                     else:
                         seconds += 1.5
                         await asyncio.sleep(1.5)
                 except Exception as e:
                     background_tasks.add_task(delete_channel, channel_id, headers, httpx)
-                    raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An internal server error occurred.")
+                    return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content={"detail": "An internal server error occurred."})
             background_tasks.add_task(delete_channel, channel_id, headers, httpx) # delete after generation
-    else:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown engine.")
 
     upload2discord = bool(config["flask"]["upload2discord"])
     logging_enabled = bool(config["flask"]["logging"])
@@ -208,8 +185,6 @@ async def image(request: Request, background_tasks: BackgroundTasks):
             os.remove(file_path)
 
     if logging_enabled: background_tasks.add_task(log_message, user_id, engine, img_url, prompt, headers)
-
-    api_stats[engine] = api_stats.get(engine, 0) + 1
     return JSONResponse(content={"data": [{"url": img_url}, {"serveo": f"https://xet.serveo.net/cache/{random_string}.png"}]})
 
 
@@ -221,29 +196,30 @@ async def text(request: Request):
     # get token, messages, model from the json
     try:
         token = request.headers.get('Authorization', '').split()[1] if 'Authorization' in request.headers else None
-        if not token: raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Auth failed, API is token not found in the JSON.")
+        if not token: return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"detail": "Auth failed, API is token not found in the JSON."})
         data = await request.json()
         messages = data['messages']
         model = data['model']
     except KeyError:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You MUST include 'messages' and 'model' in the JSON.")
+        return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"detail":"You MUST include 'messages' and 'model' in the JSON."})
     except Exception as e:
         print(e)
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An internal server error occured, please try again a few moments later.")
+        return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content={"detail": "An internal server error occured, please try again a few moments later."})
     
     if model not in available:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Model is not available.")
+        return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"detail": "Model is not available."})
 
+    api_stats[model] = api_stats.get(model, 0) + 1
     # Check token validity
     result = await check_token(clientdb, token)
-    if not result: raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API token!")
+    if not result: return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"detail": "Invalid API token!"})
 
     # Rate limiting logic by token
     current_time = time.time()
     if token.startswith("luminary"):
         token_rate_limits[token] = [timestamp for timestamp in token_rate_limits[token] if current_time - timestamp < 60]
         if len(token_rate_limits[token]) >= 15:
-            raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Rate limit exceeded for this API token. >15RPS")
+            return JSONResponse(status_code=status.HTTP_429_TOO_MANY_REQUESTS, content={"detail": "Rate limit exceeded for this API token. >15RPS"})
 
         token_rate_limits[token].append(current_time)
 
@@ -256,11 +232,10 @@ async def text(request: Request):
             member_data = member_response.json()
             user_roles = member_data.get('roles', [])
             if "1279261339574861895" not in user_roles:
-                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Your account is not verified.")
+                return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"detail": "Your account is not verified."})
 
     # Now, the user is verified, ratelimits are not exceed, token is valid. Continue to text generation.
     response = await gen_text(open_r, messages, model)
-    api_stats[model] = api_stats.get(model, 0) + 1
     return JSONResponse(content={"choices": [{"message": {"content": response}}]})
 
 

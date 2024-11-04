@@ -51,7 +51,7 @@ member_histories_msg = {}
 intents = discord.Intents.all()
 intents.presences = False
 activity = discord.Game(name="/help")
-bot = commands.AutoShardedBot(command_prefix=config["bot"]["prefix"], intents=intents, activity=activity, help_command=None, reconnect=False)
+bot = commands.AutoShardedBot(shard_count=2, command_prefix=config["bot"]["prefix"], intents=intents, activity=activity, help_command=None, reconnect=False)
 
 
 fun(bot)
@@ -89,7 +89,7 @@ on_messages(bot, cmd_list, member_histories_msg, client)
 async def sync_slash_cmd():
     await bot.tree.sync()
 
-bio = """Smart AI bot packed with features on Discord. Managed and developed by XET.
+bio = """Smart AI bot packed with features on Discord. Managed and developed by XET. AI Engine by shapes.inc
 
 Site: https://xet.one
 Support: https://discord.gg/hmMBe8YyJ4
