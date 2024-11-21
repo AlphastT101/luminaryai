@@ -1,12 +1,12 @@
 bot:
   prefix: "ai."
-  text_model: "o1"
-  mongodb: ""
-  webhook_images: ""
+  text_model: "google/gemma-2-9b-it:free"
+  mongodb: "mongodb://localhost:27017/"
+  webhook_images: "https://discord.com/api/webhooks/1278889064157679616/HbwjxkhwK099_aXSTGgg7vK1EFAnbmmSiPT6d01-uxvqfPgyFsCbMrx3LSAyAMB9Lg_M" # Replace with urs
 flask:
   port: 80
-  guild_id: 123
-  send_req_channel: 123
-  guild_id_verify: 123
+  guild_id: 1253765266115133442
+  send_req_channel: 1254053747227889785
+  guild_id_verify: 1144903052717985806
   upload2discord: False
   logging: True

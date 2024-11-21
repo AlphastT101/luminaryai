@@ -200,3 +200,19 @@ async def log_message(user_id, engine, img_url, prompt, headers):
             print(f"WARNING: FAILED TO LOG IMAGE, ERROR: {exc.response.text}")
         except Exception as e:
             print(f"WARNING: An unexpected error occurred: {str(e)}")
+
+
+async def get_engine_id(model, size):
+    if model == "flux":
+        if size == "1792x1024": return "1309051413401436200"
+        elif size == "1024x1024": return "1280547383330996265"
+        elif size == "1024x1792": return "1309060402579243039"
+    if model == "dalle3":
+        if size == "1024x1024": return "1254085308614709318"
+        if size == "1792x1024": return "1309091286912860190"
+        if size == "1024x1792": return "1309093699631714364"
+    if model == "sdxl-turbo":
+        if size == "1024x1024": return  "1265594684084981832"
+        if size == "1792x1024": return "1309096880470233139"
+        if size == "1024x1792": return "1309098603196846161"
+    else: return "error"

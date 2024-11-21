@@ -36,10 +36,12 @@ openai_client_ = AsyncOpenAI(
     api_key="aner123!",
 )
 
-async def image_generate(model, prompt):
+async def image_generate(model, prompt, size:str = None):
+    if size is None: size = "1024x1024"
     response = await openai_client_.images.generate(
         prompt=prompt,
-        model=model
+        model=model,
+        size=size
     )
     return response.data[0].url
 

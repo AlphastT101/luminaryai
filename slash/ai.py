@@ -103,16 +103,26 @@ def ai_slash(bot, mongodb, member_histories_msg, is_generating):
     @commands.guild_only()
     @app_commands.describe(
         prompt="Enter the prompt for the image to generate.",
-        model="Select the model to use.")
+        model="Select the model to use.",
+        size="Select the size for the model.")
     @app_commands.choices(model=[
         app_commands.Choice(name="Flux (Best)", value="flux"),
         app_commands.Choice(name="Dalle3", value="dalle3"),
         app_commands.Choice(name="SDXL-Turbo", value="sdxl-turbo"),
         app_commands.Choice(name="Polinations.ai", value="poli")
+    ],
+    size=[
+        app_commands.Choice(name="1024x1024", value="1024x1024"),
+        app_commands.Choice(name="1024x1792", value="1024x1792"),
+        app_commands.Choice(name="1792x1024" ,value="1792x1024")
     ])
-    async def imagine_pla(interaction: discord.Interaction, prompt: str, model: app_commands.Choice[str]):
+    async def imagine_pla(interaction: discord.Interaction, prompt: str, model: app_commands.Choice[str], size: app_commands.Choice[str]):
         if await check_blist(interaction, mongodb): return
         await interaction.response.defer(ephemeral=False)
+
+        if model.value == "poli" and not size.value == "1024":
+            await interaction.followup.send(f"> **Size `{size.value}` is not available for polinations.ai**")
+            return
 
         if is_generating.get(interaction.user.id):
             await interaction.followup.send("> **You're already generating an image!**")
@@ -124,7 +134,7 @@ def ai_slash(bot, mongodb, member_histories_msg, is_generating):
         is_generating[interaction.user.id] = True
         req = await interaction.followup.send("> **Please wait while I process your request.**")
 
-        link = await image_generate(model.value, prompt)
+        link = await image_generate(model.value, prompt, size.value)
 
         try:
             embed = discord.Embed(

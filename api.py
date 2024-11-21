@@ -8,7 +8,6 @@ import string
 import logging
 import asyncio
 import warnings
-import requests
 from PIL import Image
 from collections import defaultdict
 from bot_utilities.start_util import start
@@ -17,12 +16,13 @@ from fastapi.responses import JSONResponse
 from pymongo.mongo_client import MongoClient
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI, Request, status, BackgroundTasks
-from bot_utilities.api_utils import poli, gen_text, check_token, get_id, get_t_sbot, available, save_api_stats, delete_channel, log_message
+from bot_utilities.api_utils import poli, gen_text, check_token, get_id, get_t_sbot, available, save_api_stats, delete_channel, log_message, get_engine_id
 
 # Setup logging
 log = logging.getLogger('uvicorn')
 log.setLevel(logging.ERROR)
 warnings.filterwarnings("ignore", message="Using the in-memory storage for tracking rate limits")
+warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 app = FastAPI()
 app.add_middleware(
@@ -39,9 +39,8 @@ with open("config.yml", "r") as config_file:
     config = yaml.safe_load(config_file)
 flask_port = str(config["flask"]["port"])
 token_rate_limits = defaultdict(list) # Rate limit dictionaries
-global api_stats
+global api_stats, flux
 api_stats = {}
-
 
 async def sync_api_stats():
     global api_stats
@@ -86,13 +85,16 @@ async def image(request: Request, background_tasks: BackgroundTasks):
         data = await request.json()
         prompt = data['prompt']
         engine = data['model']
-    except KeyError: return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"detail": "You MUST include 'prompt' and 'model' in the JSON."})
+        size = data['size']
+    except KeyError: return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"detail": "You MUST include 'prompt', 'model', 'size' in the JSON."})
     except Exception as e:
         print(e)
         return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content={"detail": "An internal server error occured, please try again a few moments later."})
 
     if not engine in ["sdxl-turbo", "dalle3", "flux", "poli"]:
-        return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"detail":"Unknown engine. Available engines are: 'sdxl-turbo', 'dalle3', 'flux.1', 'poli'"})
+        return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"detail":"Unknown engine. Available engines are: 'sdxl-turbo', 'dalle3', 'flux', 'poli'"})
+    if not size in ['1024x1024', '1792x1024', '1024x1792']:
+        return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"detail":"Unknown Size. Available sizes are: '1024x1024', '1792x1024', '1024x1792'"})
 
     api_stats[engine] = api_stats.get(engine, 0) + 1 # API Stats + 1
  
@@ -124,17 +126,19 @@ async def image(request: Request, background_tasks: BackgroundTasks):
 
     # Now, the user is verified, ratelimits are not exceed, token is valid. Continue to generate the image.
     characters = string.ascii_letters + string.digits
-    random_string = ''.join(random.choice(characters) for _ in range(12))
+    random_string = ''.join(random.choice(characters) for _ in range(10))
 
     img_url = ""
     if engine == "poli":
         img_url = await poli(prompt)
+
     elif engine in ["sdxl-turbo", "dalle3", "flux"]:
         async with httpx.AsyncClient() as client:
             res = await client.post(f"https://discord.com/api/v9/guilds/{guild_id}/channels", json={"name": f"api-{random_string}", "permission_overwrites": [], "type": 0}, headers=headers)
             channel_info = res.json()
             channel_id = channel_info['id']
-            engine_id = "1254085308614709318" if engine == "dalle3" else "1265594684084981832" if engine == "sdxl-turbo" else "1280547383330996265"
+            engine_id = await get_engine_id(engine, size)
+            if engine_id == "error": return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"detail": "The requested size is not available for this model."})
             seconds = 0
             await client.post(f'https://discord.com/api/v9/channels/{channel_id}/messages', json={"content": f"<@{engine_id}> Generate an image of {prompt}"}, headers=sheader)
 
@@ -149,7 +153,7 @@ async def image(request: Request, background_tasks: BackgroundTasks):
                             img_url = message['content']
                             do_break = True
                             break
-                        elif message['content'] == "error": # the bot returns "error" when it fails
+                        elif message['content'] in ['error', 'uhh can you say that again?']: # the bot returns "error" when it fails
                             failed = True
 
                     if do_break: # break when the image generation is done

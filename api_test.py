@@ -12,7 +12,8 @@ openai = OpenAI(
 start_time = time.time()
 response = openai.images.generate(
     prompt="A sunset over a mountain range",
-    model="flux.1"
+    model="flux",
+    size="1024x1792"
 )
 elapsed_time = time.time() - start_time
 print(Fore.CYAN + "Prompt: A sunset over a mountain range")
