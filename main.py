@@ -77,16 +77,12 @@ information_slash(bot, client)
 bot_slash(bot, start_time, client)
 ai_slash(bot, client, member_histories_msg, is_generating)
 
-
 on_cmd_error(bot)
 member_join(bot)
 
 @bot.command(name="cmd")
 async def cmdd(ctx):
-    if ctx.author.id == 1026388699203772477:
-        await ctx.send("\n".join(cmd_list))
-    else:
-        return
+    if ctx.author.id == 1026388699203772477: await ctx.send("\n".join(cmd_list))
 
 cmd_list = []
 for command in bot.commands:
@@ -94,8 +90,7 @@ for command in bot.commands:
     cmd_list.append(cmd_prefix)
 
 on_messages(bot, cmd_list, member_histories_msg, client)
-
-@tasks.loop(seconds=300) # keep the slash commands synced
+@tasks.loop(seconds=300)
 async def sync_slash_cmd():
     await bot.tree.sync()
 
