@@ -5,30 +5,25 @@ import traceback
 error_log_channel_id = 1191754729592717383
 
 def on_cmd_error(bot):
+
     @bot.event
     async def on_command_error(ctx, error):
-        #CommandNotFound
-        if isinstance(error, commands.CommandNotFound):
-            return  # Return without sending an error message
-        
-        #CommandOnCooldown
+
+        if isinstance(error, commands.CommandNotFound): return
+    
         elif isinstance(error, commands.CommandOnCooldown):
             await ctx.send(embed=discord.Embed(description=f'**This command is on cooldown, you can use it in `{round(error.retry_after, 2)}s`.**'))
-            return  # Return without sending an error message
-
-        #MissingPermissions
-        if isinstance(error, commands.MissingPermissions):
-            await ctx.send(embed=discord.Embed(description="**You don't have the necessary permissions to perform this action.**"))
             return
-        
+
+        if isinstance(error, commands.MissingPermissions):
+            await ctx.send(embed=discord.Embed(description="**I don't have the necessary permissions to perform this action.**"))
+            return
 
         command_name = ctx.command.name if ctx.command else "Unknown"
-        if command_name == "eval":
-            return
+        if command_name == "eval": return
         
         try:
             raise error
-        # Member not found
         except discord.ext.commands.errors.MemberNotFound:
             await ctx.send(embed=discord.Embed(title="Member not found", colour=0xFF0000), delete_after=10)
         except Exception as e:
