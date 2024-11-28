@@ -42,7 +42,7 @@ information_commannds = [
 ai_commands = [
     ('`/imagine {prompt}`', "❯ Generates images using Lumage-1."),
     ('`/poli {prompt}`', "❯ Generates images using pollinations.ai according to user-inputs. We prefer to use the slash command `/imagine`"),
-    ('`/ask {prompt}`', "❯ Generates answers according to user-inputs. Message history available"),
+    # ('`/ask {prompt}`', "❯ Generates answers according to user-inputs. Message history available"),
     ('`/search {prompt}`', "❯ Search the web for text and images"),
     ('`/vision {prompt}`', "❯ Vision an image. This command is slash only."),
     ('`/generate-api-key`', "❯ Generates an API key for our API, join our support server for more info."),

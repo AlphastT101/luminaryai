@@ -1,11 +1,11 @@
 import discord
+import aiohttp
+# import datetime
 from discord.ext import commands
 from bot_utilities.ai_utils import *
-import aiohttp
-import datetime
 from bot_utilities.owner_utils import *
 
-def ai(bot, member_histories_msg, mongodb, is_generating):
+def ai(bot, member_histories_msg, is_generating):
 
     # @bot.command(name='activate')
     # @commands.cooldown(1, 10, commands.BucketType.user)
@@ -39,41 +39,38 @@ def ai(bot, member_histories_msg, mongodb, is_generating):
     #         await ctx.send(embed=Embed(description="**You don't have permission to use this comamnd.**", color=discord.Color.red()),)
 
 
+    # @bot.command(name='ask')
+    # @commands.cooldown(1, 80, commands.BucketType.user)
+    # async def answer_command(ctx, *, args: str = None):
+    #     if args is None:
+    #         await embed(ctx, "LuminaryAI - Error", "Please enter your question.", color=0x99ccff)
+    #         return
+    #     # Get or create member-specific history
+    #     member_id = str(ctx.author.id)  # Using member ID as the key
+    #     history = member_histories_msg.get(member_id, [])
 
-    @bot.command(name='ask')
-    @commands.cooldown(1, 80, commands.BucketType.user)
-    async def answer_command(ctx, *, args: str = None):
-        if args is None:
-            await embed(ctx, "LuminaryAI - Error", "Please enter your question.", color=0x99ccff)
-            return
-        # Get or create member-specific history
-        member_id = str(ctx.author.id)  # Using member ID as the key
-        history = member_histories_msg.get(member_id, [])
+    #     answer_embed = discord.Embed(
+    #         title="LuminaryAI - Loading",
+    #         description="Please wait while I process your request.",
+    #         color=0x99ccff,
+    #         timestamp=datetime.datetime.now(datetime.timezone.utc)
+    #     )
+    #     answer_embed.set_footer(text="This may take a few moments", icon_url=bot.user.avatar.url)
+    #     answer = await ctx.reply(embed=answer_embed)
 
-        answer_embed = discord.Embed(
-            title="LuminaryAI - Loading",
-            description="Please wait while I process your request.",
-            color=0x99ccff,
-            timestamp=datetime.datetime.now(datetime.timezone.utc)
-        )
-        answer_embed.set_footer(text="This may take a few moments", icon_url=bot.user.avatar.url)
-        answer = await ctx.reply(embed=answer_embed)
-
-        user_input = args
-        generated_message, updated_history = await generate_response_cmd(ctx, user_input, history)
-        member_histories_msg[member_id] = updated_history
-
-
-        answer_generated = discord.Embed(
-            title="LuminaryAI - Response",
-            description=generated_message,
-            color=0x99ccff,
-            timestamp=datetime.datetime.now(datetime.timezone.utc)
-        )
-        answer_generated.set_footer(text="Thanks for using LuminaryAI!", icon_url=bot.user.avatar.url)
-        await answer.edit(embed=answer_generated)
+    #     user_input = args
+    #     generated_message, updated_history = await generate_response_cmd(ctx, user_input, history)
+    #     member_histories_msg[member_id] = updated_history
 
 
+    #     answer_generated = discord.Embed(
+    #         title="LuminaryAI - Response",
+    #         description=generated_message,
+    #         color=0x99ccff,
+    #         timestamp=datetime.datetime.now(datetime.timezone.utc)
+    #     )
+    #     answer_generated.set_footer(text="Thanks for using LuminaryAI!", icon_url=bot.user.avatar.url)
+    #     await answer.edit(embed=answer_generated)
 
 
     @bot.command(name="imagine")
@@ -88,7 +85,7 @@ def ai(bot, member_histories_msg, mongodb, is_generating):
 
         is_generating[ctx.author.id] = True
         req = await ctx.reply("> **Please wait while I process your request.**")
-        link = await image_generate("flux", prompt)
+        link = await image_generate("flux", prompt, "1024x1024")
 
         try:
             embed = discord.Embed(
@@ -151,7 +148,6 @@ def ai(bot, member_histories_msg, mongodb, is_generating):
             await wait_message.delete()
             await ctx.send("> ❌ **Aww, no results found!**")
             return
-
 
         await create_and_send_embed(query, bot, ctx, image_urls)
         await wait_message.delete()

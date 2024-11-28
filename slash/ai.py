@@ -1,9 +1,9 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
-from bot_utilities.owner_utils import *
-from bot_utilities.ai_utils import vision
 from bot_utilities.ai_utils import *
+from bot_utilities.ai_utils import vision
+from bot_utilities.owner_utils import check_blist
 from bot_utilities.api_utils import check_user, insert_token, delete_token, get_api_stat
 
 def ai_slash(bot, mongodb, member_histories_msg, is_generating):
@@ -120,7 +120,7 @@ def ai_slash(bot, mongodb, member_histories_msg, is_generating):
         if await check_blist(interaction, mongodb): return
         await interaction.response.defer(ephemeral=False)
 
-        if model.value == "poli" and not size.value == "1024":
+        if model.value == "poli" and not size.value == "1024x1024":
             await interaction.followup.send(f"> **Size `{size.value}` is not available for polinations.ai**")
             return
 

@@ -1,5 +1,5 @@
-import discord
-from discord.ext import commands
+# import discord
+# from discord.ext import commands
 from bot_utilities.owner_utils import *
 
 def member_join(bot):

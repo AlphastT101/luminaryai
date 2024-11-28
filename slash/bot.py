@@ -1,16 +1,16 @@
-
+import time
 import discord
+import datetime
 from discord.ui import Button
 from discord.ext import commands
+from bot_utilities.help_embed import *
 from bot_utilities.owner_utils import *
 from bot_utilities.about_embed import about_embed
-from bot_utilities.help_embed import *
-import datetime
-import time
+
+
 
 def bot_slash(bot,start_time, mongodb):
 
-    ##### check #######
     @bot.tree.command(name="status", description="Check bot status")
     @commands.guild_only()
     async def check(interaction: discord.Interaction):
@@ -39,7 +39,6 @@ def bot_slash(bot,start_time, mongodb):
         embed.add_field(name="LuminaryAI - Uptime", value=str(uptime_duration))
         await interaction.followup.send(embed=embed)
 
-    ############## about ##################
     @bot.tree.command(name="about", description="about the bot")
     @commands.guild_only()
     async def about(interaction: discord.Interaction):
@@ -50,7 +49,7 @@ def bot_slash(bot,start_time, mongodb):
         about.set_author(name="alphast101", icon_url=owner.avatar.url)
         await interaction.followup.send(embed=about, file=discord.File("images/ai.png", filename="ai.png"))
 
-    ##### help #######
+
     @bot.tree.command(name="help", description="Help/command list")
     @commands.guild_only()
     async def help(interaction: discord.Interaction):

@@ -4,7 +4,6 @@ import traceback
 
 error_log_channel_id = 1191754729592717383
 
-
 def on_cmd_error(bot):
     @bot.event
     async def on_command_error(ctx, error):

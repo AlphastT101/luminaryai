@@ -1,15 +1,15 @@
+import os
+import random
+import asyncio
 import discord
 from discord import app_commands
 from discord.ext import commands
-from bot_utilities.owner_utils import *
-import random
-from datetime import datetime, timezone
-import asyncio
 from bot_utilities.fun_utils import *
-import os
+from datetime import datetime, timezone
+from bot_utilities.owner_utils import check_blist
+
 
 def fun_slash(bot, mongodb):
-
 
     @bot.tree.command(name="randomfact", description="Shows a random fact.")
     @commands.guild_only()
@@ -19,11 +19,9 @@ def fun_slash(bot, mongodb):
             title="Here is your random fact!",
             description=random.choice(facts),
             color=0x0000ff
-            )
+        )
         await interaction.response.send_message(embed=random_fact_embed)
 
-
-    # Define a command for the game
     @bot.tree.command(name='rps', description="Play RPS with the bot")
     @commands.guild_only()
     @app_commands.describe(user_choice="Choose your move")
@@ -37,9 +35,7 @@ def fun_slash(bot, mongodb):
 
         bot_choice = random.choice(choices)
         outcome = outcomes[user_choice.lower()][bot_choice]
-
         await interaction.response.send_message(f"**You choose `{user_choice}`**.\n**I choose `{bot_choice}`.**\n**You `{outcome}`!**")
-
 
     @bot.tree.command(name="wordle", description="Play wordle!")
     @commands.guild_only()

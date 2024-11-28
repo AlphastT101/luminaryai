@@ -1,16 +1,15 @@
-import discord
-from discord.ext import commands
-import datetime
-import time
 import io
+import time
+import discord
+import datetime
 import contextlib
+from discord.ui import Button
+from discord.ext import commands
+from bot_utilities.help_embed import *
 from bot_utilities.owner_utils import *
 from bot_utilities.about_embed import about_embed
-from bot_utilities.help_embed import *
-from discord.ui import Button
 
 def bbot(bot, start_time, mongodb):
-
 
     @bot.command(name="server")
     async def list_guilds(ctx):
@@ -80,8 +79,6 @@ def bbot(bot, start_time, mongodb):
         view.timeout_callback = on_timeout
 
 
-
-    ####### return message ######
     @bot.command(name="say")
     async def m(ctx, *, message: str = None):
 		# 1026388699203772477 - alphast101
@@ -107,7 +104,6 @@ def bbot(bot, start_time, mongodb):
             await ctx.message.delete()
             await ctx.send(message)
 
-
     @bot.command(name="sync")
     async def sync(ctx):
         if ctx.author.id == 1026388699203772477:
@@ -116,7 +112,6 @@ def bbot(bot, start_time, mongodb):
             await ctx.send("**<@1026388699203772477> Slash commands synced!**")
 
 
-        
     @bot.command(name="blist")
     async def blist(ctx, object, id = None):
         if ctx.author.id != 1026388699203772477:
@@ -174,7 +169,6 @@ def bbot(bot, start_time, mongodb):
             await ctx.send(f"> **Invalid object**")
 
 
-
     @bot.command(name="eval")
     async def eval(ctx, *, code: str):
 
@@ -219,22 +213,6 @@ def bbot(bot, start_time, mongodb):
             await ctx.send(f'{stdout.getvalue()}')
         else:
             return
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
     @bot.command(name="ping")

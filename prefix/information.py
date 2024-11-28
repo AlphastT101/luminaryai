@@ -3,7 +3,6 @@ from discord.ext import commands
 
 def information(bot):
 
-    ####################### user #########################
     @bot.command(name='userinfo')
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def user(ctx, user_mention: discord.Member = None):
@@ -30,7 +29,6 @@ def information(bot):
             ),
             color=0x99ccff
         )
-
         embed.set_thumbnail(url=user_mention.avatar.url)
         await ctx.send(embed=embed)
 

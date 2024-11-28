@@ -21,7 +21,6 @@ def parse_duration(duration_str):
         return timedelta(minutes=duration)
     
 
-
 def moderation_slash(bot, mongodb):
 
     @bot.tree.command(name='purge', description='Deletes a specified number of messages')
@@ -51,7 +50,6 @@ def moderation_slash(bot, mongodb):
                 await interaction.followup.send("**I don't have the necessary permission in this channel to perform this action!**")
         else:
             await interaction.followup.send("**You do not have the necessary permissions to perform this action!**")
-        
 
 
     @bot.tree.command(name='kick', description="Kick a member")
@@ -109,8 +107,6 @@ def moderation_slash(bot, mongodb):
         except discord.Forbidden:
             confirm_msg.delete()
             await interaction.followup.send(embed=discord.Embed(description="**Kick failed. I don't have enough permissions to kick this user.**",colour=0xFF0000))
-
-
 
 
     @bot.tree.command(name='ban', description="Ban a member")
@@ -312,9 +308,6 @@ def moderation_slash(bot, mongodb):
             await interaction.followup.send(embed=discord.Embed(description=f"**Failed to timeout due to an HTTP error.**", color=0xFF0000))
 
 
-
-
-
     @bot.tree.command(name="unmute", description="Unmute a member.")
     @commands.guild_only()
     @app_commands.describe(member="Select the member you want to Unmute.")
@@ -371,9 +364,6 @@ def moderation_slash(bot, mongodb):
             await interaction.followup.send(embed=discord.Embed(description="**Failed to unmute due to an HTTP error.**", color=0xFF0000))
 
 
-
-
-
     @bot.tree.command(name='purgelinks', description='Purges messages containing links from the channel.')
     @commands.guild_only()
     @app_commands.describe(limit="The number of messages you want to purge that contains links")
@@ -425,9 +415,6 @@ def moderation_slash(bot, mongodb):
         elif str(reaction.emoji) == '❌':
             await confirmation_message.delete()
             await interaction.followup.send(embed=discord.Embed(description="**Action cancelled**",colour=0xFF0000))
-
-
-
 
 
 

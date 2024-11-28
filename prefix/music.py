@@ -1,7 +1,7 @@
 import discord
-from discord import Color as color
 from discord import Embed as em
 from discord.ext import commands
+from discord import Color as color
 from bot_utilities.music_utils import *
 
 
@@ -73,7 +73,7 @@ alread_playing = discord.Embed(
 alread_playing.set_thumbnail(url="attachment://thumbnail.png")
 
 
-def music(bot, sp_id, sp_secret):
+def music(bot):
 
     @bot.command(name='join')
     @commands.cooldown(1, 10, commands.BucketType.user)

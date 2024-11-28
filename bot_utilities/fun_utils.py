@@ -1,6 +1,5 @@
 from PIL import Image, ImageDraw, ImageFont
 
-
 facts = [
     "Honey never spoils. Archaeologists have found pots of honey in ancient Egyptian tombs that are over 3,000 years old and still perfectly edible.",
     "The shortest war in history was between Britain and Zanzibar on August 27, 1896. Zanzibar surrendered after 38 minutes.",
@@ -22,7 +21,6 @@ facts = [
     "The 'Waffle House Index' is an informal measure used by FEMA to determine the severity of a storm and the likely scale of assistance required for disaster recovery.",
 ]
 
-
 words_list = [
     "Apple", "Bacon", "Carry", "Doggy", "Eleph", "Flame", "Grass", "Happy", "Icing", "Jolly",
     "Kitty", "Lemon", "Mango", "Noble", "Olive", "Pizza", "Queen", "Radar", "Sweet", "Tango",
@@ -42,9 +40,6 @@ outcomes = {
     "paper": {"rock": "win", "paper": "tie", "scissors": "lose"},
     "scissors": {"rock": "lose", "paper": "win", "scissors": "tie"}
 }
-
-
-
 
 
 def wordleScore(target, guess):

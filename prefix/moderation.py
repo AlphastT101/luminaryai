@@ -1,10 +1,8 @@
-import discord
-from discord.ext import commands
-import asyncio
-from datetime import timedelta
 import re
-
-
+import asyncio
+import discord
+from datetime import timedelta
+from discord.ext import commands
 
 def parse_duration(duration_str):
     match = re.match(r"(\d+)([dhm])", duration_str)
@@ -19,9 +17,8 @@ def parse_duration(duration_str):
     elif unit == 'm':
         return timedelta(minutes=duration)
 
-
-
 def moderation(bot):
+
     @bot.command(name='purge', help='Deletes a specified number of messages')
     @commands.cooldown(1, 15, commands.BucketType.user)
     async def purge(ctx, num_messages: str = None):
@@ -46,8 +43,6 @@ def moderation(bot):
                 await ctx.send("**I don't have the necessary permission in this channel to perform this action!**", delete_after=3)
         else:
             await ctx.send("**You do not have the necessary permissions to perform this action!**", delete_after=3)
-        
-
 
     @bot.command(name='kick')
     @commands.cooldown(1, 5, commands.BucketType.user)
@@ -73,7 +68,6 @@ def moderation(bot):
         if not ctx.guild.me.guild_permissions.kick_members:
             await ctx.send(embed=discord.Embed(description="**I don't have the necessary permission in this channel to perform this action.**",colour=0xFF0000))
             return
-
 
         try:
             # Send a confirmation message to the moderator
@@ -103,9 +97,6 @@ def moderation(bot):
         except discord.Forbidden:
             confirm_msg.delete()
             await ctx.send(embed=discord.Embed(description="**Kick failed. I don't have enough permissions to kick this user.**",colour=0xFF0000))
-
-
-
 
     @bot.command(name='ban')
     @commands.cooldown(1, 5, commands.BucketType.user)
@@ -162,8 +153,6 @@ def moderation(bot):
             await confirm_msg.delete()
             await ctx.send(embed=discord.Embed(description="**Kick failed. I don't have enough permissions to ban this user.**",colour=0xFF0000))
 
-
-
     @bot.command(name='unban', help='Unban a previously banned user.')
     async def unban(ctx, user: discord.User, *, reason="No reason provided"):
 
@@ -219,11 +208,6 @@ def moderation(bot):
         else:
             # User is not in the ban entries
             await ctx.send(embed=discord.Embed(description=f"**{user.mention} is not banned.**", color=0xFF0000))
-
-
-
-
-
 
     @bot.command(name='timeout', help='Timeout a user for a specified duration.')
     async def timeout(ctx, member: discord.Member = None, duration: str = None, *, reason: str = "No reason provided"):
@@ -297,10 +281,6 @@ def moderation(bot):
             await confirm_message.delete()
             await ctx.send(embed=discord.Embed(description=f"**Failed to timeout due to an HTTP error.**", color=0xFF0000))
 
-
-
-
-
     @bot.command(name="unmute")
     async def unmute(ctx, member: discord.Member = None, reason: str = "No reason given"):
         # Check if member is provided
@@ -355,8 +335,6 @@ def moderation(bot):
             await confirm_message.delete()
             await ctx.send(embed=discord.Embed(description="**Failed to unmute due to an HTTP error.**", color=0xFF0000))
         print(e)
-
-
 
 
     @bot.command(name='purgelinks', help='Purges messages containing links from the channel.')
@@ -414,11 +392,6 @@ def moderation(bot):
         elif str(reaction.emoji) == '❌':
             await confirmation_message.delete()
             await ctx.send(embed=discord.Embed(description="**Action cancelled**",colour=0xFF0000))
-
-
-
-
-
 
     @bot.command(name='purgefiles', help='Purges messages containing files/attachments from the channel.')
     async def purge_files(ctx, limit: str = None):

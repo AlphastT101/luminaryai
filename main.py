@@ -1,20 +1,22 @@
 import time
 start_time = time.time()
 
-import discord
-from discord.ext import commands, tasks
 import os
-from pymongo.mongo_client import MongoClient
 import yaml
 import asyncio
+import discord
 import requests
+from discord.ext import commands, tasks
+from pymongo.mongo_client import MongoClient
 
+# Slash commands import
 from slash.ai import ai_slash
 from slash.fun import fun_slash
 from slash.bot import bot_slash
 from slash.information import information_slash
 from slash.moderation import moderation_slash
 
+# Prefix commands import
 from prefix.ai import ai
 from prefix.fun import fun
 from prefix.bot import bbot
@@ -22,10 +24,12 @@ from prefix.music import music
 from prefix.moderation import moderation
 from prefix.information import information
 
+# Events import
 from events.on_messages import on_messages
 from events.member_join import member_join
 from events.on_cmd_error import on_cmd_error
 
+# API import
 from api import app
 from bot_utilities.start_util import *
 from bot_utilities.ai_utils import process_queue
@@ -43,23 +47,29 @@ with open("config.yml", "r") as config_file: config = yaml.safe_load(config_file
 mongodb = config["bot"]["mongodb"]
 client = MongoClient(mongodb)
 bot_token, api = start(client)
-sp_id, sp_secret = spotify_token(client)
+# sp_id, sp_secret = spotify_token(client) Not used for now
 
 is_generating = {}
-flask_thread = None
 member_histories_msg = {}
+flask_thread = None
 intents = discord.Intents.all()
 intents.presences = False
 activity = discord.Game(name="/help")
-bot = commands.AutoShardedBot(shard_count=2, command_prefix=config["bot"]["prefix"], intents=intents, activity=activity, help_command=None, reconnect=False)
+bot = commands.AutoShardedBot(
+    shard_count=2,
+    command_prefix=config["bot"]["prefix"],
+    intents=intents, activity=activity,
+    help_command=None,
+    reconnect=False
+)
 
 
 fun(bot)
 moderation(bot)
 information(bot)
 bbot(bot, start_time, client)
-music(bot, sp_id, sp_secret)
-ai(bot, member_histories_msg, client, is_generating)
+music(bot)
+ai(bot, member_histories_msg, is_generating)
 
 fun_slash(bot, client)
 moderation_slash(bot, client)

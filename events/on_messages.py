@@ -1,8 +1,7 @@
 import discord
-from bot_utilities.ai_utils import generate_response_msg
 import datetime
-import json
 from bot_utilities.owner_utils import *
+from bot_utilities.ai_utils import generate_response_msg
 
 def on_messages(bot, cmd_list , member_histories_msg, mongodb):
     @bot.event

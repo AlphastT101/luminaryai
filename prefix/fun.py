@@ -1,15 +1,13 @@
+import os
 import random
 import discord
-from discord.ext import commands
 import asyncio
+from discord.ext import commands
 from bot_utilities.fun_utils import *
 from datetime import datetime, timezone
-import os
 
 def fun(bot):
 
-
-    ####### random fact #########
     @bot.command(name="randomfact")
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def randomfact(ctx):
@@ -21,30 +19,23 @@ def fun(bot):
         await ctx.send(embed=random_fact_embed)
 
 
-    # Define a command for the game
     @bot.command(name='rps')
     async def rps(ctx, user_choice: str = None):
 
         if user_choice is None:
             await ctx.send("Specify your choice! Please choose rock, paper, or scissors.")
             return
-
         if user_choice.lower() not in choices:
             await ctx.send("Invalid choice. Please choose rock, paper, or scissors.")
 
         bot_choice = random.choice(choices)
         outcome = outcomes[user_choice.lower()][bot_choice]
-
         await ctx.send(f"**You choose `{user_choice}`**.\n**I choose `{bot_choice}`.**\n**You `{outcome}`!**")
-
-
 
 
     @bot.command(name="wordle")
     async def wordle(ctx):
         word = random.choice(words_list)
-
-        # Get the current time
         now = datetime.now(timezone.utc)
 
         game_start = discord.Embed(

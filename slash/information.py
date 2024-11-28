@@ -3,6 +3,7 @@ from discord import app_commands
 from discord.ext import commands
 from bot_utilities.owner_utils import *
 
+
 def information_slash(bot, mongodb):
 
     @bot.tree.command(name='userinfo', description="View information about a user")
@@ -35,7 +36,6 @@ def information_slash(bot, mongodb):
             ),
             color=0x99ccff
         )
-
         embed.set_thumbnail(url=user.avatar.url)
         await interaction.followup.send(embed=embed)
 
