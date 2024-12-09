@@ -213,6 +213,13 @@ def bbot(bot, start_time, mongodb):
             await ctx.send(f'{stdout.getvalue()}')
         else:
             return
+    @bot.command(name="cmd")
+    async def cmdd(ctx):
+        cmd_list = []
+        for command in bot.commands:
+            cmd_prefix = "ai." + command.name
+            cmd_list.append(cmd_prefix)
+        if ctx.author.id == 1026388699203772477: await ctx.send("\n".join(cmd_list))
 
 
     @bot.command(name="ping")
