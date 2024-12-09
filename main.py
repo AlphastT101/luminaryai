@@ -21,7 +21,6 @@ from prefix.ai import ai
 from prefix.fun import fun
 from prefix.bot import bbot
 from prefix.music import music
-from prefix.moderation import moderation
 from prefix.information import information
 
 # Events import
@@ -52,11 +51,12 @@ bot_token, api = start(client)
 is_generating = {}
 member_histories_msg = {}
 flask_thread = None
+flask_task = None
 intents = discord.Intents.all()
 intents.presences = False
 activity = discord.Game(name="/help")
 bot = commands.AutoShardedBot(
-    shard_count=2,
+    shard_count=1,
     command_prefix=config["bot"]["prefix"],
     intents=intents, activity=activity,
     help_command=None,
@@ -65,7 +65,6 @@ bot = commands.AutoShardedBot(
 
 
 fun(bot)
-moderation(bot)
 information(bot)
 bbot(bot, start_time, client)
 music(bot)
@@ -77,24 +76,12 @@ information_slash(bot, client)
 bot_slash(bot, start_time, client)
 ai_slash(bot, client, member_histories_msg, is_generating)
 
+on_messages(bot, member_histories_msg, client)
 on_cmd_error(bot)
 member_join(bot)
 
-@bot.command(name="cmd")
-async def cmdd(ctx):
-    if ctx.author.id == 1026388699203772477: await ctx.send("\n".join(cmd_list))
 
-cmd_list = []
-for command in bot.commands:
-    cmd_prefix = "ai." + command.name
-    cmd_list.append(cmd_prefix)
-
-on_messages(bot, cmd_list, member_histories_msg, client)
-@tasks.loop(seconds=300)
-async def sync_slash_cmd():
-    await bot.tree.sync()
-
-bio = """Smart AI bot packed with features on Discord. Managed and developed by XET. AI Engine by shapes.inc
+bio = """Smart AI bot packed with features on Discord. Managed and developed by XET. AI Engine by shapes.inc.
 
 Site: https://xet.one
 Support: https://discord.gg/hmMBe8YyJ4
@@ -107,10 +94,15 @@ async def update_bio():
     data = {"description": bio}
     requests.patch(url=url, headers=headers, json=data)
 
+@tasks.loop(seconds=300)
+async def sync_slash_cmd():
+    await bot.tree.sync()
+
 @bot.event
 async def on_ready():
     os.system('cls' if os.name == 'nt' else 'clear')
     print(f'We have logged in as {bot.user}')
+    await bot.load_extension("prefix.moderation")
     print(f"\033[1;38;5;46mCurrent model: {config['bot']['text_model']}\033[0m")
     client.admin.command('ping')
     print("Pinged your deployment. You are successfully connected to MongoDB!")
@@ -118,14 +110,20 @@ async def on_ready():
     update_bio.start()
     asyncio.create_task(process_queue())
 
-    asyncio.create_task(run_flask_app_async())
+    global flask_task  # Refer to the global variable
+    flask_task = asyncio.create_task(run_flask_app_async())
 
-    print("API Engine has been started!")
+    print("API Engine has been started.")
     await bot.tree.sync()
-    print("Slash commands synced!")
+    print("Slash commands synced.")
     print(f'Shard count: {bot.shard_count}')
-    time_difference = time.time() - start_time
-    print(f"Booted in {time_difference}s")
+    print(f"Booted in {time.time() - start_time}s")
+
+@bot.event
+async def on_shutdown():
+    print("yeah")
+    flask_task.cancel()
+    await bot.stop()
 
 @bot.event
 async def on_guild_join(guild):
@@ -139,7 +137,4 @@ async def on_guild_remove(guild):
     embed = discord.Embed(title="Guild Left", description=f"The bot has left the server {guild.name}", color=0xff0000)
     await channel.send(embed=embed)
 
-
-
-try: bot.run(bot_token)
-except KeyboardInterrupt: exit(0)
+bot.run(bot_token)
