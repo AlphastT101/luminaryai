@@ -17,11 +17,16 @@ def parse_duration(duration_str):
     elif unit == 'm':
         return timedelta(minutes=duration)
 
-def moderation(bot):
 
-    @bot.command(name='purge', help='Deletes a specified number of messages')
+
+
+class Moderation(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+
+    @commands.command(name='purge', help='Deletes a specified number of messages')
     @commands.cooldown(1, 15, commands.BucketType.user)
-    async def purge(ctx, num_messages: str = None):
+    async def purge(self, ctx, num_messages: str = None):
         channel = ctx.channel
         if num_messages is None:
             await ctx.send("**Please provide a number of messages to purge!**")
@@ -44,39 +49,35 @@ def moderation(bot):
         else:
             await ctx.send("**You do not have the necessary permissions to perform this action!**", delete_after=3)
 
-    @bot.command(name='kick')
+    @commands.command(name='kick')
     @commands.cooldown(1, 5, commands.BucketType.user)
-    async def kick(ctx, member: discord.Member = None, *, reason: str = "No reason provided"):
+    async def kick(self, ctx, member: discord.Member = None, *, reason: str = "No reason provided"):
         if member is None:
             await ctx.send(embed=discord.Embed(description="**Please provide a valid Discord member to kick.**",colour=0xFF0000), delete_after=10)
             return
 
-        # Protect the bot from kicking itself or the server owner
         if member == ctx.guild.owner:
             await ctx.send(embed=discord.Embed(description="**I cannot kick the server owner**.",colour=0xFF0000))
             return
         if member == ctx.bot.user:
             await ctx.send(embed=discord.Embed(description="**I can't kick myself!**",colour=0xFF0000))
             return
-        
-        # Check if the command caller has the required permission
+
         if not ctx.author.guild_permissions.kick_members:
             await ctx.send(embed=discord.Embed(description="**You do not have the necessary permissions to perform this action.**",colour=0xFF0000))
             return
 
-        # Check if the bot itself has the permission to kick members
         if not ctx.guild.me.guild_permissions.kick_members:
             await ctx.send(embed=discord.Embed(description="**I don't have the necessary permission in this channel to perform this action.**",colour=0xFF0000))
             return
 
         try:
-            # Send a confirmation message to the moderator
+
             confirm_msg = await ctx.send(embed=discord.Embed(title="LuminaryAI - confirmation",description=f"**Are you sure you want to kick this member?**\n**Member: `{member}`**\n**Reason: `{reason}`**\n**Moderator: {ctx.author}**", color=0xc8dc6c))
-            # Add reactions for confirmation
+
             await confirm_msg.add_reaction('✅')
             await confirm_msg.add_reaction('❌')
 
-            # Check for the moderator's reaction
             def check(reaction, user):
                 return user == ctx.author and str(reaction.emoji) in ['✅', '❌']
 
@@ -98,39 +99,35 @@ def moderation(bot):
             confirm_msg.delete()
             await ctx.send(embed=discord.Embed(description="**Kick failed. I don't have enough permissions to kick this user.**",colour=0xFF0000))
 
-    @bot.command(name='ban')
+    @commands.command(name='ban')
     @commands.cooldown(1, 5, commands.BucketType.user)
-    async def kick(ctx, member: discord.Member = None, *, reason: str = "No reason provided"):
+    async def ban(self, ctx, member: discord.Member = None, *, reason: str = "No reason provided"):
         if member is None:
             await ctx.send(embed=discord.Embed(description="**Please provide a valid Discord member to ban.**",colour=0xFF0000))
             return
 
-        # Protect the bot from kicking itself or the server owner
         if member == ctx.guild.owner:
             await ctx.send(embed=discord.Embed(description="**I cannot ban the server owner.**",colour=0xFF0000))
             return
         if member == ctx.bot.user:
             await ctx.send(embed=discord.Embed(description="**I can't ban myself**",colour=0xFF0000))
             return
-        
-        # Check if the command caller has the required permission
+
         if not ctx.author.guild_permissions.ban_members:
             await ctx.send(embed=discord.Embed(description="**You do not have the necessary permissions to perform this action.**",colour=0xFF0000))
             return
 
-        # Check if the bot itself has the permission to kick members
         if not ctx.guild.me.guild_permissions.ban_members:
             await ctx.send(embed=discord.Embed(description="**I don't have the necessary permission in this channel to perform this action!**",colour=0xFF0000))
             return
 
         try:
-            # Send a confirmation message to the moderator
+
             confirm_msg = await ctx.send(embed=discord.Embed(title="LuminaryAI - confirmation",description=f"Are you sure you want to ban this member?\n**Member: `{member}`**\n**Reason: `{reason}`**\n**Moderator: `{ctx.author}`**\n React with ✅ to confirm.",colour=0xc8dc6c))
-            # Add reactions for confirmation
+
             await confirm_msg.add_reaction('✅')
             await confirm_msg.add_reaction('❌')
 
-            # Check for the moderator's reaction
             def check(reaction, user):
                 return user == ctx.author and str(reaction.emoji) in ['✅', '❌']
 
@@ -153,25 +150,23 @@ def moderation(bot):
             await confirm_msg.delete()
             await ctx.send(embed=discord.Embed(description="**Kick failed. I don't have enough permissions to ban this user.**",colour=0xFF0000))
 
-    @bot.command(name='unban', help='Unban a previously banned user.')
-    async def unban(ctx, user: discord.User, *, reason="No reason provided"):
+    @commands.command(name='unban', help='Unban a previously banned user.')
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    async def unban(self, ctx, user: discord.User, *, reason="No reason provided"):
 
-        # Check if the command caller has the required permission
         if not ctx.author.guild_permissions.ban_members:
             await ctx.send(embed=discord.Embed(description="**You do not have the necessary permissions to perform this action.**",colour=0xFF0000))
             return
 
-        # Check if the bot itself has the permission to ban members
         if not ctx.guild.me.guild_permissions.ban_members:
             await ctx.send(embed=discord.Embed(description="I don't have the ban members permission to perform this action.",colour=0xFF0000))
             return
 
-        # Retrieve the ban entries to check if the user is banned
         banned_users = [ban_entry async for ban_entry in ctx.guild.bans()]
         for ban_entry in banned_users:
             if ban_entry.user == user:
                 try:
-                    # Ask for confirmation
+
                     confirm_message = await ctx.send(embed=discord.Embed(title="LuminaryAI - confirmation",description=f"Are you sure you want to unban this member?\n**Member: `{user}`**\n**Reason: `{reason}`**\n**Moderator: `{ctx.author}`**\n React with ✅ to confirm.",colour=0xc8dc6c))
                     await confirm_message.add_reaction("✅")
                     await confirm_message.add_reaction('❌')
@@ -180,15 +175,14 @@ def moderation(bot):
                         return user_check == ctx.author and str(reaction.emoji) in ['✅', '❌'] and reaction.message.id == confirm_message.id
 
                     try:
-                        # Waiting for the reaction to be added
-                        reaction, user_check = await bot.wait_for('reaction_add', timeout=20.0, check=check)
+                        reaction, user_check = await self.bot.wait_for('reaction_add', timeout=20.0, check=check)
                     except asyncio.TimeoutError:
                         await confirm_message.delete()
                         await ctx.send(embed=discord.Embed(description="**Unban confirmation failed. Command cancelled.**", color=0xFF0000))
                         return
 
                     if str(reaction.emoji) == '✅':
-                        # Perform the unban
+
                         await ctx.guild.unban(user, reason=reason)
                         await confirm_message.delete()
                         await ctx.send(embed=discord.Embed(description=f"**Member unbanned**\n**Unbanned member: {user.mention}**\n **Reason: {reason}**\n**Moderator: `{ctx.author}`**", color=0x99ccff))
@@ -206,11 +200,12 @@ def moderation(bot):
                     return
                 break
         else:
-            # User is not in the ban entries
+
             await ctx.send(embed=discord.Embed(description=f"**{user.mention} is not banned.**", color=0xFF0000))
 
-    @bot.command(name='timeout', help='Timeout a user for a specified duration.')
-    async def timeout(ctx, member: discord.Member = None, duration: str = None, *, reason: str = "No reason provided"):
+    @commands.command(name='timeout', help='Timeout a user for a specified duration.')
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    async def timeout(self, ctx, member: discord.Member = None, duration: str = None, *, reason: str = "No reason provided"):
         if member == ctx.guild.owner:
             await ctx.send(embed=discord.Embed(description="**I cannot timeout the server owner.**", color=0xFF0000))
             return
@@ -227,12 +222,10 @@ def moderation(bot):
             await ctx.send(embed=discord.Embed(description="**I don't have the `manage roles` permission to perform this command.**",colour=0xFF0000))
             return
     
-        # Check if the command caller has the required permission
         if not ctx.author.guild_permissions.manage_roles:
             await ctx.send(embed=discord.Embed(description="**You do not have the necessary permissions to perform this action.**",colour=0xFF0000))
             return
         
-
         if member is None:
             await ctx.send(embed=discord.Embed(description="**Please provide a member to timeout**", color=0xFF0000))
             return
@@ -281,30 +274,28 @@ def moderation(bot):
             await confirm_message.delete()
             await ctx.send(embed=discord.Embed(description=f"**Failed to timeout due to an HTTP error.**", color=0xFF0000))
 
-    @bot.command(name="unmute")
-    async def unmute(ctx, member: discord.Member = None, reason: str = "No reason given"):
-        # Check if member is provided
+    @commands.command(name="unmute")
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    async def unmute(self, ctx, member: discord.Member = None, reason: str = "No reason given"):
+
         if member is None:
             await ctx.send(embed=discord.Embed(description="**Please provide a member to unmute.**", color=0xFF0000))
             return
 
-        # Check if bot has necessary permissions
         if not ctx.guild.me.guild_permissions.manage_roles:
             await ctx.send(embed=discord.Embed(description="**I don't have the `manage roles` permission to perform this action.**", color=0xFF0000))
             return
 
-        # Check if member is already unmuted
         if member.timed_out_until is None:
             await ctx.send(embed=discord.Embed(description="**Member is not muted.**", color=0xFF0000))
             return
 
-        # Check if command caller has necessary permissions
         if not ctx.author.guild_permissions.manage_roles:
             await ctx.send(embed=discord.Embed(description="**You don't have the necessary permissions to perform this command**", color=0xFF0000))
             return
 
         try:
-            # Ask for confirmation
+
             confirm_message = await ctx.send(embed=discord.Embed(title="LuminaryAI - confirmation",description=f"Are you sure you want to unmute this member?\n**Member: `{member}`**\n**Reason: `{reason}`**\n**Moderator: `{ctx.author}`**\n React with ✅ to confirm.",colour=0xc8dc6c))
             await confirm_message.add_reaction("✅")
             await confirm_message.add_reaction('❌')
@@ -315,7 +306,7 @@ def moderation(bot):
             reaction, user = await ctx.bot.wait_for('reaction_add', timeout=20.0, check=check)
 
             if str(reaction.emoji) == '✅':
-                # Apply unmute
+
                 await member.edit(timed_out_until=None)
                 await confirm_message.delete()
                 await ctx.send(embed=discord.Embed(description=f"**{member.mention} has been unmuted**.\n**Reason: `{reason}`**\n**Moderator: `{ctx.author}`**", color=0x99ccff))
@@ -337,8 +328,9 @@ def moderation(bot):
         print(e)
 
 
-    @bot.command(name='purgelinks', help='Purges messages containing links from the channel.')
-    async def purge_links(ctx, limit: str = None):        
+    @commands.command(name='purgelinks', help='Purges messages containing links from the channel.')
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    async def purge_links(self, ctx, limit: str = None):        
         if limit is None:
             await ctx.send(embed=discord.Embed(description="**Please provide a number to purge**",colour=0xFF0000))
             return
@@ -360,7 +352,6 @@ def moderation(bot):
             # Simple check, can be replaced with a more advanced regex for detecting links
             return 'http://' in message.content or 'https://' in message.content
 
-        # Confirmation message
         confirmation_message = await ctx.send(embed=discord.Embed(title="LuminaryAI - confirmation",description=f"**Are you sure you want to delete up to {limit} messages containing links?**\n **React with ✅ to confirm.**",colour=0xc8dc6c))
         await confirmation_message.add_reaction("✅")
         await confirmation_message.add_reaction('❌')
@@ -369,7 +360,7 @@ def moderation(bot):
             return user == ctx.message.author and str(reaction.emoji) in ['✅', '❌'] and reaction.message.id == confirmation_message.id
 
         try:
-            # Wait for confirmation reaction
+
             reaction, user = await ctx.bot.wait_for('reaction_add', timeout=20.0, check=check)
         except asyncio.TimeoutError:
             await confirmation_message.delete()
@@ -393,9 +384,10 @@ def moderation(bot):
             await confirmation_message.delete()
             await ctx.send(embed=discord.Embed(description="**Action cancelled**",colour=0xFF0000))
 
-    @bot.command(name='purgefiles', help='Purges messages containing files/attachments from the channel.')
-    async def purge_files(ctx, limit: str = None):
-        # Check permissions
+    @commands.command(name='purgefiles', help='Purges messages containing files/attachments from the channel.')
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    async def purge_files(self, ctx, limit: str = None):
+
         if not ctx.channel.permissions_for(ctx.guild.me).manage_messages:
             await ctx.send(embed=discord.Embed(description="**I don't have the necessary permissions to manage messages in this channel.**",colour=0xFF0000))
             return
@@ -412,28 +404,24 @@ def moderation(bot):
         except ValueError:
             await ctx.send(embed=discord.Embed(description="**Please provide a valid number of messages to delete.**",colour=0xFF0000))
 
-        # Define a function to check if a message contains files or attachments
         def has_files(message):
             return len(message.attachments) > 0
 
-        # Confirmation message
         confirmation_message = await ctx.send(embed=discord.Embed(title="LuminaryAI - confirmation", description=f"**Are you sure you want to delete up to {limit} messages containing files/attachments?**\n**React with ✅ to confirm.**",colour=0xc8dc6c))
         await confirmation_message.add_reaction("✅")
         await confirmation_message.add_reaction("❌")
 
-        # Check for reaction
         def check(reaction, user):
             return user == ctx.message.author and str(reaction.emoji) in ['✅', '❌'] and reaction.message.id == confirmation_message.id
 
         try:
-            # Wait for confirmation reaction
-            reaction, user = await bot.wait_for('reaction_add', timeout=20.0, check=check)
+
+            reaction, user = await self.bot.wait_for('reaction_add', timeout=20.0, check=check)
         except asyncio.TimeoutError:
             await confirmation_message.delete()
             await ctx.send(embed=discord.Embed(description="**Purge files command cancelled.**",colour=0xFF0000))
             return
 
-        # Perform the purge
         if str(reaction.emoji) == '✅':
             try:
                 deleted_messages = await ctx.channel.purge(limit=limit, check=has_files)
@@ -448,3 +436,7 @@ def moderation(bot):
         elif str(reaction.emoji) == '❌':
             await confirmation_message.delete()
             await ctx.send(embed=discord.Embed(description="**Action cancelled.**",colour=0xFF0000))
+
+
+async def setup(bot):
+    await bot.add_cog(Moderation(bot))
