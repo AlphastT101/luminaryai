@@ -4,6 +4,7 @@ import yaml
 import time
 import httpx
 import random
+import signal ###
 import string
 import logging
 import asyncio
@@ -74,6 +75,14 @@ async def startup_event():
 @app.get('/')
 async def index():
     return "hi, what are you doing here? there is nothing to view in our api endpoint."
+
+@app.get("/shutdown")
+async def shutdown(request: Request):
+    if request.client.host != "127.0.0.1" and request.client.host != "::1":  # Allow only localhost (IPv4 and IPv6)
+        return JSONResponse(status_code=403)
+    
+    print("Shutting down the server...")
+    os.kill(os.getpid(), signal.SIGINT)
 
 @app.post('/v1/images/generations')
 async def image(request: Request, background_tasks: BackgroundTasks):
@@ -189,7 +198,7 @@ async def image(request: Request, background_tasks: BackgroundTasks):
             os.remove(file_path)
 
     if logging_enabled: background_tasks.add_task(log_message, user_id, engine, img_url, prompt, headers)
-    return JSONResponse(content={"data": [{"url": img_url}, {"serveo": f"https://xet.serveo.net/cache/{random_string}.png"}]})
+    return JSONResponse(content={"data": [{"url": img_url}]})
 
 
 

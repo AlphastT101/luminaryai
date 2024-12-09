@@ -1,5 +1,6 @@
 import time
 start_time = time.time()
+import signal
 
 import os
 import yaml
@@ -36,7 +37,7 @@ from bot_utilities.ai_utils import process_queue
 def run_api():
     port = int(os.environ.get("PORT", config["flask"]["port"]))
     import uvicorn
-    uvicorn.run("api:app", host='0.0.0.0', port=port, log_level="warning")
+    uvicorn.run("api:app", host='0.0.0.0', port=port, log_level="warning"); print("please")
 
 async def run_flask_app_async():
     loop = asyncio.get_running_loop()
@@ -120,12 +121,6 @@ async def on_ready():
     print(f"Booted in {time.time() - start_time}s")
 
 @bot.event
-async def on_shutdown():
-    print("yeah")
-    flask_task.cancel()
-    await bot.stop()
-
-@bot.event
 async def on_guild_join(guild):
     channel = bot.get_channel(1189110778599575592)
     embed = discord.Embed(title="Guild Joined", description=f"The bot has joined the server {guild.name}", color=0x00ff00)
@@ -137,4 +132,17 @@ async def on_guild_remove(guild):
     embed = discord.Embed(title="Guild Left", description=f"The bot has left the server {guild.name}", color=0xff0000)
     await channel.send(embed=embed)
 
+
+def handle_shutdown(signal, frame):
+    print("Shutdown signal received. Cleaning up...")
+    loop = asyncio.get_event_loop()
+    loop.create_task(shutdown_bot())
+
+async def shutdown_bot():
+    requests.get("http://127.0.0.1/shutdown")
+    await bot.close()
+    print("Bot shut down cleanly.")
+
+signal.signal(signal.SIGINT, handle_shutdown)
+signal.signal(signal.SIGTERM, handle_shutdown)
 bot.run(bot_token)
