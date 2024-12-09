@@ -3,7 +3,7 @@ import datetime
 from bot_utilities.owner_utils import *
 from bot_utilities.ai_utils import generate_response_msg
 
-def on_messages(bot, cmd_list , member_histories_msg, mongodb):
+def on_messages(bot , member_histories_msg, mongodb):
 
     @bot.event
     async def on_message(message):
@@ -15,6 +15,11 @@ def on_messages(bot, cmd_list , member_histories_msg, mongodb):
             elif message.content.startswith("there are 4 ways you can interact with me:"):await message.delete(); return
             elif message.content.startswith("hello im LuminaryAI. to start chatting, just tag me"):await message.delete(); return
             elif message.content.startswith("uhh my head hurts"): await message.delete(); return
+
+        cmd_list = []
+        for command in bot.commands:
+            cmd_prefix = "ai." + command.name
+            cmd_list.append(cmd_prefix)
 
         if message.content.startswith(tuple(cmd_list)):
             if not await check_blist_msg(message, mongodb):
