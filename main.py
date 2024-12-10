@@ -1,9 +1,9 @@
 import time
 start_time = time.time()
-import signal
 
 import os
 import yaml
+import signal
 import asyncio
 import discord
 import requests
