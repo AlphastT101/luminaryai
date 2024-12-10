@@ -34,15 +34,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Load configuration
-with open("config.yml", "r") as config_file:
-    global config
-    config = yaml.safe_load(config_file)
-flask_port = str(config["flask"]["port"])
-token_rate_limits = defaultdict(list) # Rate limit dictionaries
-global api_stats, flux
-api_stats = {}
-
 async def sync_api_stats():
     global api_stats
     while True:
@@ -50,36 +41,44 @@ async def sync_api_stats():
         api_stats = {}  # Resetting api_stats
         await asyncio.sleep(20)
 
-@app.on_event("startup")
-async def startup_event():
-    global clientdb, sbot, bot_token, open_r, mongodb, guild_id, guild_id_verify, send_req, webhook
-    print("INFO: API engine has started, loading utils...")
+# Load configuration
+with open("config.yml", "r") as config_file:
+    global config
+    config = yaml.safe_load(config_file)
 
-    mongodb = config["bot"]["mongodb"]
-    guild_id = str(config["flask"]["guild_id"])
-    webhook = str(config["bot"]["webhook_images"])
-    send_req = str(config["flask"]["send_req_channel"])
-    guild_id_verify = str(config["flask"]["guild_id_verify"])
+flask_port = str(config["flask"]["port"])
+token_rate_limits = defaultdict(list)
+mongodb = config["bot"]["mongodb"]
+guild_id = str(config["flask"]["guild_id"])
+webhook = str(config["bot"]["webhook_images"])
+send_req = str(config["flask"]["send_req_channel"])
+guild_id_verify = str(config["flask"]["guild_id_verify"])
 
-    clientdb = MongoClient(mongodb)
-    sbot = get_t_sbot(clientdb)
-    bot_token, open_r = start(clientdb)
+clientdb = MongoClient(mongodb)
+sbot = get_t_sbot(clientdb)
+bot_token, open_r = start(clientdb)
 
-    cache_folder = os.path.join(os.getcwd(), 'cache')
-    os.makedirs(cache_folder, exist_ok=True)
+cache_folder = os.path.join(os.getcwd(), 'cache')
+os.makedirs(cache_folder, exist_ok=True)
+api_stats = {}
 
-    asyncio.create_task(sync_api_stats())
-
-    print("INFO: Utils are loaded. API is now functional.")
 
 @app.get('/')
 async def index():
     return "hi, what are you doing here? there is nothing to view in our api endpoint."
 
+@app.get("/create-task")
+async def create_task(request: Request):
+    if request.client.host != "127.0.0.1" and request.client.host != "::1":  # Allow only localhost (IPv4 and IPv6)
+        return JSONResponse(status_code=403, content={"code": "403"})
+    
+    asyncio.create_task(sync_api_stats())
+    return JSONResponse(status_code=200, content={"code": "200"})
+
 @app.get("/shutdown")
 async def shutdown(request: Request):
     if request.client.host != "127.0.0.1" and request.client.host != "::1":  # Allow only localhost (IPv4 and IPv6)
-        return JSONResponse(status_code=403)
+        return JSONResponse(status_code=403, content={"code": "403"})
     
     print("Shutting down the server...")
     os.kill(os.getpid(), signal.SIGINT)
