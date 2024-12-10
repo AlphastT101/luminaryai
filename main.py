@@ -37,7 +37,7 @@ from bot_utilities.ai_utils import process_queue
 def run_api():
     port = int(os.environ.get("PORT", config["flask"]["port"]))
     import uvicorn
-    uvicorn.run("api:app", host='0.0.0.0', port=port, log_level="warning"); print("please")
+    uvicorn.run("api:app", host='0.0.0.0', port=port, log_level="warning")
 
 async def run_flask_app_async():
     loop = asyncio.get_running_loop()
@@ -57,13 +57,12 @@ intents = discord.Intents.all()
 intents.presences = False
 activity = discord.Game(name="/help")
 bot = commands.AutoShardedBot(
-    shard_count=1,
+    shard_count=2,
     command_prefix=config["bot"]["prefix"],
     intents=intents, activity=activity,
     help_command=None,
     reconnect=False
 )
-
 
 fun(bot)
 information(bot)
@@ -119,6 +118,7 @@ async def on_ready():
     print("Slash commands synced.")
     print(f'Shard count: {bot.shard_count}')
     print(f"Booted in {time.time() - start_time}s")
+    requests.get("http://localhost/create-task")
 
 @bot.event
 async def on_guild_join(guild):
@@ -139,7 +139,7 @@ def handle_shutdown(signal, frame):
     loop.create_task(shutdown_bot())
 
 async def shutdown_bot():
-    requests.get("http://127.0.0.1/shutdown")
+    requests.get("http://localhost/shutdown")
     await bot.close()
     print("Bot shut down cleanly.")
 
