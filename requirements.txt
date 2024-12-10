@@ -12,3 +12,4 @@ youtube_dl
 fastapi
 uvicorn
 websockets
+PyNaCl
