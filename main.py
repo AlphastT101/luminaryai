@@ -50,7 +50,7 @@ bot_token, api = start(client)
 # sp_id, sp_secret = spotify_token(client) Not used for now
 
 is_generating = {}
-member_histories_msg = {}
+# member_histories_msg = {} Not used for now
 flask_thread = None
 flask_task = None
 intents = discord.Intents.all()
@@ -69,15 +69,15 @@ fun(bot)
 information(bot)
 bbot(bot, start_time, client)
 music(bot)
-ai(bot, member_histories_msg, is_generating)
+ai(bot, is_generating)
 
 fun_slash(bot, client)
 moderation_slash(bot, client)
 information_slash(bot, client)
 bot_slash(bot, start_time, client)
-ai_slash(bot, client, member_histories_msg, is_generating)
+ai_slash(bot, client, is_generating)
 
-on_messages(bot, member_histories_msg, client)
+on_messages(bot, client)
 on_cmd_error(bot)
 member_join(bot)
 
