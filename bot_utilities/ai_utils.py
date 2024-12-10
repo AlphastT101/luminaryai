@@ -328,31 +328,6 @@ async def create_and_send_embed(query, client, interaction, image_urls, target_s
         await channel.send(embeds=embeds, reference=message, mention_author=False)
 
 
-
-
-# async def upload_image_to_discord(image_data, channel_id):
-#     url = f'https://discord.com/api/v10/channels/{channel_id}/messages'
-    
-#     headers = {
-#         'Authorization': f'Bot MTI1MDEyODA5Nzk0MTAwMDIyMw.GxHB6g.W9LqL1XJDSGRjNcdcXBfFGxPnDCaCzZuyNd--A',
-#         'Content-Type': 'multipart/form-data'
-#     }
-    
-#     # Create a multipart form-data payload
-#     data = aiohttp.FormData()
-#     data.add_field('file', BytesIO(image_data), filename='image.png', content_type='image/png')
-#     data.add_field('payload_json', '{"content": ""}')  # Adding an empty message payload
-    
-#     async with aiohttp.ClientSession() as session:
-#         async with session.post(url, headers=headers, data=data) as response:
-#             if response.status == 200:
-#                 response_json = await response.json()
-#                 return response_json['attachments'][0]['url']
-#             else:
-#                 print(f"Failed to upload image: {response.status} {await response.text()}")
-#                 return None
-
-
 async def vision(prompt, image_link):
     try:
         response = await openai_client.chat.completions.create(
