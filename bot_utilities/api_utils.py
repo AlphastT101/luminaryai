@@ -113,31 +113,26 @@ async def gen_text(api_key, msg_history, model):
 async def save_api_stats(new_api_stats, mongodb):
     db = mongodb['lumi-api']
     collection = db['stats']
-    
-    # Fetch the existing api_stats from the database
     stats = collection.find_one({"key": "api_stats"})
-    
-    # Initialize the existing stats if they don't exist
+ 
     if stats is None:
         existing_stats = {}
     else:
         existing_stats = stats.get("value", {})
     
-    # Update the existing stats with new values
     for key, new_value in new_api_stats.items():
         if key in existing_stats:
             existing_stats[key] += new_value  # Increment existing value
         else:
             existing_stats[key] = new_value  # Add new key-value pair
     
-    # Update the database with the new api_stats
     collection.update_one(
         {"key": "api_stats"},
         {"$set": {"value": existing_stats}},
         upsert=True  # Create a new document if it doesn't exist
     )
 
-    return existing_stats  # Return the updated stats if needed
+    return existing_stats
 
 
 def get_t_sbot(mongodb):
