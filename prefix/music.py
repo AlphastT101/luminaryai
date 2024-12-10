@@ -5,31 +5,6 @@ from discord import Color as color
 from bot_utilities.music_utils import *
 
 
-
-no_result_embed = discord.Embed(
-    title="LumianryAI - music",
-    description="No results found",
-    color=0xFF0000
-)
-no_result_embed.set_thumbnail(url="attachment://thumbnail.png")
-
-
-not_in_voice = discord.Embed(
-    title="LumianryAI - music",
-    description="I am not currently in a voice channel.",
-    color=0xFF0000
-)
-not_in_voice.set_thumbnail(url="attachment://thumbnail.png")
-
-playback_stopped_left = discord.Embed(
-    title="LumianryAI - music",
-    description="Playback stopped, and I left the voice channel.",
-    color=0x99ccff
-)
-playback_stopped_left.set_thumbnail(url="attachment://thumbnail.png")
-
-
-
 playback_stopped = discord.Embed(
     description="Playback stopped.",
     color=0x99ccff
@@ -42,18 +17,6 @@ playback_resumed = discord.Embed(
     description="Playback resumed.",
     color=0x99ccff
 )
-
-
-
-need_same_channel_to_stop = discord.Embed(
-    title="LumianryAI - music",
-    description="You need to be in the same voice channel as me to perform this action.",
-    color=0xFF0000
-)
-need_same_channel_to_stop.set_thumbnail(url="attachment://thumbnail.png")
-
-
-
 loop_enabled = discord.Embed(
     description="Loop enabled",
     color=0x99ccff
@@ -62,16 +25,36 @@ loop_disabled = discord.Embed(
     description="Loop disabled",
     color=0x99ccff
 )
-
-
-
-alread_playing = discord.Embed(
+no_result_embed = discord.Embed(
     title="LumianryAI - music",
-    description="Already playing!\n\n looking for the queue system?\n help us by joining our support server.",
+    description="No results found",
+    color=0xFF0000
+)
+alread_playing = discord.Embed(
+    description="Already playing.",
     color=0x99ccff
 )
-alread_playing.set_thumbnail(url="attachment://thumbnail.png")
+not_in_voice = discord.Embed(
+    title="LumianryAI - music",
+    description="I am not currently in a voice channel.",
+    color=0xFF0000
+)
+playback_stopped_left = discord.Embed(
+    title="LumianryAI - music",
+    description="Playback stopped, and I left the voice channel.",
+    color=0x99ccff
+)
 
+need_same_channel_to_stop = discord.Embed(
+    description="You need to be in the same voice channel as me to perform this action.",
+    color=0xFF0000
+)
+
+not_in_voice.set_thumbnail(url="attachment://thumbnail.png")
+alread_playing.set_thumbnail(url="attachment://thumbnail.png")
+no_result_embed.set_thumbnail(url="attachment://thumbnail.png")
+playback_stopped_left.set_thumbnail(url="attachment://thumbnail.png")
+need_same_channel_to_stop.set_thumbnail(url="attachment://thumbnail.png")
 
 def music(bot):
 
