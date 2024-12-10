@@ -9,4 +9,4 @@ openai
 psutil
 yt_dlp
 youtube_dl
-fastapi
+fastapi==0.115.3
