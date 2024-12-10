@@ -1,15 +1,16 @@
-import spotipy
-from spotipy.oauth2 import SpotifyClientCredentials
-from discord import Embed as em
-import discord
-from discord.ui import View, Button
-from discord import Color as color
-import uuid
 import yt_dlp
-from youtube_dl import YoutubeDL
 import asyncio
-from concurrent.futures import ThreadPoolExecutor
+import discord
 import logging
+from discord import Embed as em
+from youtube_dl import YoutubeDL
+from discord import Color as color
+from discord.ui import View, Button
+from concurrent.futures import ThreadPoolExecutor
+
+
+# import spotipy
+# from spotipy.oauth2 import SpotifyClientCredentials
 
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
@@ -67,60 +68,42 @@ async def search(query: str, ctx):
         print(f"An error occurred: {e}")
         print("Traceback:", exc_info=True)
         raise  # Re-raise the exception after logging        
-        
-
-        
-        
-        
-        
-        
-        
-async def search_song(name, id, secret):
-    sp = spotipy.Spotify(auth_manager=SpotifyClientCredentials(
-        client_id=id,
-        client_secret=secret
-    ))
-
-    results = sp.search(q=name, type='track', limit=1)
-
-    # Check if we got any results
-    if results['tracks']['items']:
-        track = results['tracks']['items'][0]
-        duration_ms = track['duration_ms']
-        # Convert duration from milliseconds to minutes and seconds
-        minutes, seconds = divmod(duration_ms // 1000, 60)
-        duration = f"{minutes}:{seconds:02d}"
-
-        return {
-            'name': track['name'],
-            'artist': track['artists'][0]['name'],
-            'album': track['album']['name'],
-            'release_date': track['album']['release_date'],
-            'duration': duration,
-            'url': track['external_urls']['spotify']
-        }
-    else:
-        return None
-    
 
 
+# async def search_song(name, id, secret):
+#     sp = spotipy.Spotify(auth_manager=SpotifyClientCredentials(
+#         client_id=id,
+#         client_secret=secret
+#     ))
 
-# async def get_audio_url(query):
-#     async with aiohttp.ClientSession() as session:
-#         async with session.get('https://audio.serveo.net/audio', params={'query': query}) as response:
-#             if response.status == 200:
-#                 data = await response.json()
-#                 return data
-#             else:
-#                 return None
+#     results = sp.search(q=name, type='track', limit=1)
+
+#     # Check if we got any results
+#     if results['tracks']['items']:
+#         track = results['tracks']['items'][0]
+#         duration_ms = track['duration_ms']
+#         # Convert duration from milliseconds to minutes and seconds
+#         minutes, seconds = divmod(duration_ms // 1000, 60)
+#         duration = f"{minutes}:{seconds:02d}"
+
+#         return {
+#             'name': track['name'],
+#             'artist': track['artists'][0]['name'],
+#             'album': track['album']['name'],
+#             'release_date': track['album']['release_date'],
+#             'duration': duration,
+#             'url': track['external_urls']['spotify']
+#         }
+#     else:
+#         return None
+
+
             
 async def get_audio_url(query):
-    #random_filename = f"{uuid.uuid4()}"
     
     ydl_opts = {
         'format': 'bestaudio/best',
         'noplaylist': True,
-        #'outtmpl': f'{random_filename}.%(ext)s',
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',
             'preferredcodec': 'mp3',
@@ -136,7 +119,6 @@ async def get_audio_url(query):
         'no_warnings': True,        # Suppress warnings
     }
 
-
     # Run yt-dlp in a separate thread
     loop = asyncio.get_event_loop()
     with ThreadPoolExecutor() as pool:
@@ -150,18 +132,16 @@ async def get_audio_url(query):
     thumbnail = result.get('thumbnail')
     audiouri = result.get('url')
 
-    #final_filename = f"{random_filename}.mp3"
-    # Return the first video's details
     return {
         'title': title,
         'url': url,
         'audiouri': audiouri,
-        #'url_local': f"https://audio.serveo.net/mp3/{final_filename}",
         'channel': channel,
         'f_duration': f"{f_duration // 60}m {f_duration % 60}s",
         'duration': duration,
         'thumbnail': thumbnail
     }
+
 
 
 guild_queues = {}
@@ -171,7 +151,7 @@ FFMPEG_OPTIONS = {
 }
 
 async def play_next_song(vc, ctx, bot, loop:bool = None):
-    #if guild_queues[ctx.guild.id]:
+
     if ctx.guild.id in guild_queues and len(guild_queues[ctx.guild.id]) > 0:
         next_song = guild_queues[ctx.guild.id][0]
         audio_source = discord.FFmpegPCMAudio(next_song['audio_url'], **FFMPEG_OPTIONS)
@@ -197,6 +177,8 @@ async def play_next_song(vc, ctx, bot, loop:bool = None):
     else:
         await ctx.send(embed=em(description="> **The queue is empty. No more songs to play.**"))
 
+
+
 class Music_Controls(View):
     def __init__(self, bot, ctx, queue, loop:bool = None):
         super().__init__(timeout=None)
@@ -216,8 +198,6 @@ class Music_Controls(View):
         self.vote_skip_button = Button(emoji="⏭️", style=discord.ButtonStyle.primary, custom_id="vote_skip")
         self.vote_stop_button = Button(emoji="🛑", style=discord.ButtonStyle.danger, custom_id="vote_stop")
 
-
-      
         # Assign callbacks
         self.show_queue_button.callback = self.show_queue
         self.toggle_play_pause_button.callback = self.toggle_play_pause
