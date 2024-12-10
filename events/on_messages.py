@@ -1,9 +1,7 @@
-import discord
-import datetime
 from bot_utilities.owner_utils import *
-from bot_utilities.ai_utils import generate_response_msg
+# from bot_utilities.ai_utils import generate_response_msg
 
-def on_messages(bot , member_histories_msg, mongodb):
+def on_messages(bot, mongodb):
 
     @bot.event
     async def on_message(message):
@@ -25,6 +23,7 @@ def on_messages(bot , member_histories_msg, mongodb):
             if not await check_blist_msg(message, mongodb):
                 await bot.process_commands(message)
 
+        """
         elif await getdb("ai-channels", message.channel.id, mongodb) == "found":
             if await check_blist_msg(message, mongodb): return
 
@@ -55,3 +54,4 @@ def on_messages(bot , member_histories_msg, mongodb):
 
         elif not any(message.content.startswith(prefix) for prefix in bot.command_prefix):
             return
+        """
