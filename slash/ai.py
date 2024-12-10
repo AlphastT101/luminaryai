@@ -6,7 +6,7 @@ from bot_utilities.ai_utils import vision
 from bot_utilities.owner_utils import check_blist
 from bot_utilities.api_utils import check_user, insert_token, delete_token, get_api_stat
 
-def ai_slash(bot, mongodb, member_histories_msg, is_generating):
+def ai_slash(bot, mongodb, is_generating):
 
     # @bot.tree.command(name="activate", description="Activate AI responses in a channel.")
     # @commands.guild_only()
@@ -46,6 +46,41 @@ def ai_slash(bot, mongodb, member_histories_msg, is_generating):
     #     else:
     #         await interaction.followup.send(embed=Embed(description="**❌ You don't have permission to use this comamnd.**", color=discord.Color.red()),)
 
+    @bot.tree.command(name="ask", description="Ask LuminaryAI a question!")
+    @commands.guild_only()
+    @app_commands.describe(prompt="The question you want to ask LuminaryAI")
+    async def ask(interaction: discord.Interaction, prompt: str):
+        if await check_blist(interaction, mongodb): return
+        await interaction.followup.send(embed=discord.Embed(description="**❌ Please @ me to ask.**"))
+        # await interaction.response.defer(ephemeral=False)
+        # if prompt is None:
+        #     await interaction.followup.send(embed=discord.Embed(description="**❌ Please include your prompt!**"))
+        #     return
+
+        # member_id = str(interaction.user.id)
+        # history = member_histories_msg.get(member_id, [])
+
+        # answer_embed = discord.Embed(
+        #     title="LuminaryAI - Loading",
+        #     description="Please wait while I process your request.",
+        #     color=0x99ccff,
+        # )
+        # answer_embed.set_footer(text="This may take a few moments", icon_url=bot.user.avatar.url)
+        # answer = await interaction.followup.send(embed=answer_embed)
+
+        # generated_message, updated_history = await generate_response_slash(interaction, prompt, history)
+        # member_histories_msg[member_id] = updated_history
+
+        # answer_generated = discord.Embed(
+        #     title="LuminaryAI - Response",
+        #     description=generated_message,
+        #     color=0x99ccff,
+        # )
+        # answer_generated.set_footer(text="Thanks for using LuminaryAI!", icon_url=bot.user.avatar.url)
+        # await answer.edit(embed=answer_generated)
+
+
+
     @bot.tree.command(name="vision", description="Vision an image")
     @commands.guild_only()
     @app_commands.describe(message="Enter your message.")
@@ -63,40 +98,6 @@ def ai_slash(bot, mongodb, member_histories_msg, is_generating):
 
         response_embed.set_footer(text="Reply from LuminaryAI Image Vision. LuminaryAI does not guarantee the accuracy of the response provided. The Vision model is currently in **beta**")
         await interaction.followup.send(embed=response_embed)
-    
-
-    @bot.tree.command(name="ask", description="Ask LuminaryAI a question!")
-    @commands.guild_only()
-    @app_commands.describe(prompt="The question you want to ask LuminaryAI")
-    async def ask(interaction: discord.Interaction, prompt: str):
-        if await check_blist(interaction, mongodb): return
-        await interaction.response.defer(ephemeral=False)
-
-        if prompt is None:
-            await interaction.followup.send(embed=discord.Embed(description="**❌ Please include your prompt!**"))
-            return
-
-        member_id = str(interaction.user.id)
-        history = member_histories_msg.get(member_id, [])
-
-        answer_embed = discord.Embed(
-            title="LuminaryAI - Loading",
-            description="Please wait while I process your request.",
-            color=0x99ccff,
-        )
-        answer_embed.set_footer(text="This may take a few moments", icon_url=bot.user.avatar.url)
-        answer = await interaction.followup.send(embed=answer_embed)
-
-        generated_message, updated_history = await generate_response_slash(interaction, prompt, history)
-        member_histories_msg[member_id] = updated_history
-
-        answer_generated = discord.Embed(
-            title="LuminaryAI - Response",
-            description=generated_message,
-            color=0x99ccff,
-        )
-        answer_generated.set_footer(text="Thanks for using LuminaryAI!", icon_url=bot.user.avatar.url)
-        await answer.edit(embed=answer_generated)
 
 
     @bot.tree.command(name="imagine", description="Imagine an image using LuminaryAI")
