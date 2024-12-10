@@ -1,7 +1,7 @@
-from discord import Embed
-import datetime
 import time
 import psutil
+import datetime
+from discord import Embed
 
 async def about_embed(start_time, bot):
 
