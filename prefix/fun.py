@@ -6,11 +6,13 @@ from discord.ext import commands
 from bot_utilities.fun_utils import *
 from datetime import datetime, timezone
 
-def fun(bot):
+class Fun(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
 
-    @bot.command(name="randomfact")
+    @commands.command(name="randomfact")
     @commands.cooldown(1, 5, commands.BucketType.user)
-    async def randomfact(ctx):
+    async def randomfact(self, ctx):
         random_fact_embed = discord.Embed(
             title="Here is your random fact!",
             description=random.choice(facts),
@@ -19,8 +21,8 @@ def fun(bot):
         await ctx.send(embed=random_fact_embed)
 
 
-    @bot.command(name='rps')
-    async def rps(ctx, user_choice: str = None):
+    @commands.command(name='rps')
+    async def rps(self, ctx, user_choice: str = None):
 
         if user_choice is None:
             await ctx.send("Specify your choice! Please choose rock, paper, or scissors.")
@@ -33,8 +35,8 @@ def fun(bot):
         await ctx.send(f"**You choose `{user_choice}`**.\n**I choose `{bot_choice}`.**\n**You `{outcome}`!**")
 
 
-    @bot.command(name="wordle")
-    async def wordle(ctx):
+    @commands.command(name="wordle")
+    async def wordle(self, ctx):
         word = random.choice(words_list)
         now = datetime.now(timezone.utc)
 
@@ -50,7 +52,7 @@ def fun(bot):
 
         for i in range(5):
             try:
-                user_input = await bot.wait_for("message", timeout=60, check=lambda message: message.author == ctx.author)
+                user_input = await self.bot.wait_for("message", timeout=60, check=lambda message: message.author == ctx.author)
             
             except asyncio.TimeoutError:
                 return await ctx.send(embed=discord.Embed(description=f"**You took too long to respond. Game over! The word was {word}**", color=discord.Color.green()))
@@ -74,3 +76,6 @@ def fun(bot):
                 await ctx.send(embed=discord.Embed(description="Invalid input. Your guess should be exactly 5 letters.", color=discord.Color.red()))
                 continue
         await ctx.send(embed=discord.Embed(description=f"Out of guesses. The word was: {word}", color=discord.Color.green()))
+
+async def setup(bot):
+    await bot.add_cog(Fun(bot))

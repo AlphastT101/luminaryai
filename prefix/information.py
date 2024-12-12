@@ -1,11 +1,13 @@
 import discord
 from discord.ext import commands
 
-def information(bot):
+class Information(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
 
-    @bot.command(name='userinfo')
+    @commands.command(name='userinfo')
     @commands.cooldown(1, 10, commands.BucketType.user)
-    async def user(ctx, user_mention: discord.Member = None):
+    async def user(self, ctx, user_mention: discord.Member = None):
 
         if user_mention is None:
             user_mention = ctx.author
@@ -32,12 +34,16 @@ def information(bot):
         embed.set_thumbnail(url=user_mention.avatar.url)
         await ctx.send(embed=embed)
 
-    @bot.command(name='support')
+    @commands.command(name='support')
     @commands.cooldown(1, 10, commands.BucketType.user)
-    async def support(ctx):
+    async def support(self, ctx):
         await ctx.send("> **Support server invite link:** [here](https://discord.com/invite/hmMBe8YyJ4)")
 
-    @bot.command(name='owner')
+    @commands.command(name='owner')
     @commands.cooldown(1, 10, commands.BucketType.user)
-    async def owner(ctx):
+    async def owner(self, ctx):
         await ctx.send("> **My owner is:** [AlphasT101](https://alphast101.netlify.app)")
+
+
+async def setup(bot):
+    await bot.add_cog(Information(bot))

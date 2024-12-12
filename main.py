@@ -19,10 +19,8 @@ from slash.moderation import moderation_slash
 
 # Prefix commands import
 from prefix.ai import ai
-from prefix.fun import fun
 from prefix.bot import bbot
 from prefix.music import music
-from prefix.information import information
 
 # Events import
 from events.on_messages import on_messages
@@ -64,8 +62,7 @@ bot = commands.AutoShardedBot(
     reconnect=False
 )
 
-fun(bot)
-information(bot)
+
 bbot(bot, start_time, client)
 music(bot)
 ai(bot, is_generating)
@@ -100,12 +97,12 @@ async def sync_slash_cmd():
 
 @bot.event
 async def on_ready():
-    os.system('cls' if os.name == 'nt' else 'clear')
     print(f'We have logged in as {bot.user}')
+
     await bot.load_extension("prefix.moderation")
-    print(f"\033[1;38;5;46mCurrent model: {config['bot']['text_model']}\033[0m")
-    client.admin.command('ping')
-    print("Pinged your deployment. You are successfully connected to MongoDB!")
+    await bot.load_extension("prefix.information")
+    await bot.load_extension("prefix.fun")
+
     sync_slash_cmd.start()
     update_bio.start()
     asyncio.create_task(process_queue())
@@ -113,11 +110,10 @@ async def on_ready():
     global flask_task  # Refer to the global variable
     flask_task = asyncio.create_task(run_flask_app_async())
 
-    print("API Engine has been started.")
-    await bot.tree.sync()
-    print("Slash commands synced.")
-    print(f'Shard count: {bot.shard_count}')
+    print("API Engine has been started.") 
     print(f"Booted in {time.time() - start_time}s")
+
+    await asyncio.sleep(2)
     requests.get("http://localhost/create-task")
 
 @bot.event
@@ -139,9 +135,11 @@ def handle_shutdown(signal, frame):
     loop.create_task(shutdown_bot())
 
 async def shutdown_bot():
-    requests.get("http://localhost/shutdown")
-    await bot.close()
-    print("Bot shut down cleanly.")
+    try:
+        requests.get("http://localhost/shutdown")
+        await bot.close()
+    except Exception as e:
+        await bot.close()
 
 signal.signal(signal.SIGINT, handle_shutdown)
 signal.signal(signal.SIGTERM, handle_shutdown)
