@@ -63,6 +63,16 @@ os.makedirs(cache_folder, exist_ok=True)
 api_stats = {}
 
 
+@app.exception_handler(Exception)
+async def custom_internal_server_error_handler(exc: Exception):
+    print(str(exc))
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": "500",
+        },
+    )
+
 @app.get('/')
 async def index():
     return "hi, what are you doing here? there is nothing to view in our api endpoint."
@@ -99,10 +109,10 @@ async def image(request: Request, background_tasks: BackgroundTasks):
         print(e)
         return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content={"detail": "An internal server error occured, please try again a few moments later."})
 
-    if not engine in ["sdxl-turbo", "dalle3", "flux", "poli"]:
-        return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"detail":"Unknown engine. Available engines are: 'sdxl-turbo', 'dalle3', 'flux', 'poli'"})
-    if not size in ['1024x1024', '1792x1024', '1024x1792']:
-        return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"detail":"Unknown Size. Available sizes are: '1024x1024', '1792x1024', '1024x1792'"})
+    if not engine in ["sdxl-turbo", "flux-dev", "flux-schnell", "poli"]:
+        return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"detail":"Unknown engine. Available engines are: 'sdxl-turbo', 'flux-dev', 'flux-schnell', 'poli'"})
+    if not size in ['1024x1024', '1024x576', '1024x768', '512x512', '576x1024', '786x1024']:
+        return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"detail":"Unknown Size. Available sizes are: '1024x1024', '1024x576', '1024x768', '512x512', '576x1024', '786x1024'"})
 
     api_stats[engine] = api_stats.get(engine, 0) + 1 # API Stats + 1
  
@@ -112,7 +122,7 @@ async def image(request: Request, background_tasks: BackgroundTasks):
 
     # Rate limiting by token
     current_time = time.time()
-    if token.startswith("luminary"):
+    if token.startswith("luminary") or token.startswith("XET"):
         token_rate_limits[token] = [timestamp for timestamp in token_rate_limits[token] if current_time - timestamp < 60]
         if len(token_rate_limits[token]) >= 200:
             return JSONResponse(status_code=status.HTTP_429_TOO_MANY_REQUESTS, content={"detail": "Rate limit exceeded for this API token."})
@@ -140,7 +150,7 @@ async def image(request: Request, background_tasks: BackgroundTasks):
     if engine == "poli":
         img_url = await poli(prompt)
 
-    elif engine in ["sdxl-turbo", "dalle3", "flux"]:
+    elif engine in ["sdxl-turbo", "flux-schnell", "flux-dev"]:
         async with httpx.AsyncClient() as client:
             res = await client.post(f"https://discord.com/api/v9/guilds/{guild_id}/channels", json={"name": f"api-{random_string}", "permission_overwrites": [], "type": 0}, headers=headers)
             channel_info = res.json()
@@ -157,11 +167,11 @@ async def image(request: Request, background_tasks: BackgroundTasks):
                     do_break = False
                     failed = False
                     for message in messages:
-                        if message['content'].startswith("https://"): # generated image URL starts with https://
+                        if message['content'].startswith("https://"):
                             img_url = message['content']
                             do_break = True
                             break
-                        elif message['content'] in ['error', 'uhh can you say that again?']: # the bot returns "error" when it fails
+                        elif message['content'] in ['error', 'uhh can you say that again?']:
                             failed = True
 
                     if do_break: # break when the image generation is done
@@ -201,7 +211,6 @@ async def image(request: Request, background_tasks: BackgroundTasks):
 
 
 
-
 @app.post('/v1/chat/completions')
 async def text(request: Request):
 
@@ -228,7 +237,7 @@ async def text(request: Request):
 
     # Rate limiting logic by token
     current_time = time.time()
-    if token.startswith("luminary"):
+    if token.startswith("luminary") or token.startswith("XET"):
         token_rate_limits[token] = [timestamp for timestamp in token_rate_limits[token] if current_time - timestamp < 60]
         if len(token_rate_limits[token]) >= 15:
             return JSONResponse(status_code=status.HTTP_429_TOO_MANY_REQUESTS, content={"detail": "Rate limit exceeded for this API token. >15RPS"})

@@ -113,15 +113,18 @@ def ai_slash(bot, mongodb, is_generating):
         model="Select the model to use.",
         size="Select the size for the model.")
     @app_commands.choices(model=[
-        app_commands.Choice(name="Flux (Best)", value="flux"),
-        app_commands.Choice(name="Dalle3", value="dalle3"),
+        app_commands.Choice(name="Flux-Dev", value="flux-dev"),
+        app_commands.Choice(name="Flux-Schnell", value="flux-dev"),
         app_commands.Choice(name="SDXL-Turbo", value="sdxl-turbo"),
         app_commands.Choice(name="Polinations.ai", value="poli")
     ],
     size=[
         app_commands.Choice(name="1024x1024", value="1024x1024"),
-        app_commands.Choice(name="1024x1792", value="1024x1792"),
-        app_commands.Choice(name="1792x1024" ,value="1792x1024")
+        app_commands.Choice(name="1024x576", value="1024x576"),
+        app_commands.Choice(name="1024x768" ,value="1024x768"),
+        app_commands.Choice(name="512x512" ,value="512x512"),
+        app_commands.Choice(name="576x1024" ,value="576x1024"),
+        app_commands.Choice(name="768x1024" ,value="768x1024")
     ])
     async def imagine_pla(interaction: discord.Interaction, prompt: str, model: app_commands.Choice[str], size: app_commands.Choice[str]):
         if await check_blist(interaction, mongodb): return
