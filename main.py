@@ -114,7 +114,7 @@ async def on_ready():
     print(f"Booted in {time.time() - start_time}s")
 
     await asyncio.sleep(2)
-    requests.get("http://localhost/create-task")
+    requests.get("http://localhost:6750/create-task")
 
 @bot.event
 async def on_guild_join(guild):
@@ -136,7 +136,7 @@ def handle_shutdown(signal, frame):
 
 async def shutdown_bot():
     try:
-        requests.get("http://localhost/shutdown")
+        requests.get("http://localhost:6750/shutdown")
         await bot.close()
     except Exception as e:
         await bot.close()
