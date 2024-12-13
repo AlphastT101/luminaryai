@@ -198,16 +198,28 @@ async def log_message(user_id, engine, img_url, prompt, headers):
 
 
 async def get_engine_id(model, size):
-    if model == "flux":
-        if size == "1792x1024": return "1309051413401436200"
-        elif size == "1024x1024": return "1280547383330996265"
-        elif size == "1024x1792": return "1309060402579243039"
-    if model == "dalle3":
-        if size == "1024x1024": return "1254085308614709318"
-        if size == "1792x1024": return "1309091286912860190"
-        if size == "1024x1792": return "1309093699631714364"
+    if model == "flux-dev":
+        if size == "1024x1024": return "1280547383330996265"
+        if size == "1024x576": return "1317112160178012211"
+        if size == "1024x768": return "1317111418746572871"
+        if size == "512x512": return "1309060402579243039"
+        if size == "576x1024": return "1317054614205632582"
+        if size == "768x1024": return "1309051413401436200"
+
+    if model == "flux-schnell":
+        if size == "1024x1024": return "1280547383330996265"
+        if size == "1024x576": return "1317045818636898335"
+        if size == "1024x768": return "1317042650573963316"
+        if size == "512x512": return "1309091286912860190"
+        if size == "576x1024": return "1317026958391119903"
+        if size == "768x1024": return "1309093699631714364"
+
     if model == "sdxl-turbo":
-        if size == "1024x1024": return  "1265594684084981832"
-        if size == "1792x1024": return "1309096880470233139"
-        if size == "1024x1792": return "1309098603196846161"
+        if size == "1024x1024": return "1265594684084981832"
+        if size == "1024x576": return "1317120446285742171"
+        if size == "1024x768": return "1317119334933594143"
+        if size == "512x512": return "1309096880470233139"
+        if size == "576x1024": return "1317118112512086127"
+        if size == "768x1024": return "1309098603196846161"
+
     else: return "error"
