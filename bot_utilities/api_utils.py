@@ -207,7 +207,7 @@ async def get_engine_id(model, size):
         if size == "768x1024": return "1309051413401436200"
 
     if model == "flux-schnell":
-        if size == "1024x1024": return "1280547383330996265"
+        if size == "1024x1024": return "1254085308614709318"
         if size == "1024x576": return "1317045818636898335"
         if size == "1024x768": return "1317042650573963316"
         if size == "512x512": return "1309091286912860190"
