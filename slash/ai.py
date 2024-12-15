@@ -6,7 +6,7 @@ from bot_utilities.ai_utils import vision
 from bot_utilities.owner_utils import check_blist
 from bot_utilities.api_utils import check_user, insert_token, delete_token, get_api_stat
 
-def ai_slash(bot, mongodb, is_generating):
+def ai_slash(bot):
 
     """
     @bot.tree.command(name="activate", description="Activate AI responses in a channel.")
@@ -52,7 +52,7 @@ def ai_slash(bot, mongodb, is_generating):
     @commands.guild_only()
     @app_commands.describe(prompt="The question you want to ask LuminaryAI")
     async def ask(interaction: discord.Interaction, prompt: str):
-        if await check_blist(interaction, mongodb): return
+        if await check_blist(interaction, bot.db): return
         await interaction.followup.send(embed=discord.Embed(description="**❌ Please @ me to ask.**"))
 
         
@@ -92,7 +92,7 @@ def ai_slash(bot, mongodb, is_generating):
     @app_commands.describe(message="Enter your message.")
     @app_commands.describe(image_link="Enter the image link.")
     async def vision_command(interaction: discord.Interaction, message: str, image_link: str):
-        if await check_blist(interaction, mongodb): return
+        if await check_blist(interaction, bot.db): return
         await interaction.response.defer(ephemeral=False)
         response = await vision(message, image_link)
 
@@ -127,21 +127,21 @@ def ai_slash(bot, mongodb, is_generating):
         app_commands.Choice(name="768x1024" ,value="768x1024")
     ])
     async def imagine_pla(interaction: discord.Interaction, prompt: str, model: app_commands.Choice[str], size: app_commands.Choice[str]):
-        if await check_blist(interaction, mongodb): return
+        if await check_blist(interaction, bot.db): return
         await interaction.response.defer(ephemeral=False)
 
         if model.value == "poli" and not size.value == "1024x1024":
             await interaction.followup.send(f"> **Size `{size.value}` is not available for polinations.ai**")
             return
 
-        if is_generating.get(interaction.user.id):
+        if bot.is_generating.get(interaction.user.id):
             await interaction.followup.send("> **You're already generating an image!**")
             return
         if prompt is None:
             await interaction.followup.send("> **Please enter your prompt.**")
             return
 
-        is_generating[interaction.user.id] = True
+        bot.is_generating[interaction.user.id] = True
         req = await interaction.followup.send("> **Please wait while I process your request.**")
 
         link = await image_generate(model.value, prompt, size.value)
@@ -155,7 +155,7 @@ def ai_slash(bot, mongodb, is_generating):
             embed.set_footer(icon_url=bot.user.avatar.url, text="Thanks for using LuminaryAI!")
             embed.set_image(url=link)
             await req.edit(content="", embed=embed)
-            is_generating[interaction.user.id] = False
+            bot.is_generating[interaction.user.id] = False
         except Exception as e:
             req.edit(content="> **❌ Ouch! something went wrong.**")
 
@@ -164,7 +164,7 @@ def ai_slash(bot, mongodb, is_generating):
     @commands.guild_only()
     @app_commands.describe(prompt="Enter the prompt for the image to generate.")
     async def poli_gen(interaction: discord.Interaction, prompt: str):
-        if await check_blist(interaction, mongodb): return
+        if await check_blist(interaction, bot.db): return
         await interaction.response.defer(ephemeral=False)
         delete_msg = await interaction.followup.send("> **⌚Please wait while I process your request.**")
         async with aiohttp.ClientSession() as session:
@@ -184,7 +184,7 @@ def ai_slash(bot, mongodb, is_generating):
     @commands.guild_only()
     @app_commands.describe(prompt="Enter prompt for the web to search!")
     async def search(interaction: discord.Interaction, prompt: str):
-        if await check_blist(interaction, mongodb): return
+        if await check_blist(interaction, bot.db): return
         await interaction.response.defer(ephemeral=False)
         image_urls = search_image(prompt)
         await create_and_send_embed(prompt, bot, interaction, image_urls)
@@ -193,7 +193,7 @@ def ai_slash(bot, mongodb, is_generating):
     @bot.tree.command(name="generate-api-key", description="Generate an API key for XET")
     @commands.guild_only()
     async def create_api(interaction: discord.Interaction):
-        if await check_blist(interaction, mongodb): return
+        if await check_blist(interaction, bot.db): return
         await interaction.response.defer(ephemeral=True)
         
         if interaction.guild.id != 1144903052717985806:
@@ -209,13 +209,13 @@ def ai_slash(bot, mongodb, is_generating):
             await channel.send(f"{interaction.user.mention} | {interaction.user.id} Failed to generate an API key in {interaction.guild} as the user is not verified")
             return
         
-        check = await check_user(mongodb, interaction.user.id)
+        check = await check_user(bot.db, interaction.user.id)
         
         if check:
             await interaction.followup.send("> ❌ **You already have an API token! You can generate only one API token.**")
             return
         
-        token = await insert_token(mongodb, interaction.user.id)
+        token = await insert_token(bot.db, interaction.user.id)
         await interaction.followup.send(f"> ✅ **API token is generated successfully. Do not share this key with anyone, even if they are from LuminaryAI!**\n* **Join our support server for help on how to use the API Key.**\n* **API token:**\n```bash\n{token}```\n")
         channel = interaction.guild.get_channel(1279262113503645706)
         await channel.send(f"{interaction.user.mention} Generated an API key in <#{interaction.channel.id}>.")
@@ -225,9 +225,9 @@ def ai_slash(bot, mongodb, is_generating):
     @bot.tree.command(name="delete-api-key", description="Delete Your API key for XET")
     @commands.guild_only()
     async def delete_api(interaction: discord.Interaction):
-        if await check_blist(interaction, mongodb): return
+        if await check_blist(interaction, bot.db): return
         await interaction.response.defer(ephemeral=False)
-        check = await check_user(mongodb, interaction.user.id)
+        check = await check_user(bot.db, interaction.user.id)
 
         if interaction.guild.id != 1144903052717985806:
             await interaction.followup.send("> :x: **You're not allowed to delete API key in this server. Join XET to generate an API key:  https://discord.com/invite/hmMBe8YyJ4**")
@@ -242,7 +242,7 @@ def ai_slash(bot, mongodb, is_generating):
             await channel.send(f"{interaction.user.mention} | {interaction.user.id} Failed to delete API key in {interaction.guild} as the user is not verified.")
             return
         if check:
-            deleted = await delete_token(mongodb, interaction.user.id)
+            deleted = await delete_token(bot.db, interaction.user.id)
             if deleted:
                 await interaction.followup.send("> ✅ **API token is deleted successfully**")
                 channel = interaction.guild.get_channel(1279262113503645706)
@@ -255,9 +255,9 @@ def ai_slash(bot, mongodb, is_generating):
     @bot.tree.command(name="api-stats", description="View our API stats")
     @commands.guild_only()
     async def delete_api(interaction: discord.Interaction):
-        if await check_blist(interaction, mongodb): return
+        if await check_blist(interaction, bot.db): return
         await interaction.response.defer(ephemeral=False)
-        stats = await get_api_stat(mongodb)
+        stats = await get_api_stat(bot.db)
 
         embed = discord.Embed(
             title="XET API Stats",
