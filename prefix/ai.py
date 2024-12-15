@@ -4,7 +4,7 @@ from discord.ext import commands
 from bot_utilities.ai_utils import *
 from bot_utilities.owner_utils import *
 
-def ai(bot, is_generating):
+def ai(bot):
 
     """
     @bot.command(name='activate')
@@ -77,7 +77,7 @@ def ai(bot, is_generating):
 
     @bot.command(name="imagine")
     async def imagine(ctx, *, prompt: str = None):
-        if is_generating.get(ctx.author.id):
+        if bot.is_generating.get(ctx.author.id):
             await ctx.send("> **You're already generating an image!**")
             return
 
@@ -85,7 +85,7 @@ def ai(bot, is_generating):
             await ctx.send("> **Please enter your prompt.**")
             return
 
-        is_generating[ctx.author.id] = True
+        bot.is_generating[ctx.author.id] = True
         req = await ctx.reply("> **Please wait while I process your request.**")
         link = await image_generate("flux", prompt, "1024x1024")
 
@@ -98,7 +98,7 @@ def ai(bot, is_generating):
             embed.set_footer(icon_url=bot.user.avatar.url, text="Thanks for using LuminaryAI!")
             embed.set_image(url=link)
             await req.edit(content="", embed=embed)
-            is_generating[ctx.author.id] = False
+            bot.is_generating[ctx.author.id] = False
         except Exception as e:
             req.edit(content="> **❌ Ouch! something went wrong.**")
 
