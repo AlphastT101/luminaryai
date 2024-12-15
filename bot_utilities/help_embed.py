@@ -1,5 +1,5 @@
 import discord
-from discord.ui import Select, View
+from discord.ui import Select
 
 help_select = Select(placeholder="Make a selection", options=[
     discord.SelectOption(label="Information", emoji="🤖", description="Information commands"),
@@ -11,31 +11,30 @@ help_select = Select(placeholder="Make a selection", options=[
     discord.SelectOption(label="Music", emoji="🎧", description="Music commands"),
 ])
 
-
 help_embbed = discord.Embed(
     title="LuminaryAI - help",
     description="[support server](<https://discord.com/invite/hmMBe8YyJ4>)\n[Invite bot](<https://discord.com/oauth2/authorize?client_id=1110111253256482826&permissions=8&scope=bot>)\n\nLuminaryAI is like a smart friend on Discord, using a powerful AI engine called 'Luminary' made by AlphasT101. It's here to help everyone in the Discord group with anything you need.",
-    color=0x99ccff  # Convert hex color to integer
+    color=0x99ccff
 )
 
-# Function to get a chunk of commands
 def get_chunk(embed, commands_list, start, count=5):
+
     embed.clear_fields()
     for name, value in commands_list[start:start + count]:
         embed.add_field(name=name, value=value, inline=False)
+
     current_page = (start // count) + 1
     total_pages = (len(commands_list) + count - 1) // count
     embed.set_footer(text=f"Page {current_page} of {total_pages} | Type ai.info <command> for more command information")
     return embed
 
-
-
 information_commannds = [
     ("`/about`", "❯ About the bot"),
-    ("`/help`", "❯ Command list"),
+    ("`/help`", "❯ This!"),
     ("`/uptime`", "❯ Bot uptime"),
     ("`/support`", "❯ Support server link"),
     ("`/owner`", "❯ Shows owner of the bot"),
+    ("`/ping`", "❯ See bot latency"),
     ("`/userinfo {mention or id}`", "❯ Shows info of a user.")
 ]
 
