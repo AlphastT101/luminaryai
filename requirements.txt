@@ -13,3 +13,4 @@ fastapi
 uvicorn
 websockets
 PyNaCl
+audioop-lts
