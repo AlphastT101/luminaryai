@@ -242,12 +242,10 @@ class Music(commands.Cog):
         if ctx.voice_client is None: await ctx.send(embed=not_in_voice)
         if ctx.author.voice is not None and ctx.author.voice.channel == ctx.voice_client.channel:
             try:
-
                 volume_percentage = int(volume_str)
                 volume = volume_percentage / 100.0
                 ctx.voice_client.source.volume = volume
                 await ctx.send(embed=discord.Embed(description=f"**Volume has been successfully set to {volume_percentage}%**", color=0x99ccff))
-
             except ValueError:
                 await ctx.send(embed=discord.Embed(description="**Please provide a valid integer to set the volume.**\n\nExample:\n```ai.volume 70```", color=0x99ccff))
         else:
