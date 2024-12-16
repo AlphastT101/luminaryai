@@ -90,7 +90,7 @@ bot.openai_client = AsyncOpenAI(
     api_key=openr_api_token,
 )
 bot.xet_client = AsyncOpenAI(
-    base_url=f"http://localhost:{config["flask"]["port"]}/v1",
+    base_url = f'http://localhost:{config["flask"]["port"]}/v1',
     api_key="aner123!",
 )
 
