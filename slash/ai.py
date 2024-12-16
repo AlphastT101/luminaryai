@@ -155,7 +155,7 @@ class AiSlash(commands.Cog):
 
     @app_commands.command(name="api-stats", description="View our API stats")
     @app_commands.guild_only()
-    async def delete_api(self, interaction: discord.Interaction):
+    async def api_stats(self, interaction: discord.Interaction):
         if await self.bot.func_checkblist(interaction, self.bot.db): return
         await interaction.response.defer(ephemeral=False)
         stats = await get_api_stat(self.bot.db)
