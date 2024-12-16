@@ -56,11 +56,13 @@ no_result_embed.set_thumbnail(url="attachment://thumbnail.png")
 playback_stopped_left.set_thumbnail(url="attachment://thumbnail.png")
 need_same_channel_to_stop.set_thumbnail(url="attachment://thumbnail.png")
 
-def music(bot):
+class Music(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
 
-    @bot.command(name='join')
+    @commands.command(name='join')
     @commands.cooldown(1, 10, commands.BucketType.user)
-    async def join(ctx):
+    async def join(self, ctx):
 
         if ctx.author.voice is None:
             await ctx.send(embed=em(description="> ❌ You're not in a voice channel.", color=color.red()))
@@ -70,7 +72,7 @@ def music(bot):
             await ctx.send(embed=em(description="> ❌ I am already connected to a voice channel.", color=color.red()))
             return
 
-        bot_member = ctx.guild.get_member(bot.user.id)
+        bot_member = ctx.guild.get_member(self.bot.user.id)
         channel = ctx.author.voice.channel
 
         # Check if the bot has necessary permissions in the voice channel
@@ -98,9 +100,9 @@ def music(bot):
 
 
 
-    @bot.command(name='play')
+    @commands.command(name='play')
     @commands.cooldown(1, 10, commands.BucketType.user)
-    async def play(ctx, *, song_name):
+    async def play(self, ctx, *, song_name):
         if ctx.author.voice is None:
             await ctx.send(embed=em(description="> **❌ You're not in a voice channel.**", color=color.red()))
             return
@@ -127,7 +129,7 @@ def music(bot):
         await wait.edit(embed=embed)
         def check(m): return m.author == ctx.author and m.channel == ctx.channel and (m.content.isdigit() or m.content.lower() == 'c')
 
-        try: msg = await bot.wait_for('message', check=check, timeout=30.0)
+        try: msg = await self.bot.wait_for('message', check=check, timeout=30.0)
         except asyncio.TimeoutError:
             await ctx.send(embed=em(description="> **❌ You took too long to respond.**", color=color.red()))
             return
@@ -172,7 +174,7 @@ def music(bot):
 
                 await message.edit(embed=em(description=f"> **🎧 Track Queued:** `{name}` by `{channel}`.", color=color.purple()))
                 if not ctx.voice_client.is_playing():
-                    await play_next_song(ctx.voice_client, ctx, bot)
+                    await play_next_song(ctx.voice_client, ctx, self.bot)
 
             else:
                 await ctx.send(embed=em(description="> **❌ Invalid selection.**", color=color.red()))
@@ -181,54 +183,39 @@ def music(bot):
 
 
 
-    @bot.command(name='leave')
+    @commands.command(name='leave')
     @commands.cooldown(1, 10, commands.BucketType.user)
-    async def leave(ctx):
-        # Check if the bot is in a voice channel
+    async def leave(self, ctx):
         if ctx.voice_client is not None:
-            # Check if the user is in the same voice channel as the bot
-            if ctx.author.voice is not None and ctx.author.voice.channel == ctx.voice_client.channel:
-                # Stop playing and disconnect from the voice channel
+            if ctx.author.voice.channel == ctx.voice_client.channel:
                 ctx.voice_client.stop()
                 await ctx.voice_client.disconnect()
-
                 await ctx.send(embed=playback_stopped_left)
             else:
-
                 await ctx.send(embed=need_same_channel_to_stop)
         else:
-
             await ctx.send(embed=not_in_voice)
 
 
-    @bot.command(name='stop')
+    @commands.command(name='stop')
     @commands.cooldown(1, 10, commands.BucketType.user)
-    async def stop(ctx):
-        # Check if the bot is in a voice channel
+    async def stop(self, ctx):
         if ctx.voice_client is not None:
-            # Check if the user is in the same voice channel as the bot
-            if ctx.author.voice is not None and ctx.author.voice.channel == ctx.voice_client.channel:
-                # Stop playing and disconnect from the voice channel
+            if ctx.author.voice.channel == ctx.voice_client.channel:
                 ctx.voice_client.stop()
-
                 await ctx.send(embed=playback_stopped)
             else:
-
                 await ctx.send(embed=need_same_channel_to_stop)
         else:
             await ctx.send(embed=not_in_voice)
 
 
-    @bot.command(name='pause')
+    @commands.command(name='pause')
     @commands.cooldown(1, 10, commands.BucketType.user)
-    async def stop(ctx):
-        # Check if the bot is in a voice channel
+    async def stop(self, ctx):
         if ctx.voice_client is not None:
-            # Check if the user is in the same voice channel as the bot
-            if ctx.author.voice is not None and ctx.author.voice.channel == ctx.voice_client.channel:
-                # Stop playing and disconnect from the voice channel
+            if ctx.author.voice.channel == ctx.voice_client.channel:
                 ctx.voice_client.pause()
-
                 await ctx.send(embed=playback_paused)
             else:
                 await ctx.send(embed=need_same_channel_to_stop)
@@ -236,14 +223,12 @@ def music(bot):
             await ctx.send(embed=not_in_voice)
 
 
-    @bot.command(name='resume')
+    @commands.command(name='resume')
     @commands.cooldown(1, 10, commands.BucketType.user)
-    async def stop(ctx):
+    async def stop(self, ctx):
         if ctx.voice_client is not None:
-            if ctx.author.voice is not None and ctx.author.voice.channel == ctx.voice_client.channel:
-
+            if ctx.author.voice.channel == ctx.voice_client.channel:
                 ctx.voice_client.resume()
-
                 await ctx.send(embed=playback_resumed)
             else:
                 await ctx.send(embed=need_same_channel_to_stop)
@@ -251,22 +236,22 @@ def music(bot):
             await ctx.send(embed=not_in_voice)
 
 
-    @bot.command(name='volume')
+    @commands.command(name='volume')
     @commands.cooldown(1, 10, commands.BucketType.user)
-    async def volume(ctx, volume_str: str):
+    async def volume(self, ctx, volume_str: str):
+        if ctx.voice_client is None: await ctx.send(embed=not_in_voice)
+        if ctx.author.voice is not None and ctx.author.voice.channel == ctx.voice_client.channel:
+            try:
 
-        if ctx.voice_client is not None:
-            if ctx.author.voice is not None and ctx.author.voice.channel == ctx.voice_client.channel:
-                try:
+                volume_percentage = int(volume_str)
+                volume = volume_percentage / 100.0
+                ctx.voice_client.source.volume = volume
+                await ctx.send(embed=discord.Embed(description=f"**Volume has been successfully set to {volume_percentage}%**", color=0x99ccff))
 
-                    volume_percentage = int(volume_str)
-                    volume = volume_percentage / 100.0
-                    ctx.voice_client.source.volume = volume
-                    await ctx.send(embed=discord.Embed(description=f"**Volume has been successfully set to {volume_percentage}%**", color=0x99ccff))
-
-                except ValueError:
-                    await ctx.send(embed=discord.Embed(description="**Please provide a valid integer to set the volume.**\n\nExample:\n```ai.volume 70```", color=0x99ccff))
-            else:
-                await ctx.send(embed=need_same_channel_to_stop)
+            except ValueError:
+                await ctx.send(embed=discord.Embed(description="**Please provide a valid integer to set the volume.**\n\nExample:\n```ai.volume 70```", color=0x99ccff))
         else:
-            await ctx.send(embed=not_in_voice)
+            await ctx.send(embed=need_same_channel_to_stop)
+
+async def setup(bot):
+    await bot.add_cog(Music(bot))
