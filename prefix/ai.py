@@ -1,83 +1,13 @@
 import discord
-import aiohttp
 from discord.ext import commands
-from bot_utilities.ai_utils import *
-from bot_utilities.owner_utils import *
 
-def ai(bot):
+class Ai(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
 
-    """
-    @bot.command(name='activate')
-    @commands.cooldown(1, 10, commands.BucketType.user)
-    async def start(ctx):
-        channel_id = ctx.channel.id
-
-        if ctx.author.guild_permissions.administrator or ctx.author.id == 1026388699203772477:
-            insert_result = await insertdb("ai-channels",channel_id, mongodb)
-            if insert_result == "success":
-                await ctx.send(embed=Embed(description="Success, now I'll respond to **all messages** in this channel.", color=discord.Colour.green()))
-            elif insert_result == "already set":
-                await ctx.send(embed=Embed(description=":x: **Error**, this channel is already activated.", colour=discord.Colour.red()))
-        else:
-            await ctx.send(embed=Embed(description="**You don't have permission to use this comamnd.**", color=discord.Color.red()),)
-
-    @bot.command(name='deactivate')
-    @commands.cooldown(1, 10, commands.BucketType.user)
-    async def stop(ctx):
-
-        channel_id = ctx.channel.id
-
-        if ctx.author.guild_permissions.administrator or ctx.author.id == 1026388699203772477:
-            delete_result = await deletedb("ai-channels", channel_id, mongodb)
-
-            if delete_result == "success":
-                await ctx.send(embed=Embed(description="**Successfully disabled this channel.**", color=discord.Color.green()),)
-            elif delete_result == "not found":
-                await ctx.send(embed=Embed(description=":x: **Error**, this channel isn't activated.", colour=discord.Colour.red()))
-        else:
-            await ctx.send(embed=Embed(description="**You don't have permission to use this comamnd.**", color=discord.Color.red()),)
-    """
-
-    @bot.command(name='ask')
-    @commands.cooldown(1, 80, commands.BucketType.user)
-    async def answer_command(ctx, *, args: str = None):
-        await ctx.send(embed=discord.Embed(description="**Please @ me to ask.**"))
-        """
-        if args is None:
-            await embed(ctx, "LuminaryAI - Error", "Please enter your question.", color=0x99ccff)
-            return
-        # Get or create member-specific history
-        member_id = str(ctx.author.id)  # Using member ID as the key
-        history = member_histories_msg.get(member_id, [])
-
-        answer_embed = discord.Embed(
-            title="LuminaryAI - Loading",
-            description="Please wait while I process your request.",
-            color=0x99ccff,
-            timestamp=datetime.datetime.now(datetime.timezone.utc)
-        )
-        answer_embed.set_footer(text="This may take a few moments", icon_url=bot.user.avatar.url)
-        answer = await ctx.reply(embed=answer_embed)
-
-        user_input = args
-        generated_message, updated_history = await generate_response_cmd(ctx, user_input, history)
-        member_histories_msg[member_id] = updated_history
-
-
-        answer_generated = discord.Embed(
-            title="LuminaryAI - Response",
-            description=generated_message,
-            color=0x99ccff,
-            timestamp=datetime.datetime.now(datetime.timezone.utc)
-        )
-        answer_generated.set_footer(text="Thanks for using LuminaryAI!", icon_url=bot.user.avatar.url)
-        await answer.edit(embed=answer_generated)
-        """
-
-
-    @bot.command(name="imagine")
-    async def imagine(ctx, *, prompt: str = None):
-        if bot.is_generating.get(ctx.author.id):
+    @commands.command(name="imagine")
+    async def imagine(self, ctx, *, prompt: str = None):
+        if self.bot.is_generating.get(ctx.author.id):
             await ctx.send("> **You're already generating an image!**")
             return
 
@@ -85,50 +15,50 @@ def ai(bot):
             await ctx.send("> **Please enter your prompt.**")
             return
 
-        bot.is_generating[ctx.author.id] = True
+        self.bot.is_generating[ctx.author.id] = True
         req = await ctx.reply("> **Please wait while I process your request.**")
-        link = await image_generate("flux", prompt, "1024x1024")
+        link = await self.bot.func_imgen("flux-dev", prompt, "1024x1024", self.bot)
 
         try:
             embed = discord.Embed(
                 title="LuminaryAI - Image Generation",
-                description=f"Requested by: `{ctx.author}`\nPrompt: `{prompt}`\nModel: `Flux`\n\nModel is selected `Flux` by default in prefix commands, if you want to choose a specific model, please use the `/imagine` command!",
+                description=f"Requested by: `{ctx.author}`\nPrompt: `{prompt}`\nModel: `Flux-Dev`\n\nModel is selected `Flux-Dev` by default in prefix commands, if you want to choose a specific model, please use the `/imagine` command!",
                 color=discord.Color.blue()
             )
-            embed.set_footer(icon_url=bot.user.avatar.url, text="Thanks for using LuminaryAI!")
+            embed.set_footer(icon_url=self.bot.user.avatar.url, text="Thanks for using LuminaryAI!")
             embed.set_image(url=link)
             await req.edit(content="", embed=embed)
-            bot.is_generating[ctx.author.id] = False
+            self.bot.is_generating[ctx.author.id] = False
         except Exception as e:
+            self.bot.is_generating[ctx.author.id] = False
             req.edit(content="> **❌ Ouch! something went wrong.**")
 
-
-    @bot.command(name='poli')
+    @commands.command(name='poli')
     @commands.cooldown(1, 10, commands.BucketType.user)
-    async def imagine_m2_command(ctx, *, prompt: str = None):
+    async def imagine_m2_command(self, ctx, *, prompt: str = None):
         if prompt is None:
             await ctx.reply("**Please enter your prompt!**", delete_after=3)
             return
 
         delete_msg = await ctx.send("> **⌚Please wait while I process your request.**")
-        async with aiohttp.ClientSession() as session:
+        async with self.bot.modules_aiohttp.ClientSession() as session:
             send_embed = discord.Embed(
                 title="LuminaryAI - Image generation",
                 description=f"Requested by: `{ctx.author}`\nPrompt: `{prompt}`.",
                 color=0x99ccff,
                 timestamp=ctx.message.created_at
             )
-            send_embed.set_footer(icon_url=bot.user.avatar.url, text="Thanks for using LuminaryAI!")
-            image = await poly_image_gen(session, prompt)
+            send_embed.set_footer(icon_url=self.bot.user.avatar.url, text="Thanks for using LuminaryAI!")
+            image = await self.bot.poly_imgen(session, prompt, self.bot)
             file=discord.File(image, 'generated_image.png')
             send_embed.set_image(url=f'attachment://generated_image.png')
             await delete_msg.delete()
             await ctx.reply(content="", embed=send_embed, file=file)
+        await session.close()
 
-
-    @bot.command(name="search")
+    @commands.command(name="search")
     @commands.cooldown(1, 1, commands.BucketType.user)
-    async def search(ctx, *, query: str = None):
+    async def search(self, ctx, *, query: str = None):
         if query is None:
             await embed(ctx, "LuminaryAI - Web search", "Please enter your prompt", color=0x99ccff)
             return
@@ -139,17 +69,19 @@ def ai(bot):
             timestamp=ctx.message.created_at,
             color=0x99ccff,
         )
-        wait.set_footer(text=f"Thanks for using {bot.user}!", icon_url=bot.user.avatar.url)
+        wait.set_footer(text=f"Thanks for using {self.bot.user}.", icon_url=self.bot.user.avatar.url)
         file_web_search = discord.File('images/web_search.png', filename='web_search.png')
         wait.set_thumbnail(url='attachment://web_search.png')
         wait_message = await ctx.send(embed=wait, file=file_web_search)
 
-        # Get image URLs from the search query
-        image_urls = search_image(query)
+        image_urls = self.bot.search_img(query, self.bot)
         if not image_urls:
             await wait_message.delete()
             await ctx.send("> ❌ **Aww, no results found!**")
             return
 
-        await create_and_send_embed(query, bot, ctx, image_urls)
+        await self.bot.cse(query, self.bot, ctx, image_urls)
         await wait_message.delete()
+
+async def setup(bot):
+    await bot.add_cog(Ai(bot))
