@@ -158,7 +158,7 @@ async def image(request: Request, background_tasks: BackgroundTasks):
             engine_id = await get_engine_id(engine, size)
             if engine_id == "error": return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"detail": "The requested size is not available for this model."})
             seconds = 0
-            await client.post(f'https://discord.com/api/v9/channels/{channel_id}/messages', json={"content": f"<@{engine_id}> Generate an image of {prompt}"}, headers=sheader)
+            await client.post(f'https://discord.com/api/v9/channels/{channel_id}/messages', json={"content": f"<@{engine_id}> !imagine {prompt}"}, headers=sheader)
 
             while True:
                 try:
