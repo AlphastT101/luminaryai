@@ -45,7 +45,7 @@ class AiSlash(commands.Cog):
         self.bot.is_generating[interaction.user.id] = True
         req = await interaction.followup.send("> **Please wait while I process your request.**")
 
-        link = await self.bot.func_imagen(model.value, prompt, size.value, self.bot)
+        link = await self.bot.func_imgen(model.value, prompt, size.value, self.bot)
 
         try:
             embed = discord.Embed(
