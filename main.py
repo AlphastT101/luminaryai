@@ -36,7 +36,7 @@ from bot_utilities.ai_utils import image_generate, poly_image_gen, search_image,
 
 with open("config.yml", "r") as config_file: config = yaml.safe_load(config_file)
 def run_api():
-    port = int(os.environ.get("PORT", config["flask"]["port"]))
+    port = int(os.environ.get("PORT", config["api"]["port"]))
     uvicorn.run("api:app", host='0.0.0.0', port=port, log_level="warning")
 
 async def run_flask_app_async(asyncio):
@@ -90,7 +90,7 @@ bot.openai_client = AsyncOpenAI(
     api_key=openr_api_token,
 )
 bot.xet_client = AsyncOpenAI(
-    base_url = f'http://localhost:{config["flask"]["port"]}/v1',
+    base_url = f'http://localhost:{config["api"]["port"]}/v1',
     api_key="aner123!",
 )
 
