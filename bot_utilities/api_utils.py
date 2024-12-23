@@ -1,8 +1,12 @@
 import httpx
 import random
 import string
+import smtplib
 import requests
 from openai import AsyncOpenAI
+from email.mime.text import MIMEText
+from datetime import datetime, timezone
+from email.mime.multipart import MIMEMultipart
 
 system_prompt = {
     "gpt-4": "I am GPT-4. I am not GPT-4-Turbo rather I am a normal GPT-4 powered by OpenAI.",
@@ -57,9 +61,13 @@ async def generate_api_key(prefix='XET'):
 async def check_token(mongodb, token):
     db = mongodb["lumi-api"]
     collection = db["apitokens"]
+    collection_accounts = db['accounts_registered']
 
     result = collection.find_one({"apitoken": token})
-    return result
+    result_accounts = collection_accounts.find_one({"api_token": token})
+    if result and not result_accounts: return True, True, None # discord user
+    elif not result and result_accounts: return True, False, result_accounts['email'] # not a discord user
+    else: return None, None, None
 
 async def check_user(mongodb, userid):
     db = mongodb["lumi-api"]
@@ -173,7 +181,7 @@ async def get_api_stat(mongodb):
     else:
         return "No API stats found."
 
-async def log_message(user_id, engine, img_url, prompt, headers):
+async def log_image(user_id, engine, img_url, prompt, headers):
     async with httpx.AsyncClient() as client:
         try:
 
@@ -181,7 +189,8 @@ async def log_message(user_id, engine, img_url, prompt, headers):
                 "title": "Image Generated",
                 "description": f"**User**: <@{user_id}>\n**Model:** {engine}\n\n **Prompt:**\n```{prompt}```",
                 "color": 0x3498db,  # Blue color
-                "image": {"url": img_url}
+                "image": {"url": img_url},
+                "timestamp": datetime.now(timezone.utc).isoformat()
             }
 
             data = {"embeds": [embed]} # Embed must be sent inside a list
@@ -190,12 +199,207 @@ async def log_message(user_id, engine, img_url, prompt, headers):
                 json=data,
                 headers=headers
             )
-            req.raise_for_status()  # Raises an error for bad responses (4xx and 5xx)
+            req.raise_for_status()
         except httpx.HTTPStatusError as exc:
             print(f"WARNING: FAILED TO LOG IMAGE, ERROR: {exc.response.text}")
         except Exception as e:
             print(f"WARNING: An unexpected error occurred: {str(e)}")
 
+async def log_message(title, description, color, headers):
+    async with httpx.AsyncClient() as client:
+        try:
+
+            embed = {
+                "title": title,
+                "description": description,
+                "color": color,  # Blue color
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            }
+
+            data = {"embeds": [embed]}
+            req = await client.post(
+                f'https://discord.com/api/v9/channels/1318968624958013491/messages',
+                json=data,
+                headers=headers
+            )
+            req.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            print(f"WARNING: FAILED TO LOG IMAGE, ERROR: {exc.response.text}")
+        except Exception as e:
+            print(f"WARNING: An unexpected error occurred: {str(e)}")
+
+
+async def create_access_token(SECRET_KEY, ALGORITHM, jwt, data, expires_delta):
+    to_encode = data.copy()
+
+    to_encode.update({"exp": expires_delta})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+async def insert_access_token(email, token, expiration, mongodb):
+    db = mongodb['lumi-api']
+    collection = db['jwt_tokens']
+    collection.update_one(
+        {"email": email},  # Filter by email
+        {"$set": {
+            "jwt_access_token": token,
+            "expiration": expiration
+        }},
+        upsert=True  # Insert a new document if no match is found
+    )
+
+async def verify_access_token(token, mongodb):
+    db = mongodb['lumi-api']
+    collection = db['jwt_tokens']
+    doc = collection.find_one({"jwt_access_token": token})
+    
+    if doc: return True
+    else: return False
+
+async def verify_login_details(email, password, mongodb):
+    db = mongodb['lumi-api']
+    collection = db['accounts_registered']
+    doc = collection.find_one({"email": email})
+
+    if doc is None: return None
+    if password != doc['password']: return None
+    if doc['verified'] is False: return None
+    else: return True
+
+async def register_user(email, password, verification_code, exp,  mongodb):
+    db = mongodb['lumi-api']
+    collection = db['accounts_registered']
+
+    # Check if the user exists
+    doc = collection.find_one({"email": email})
+    if doc:
+        if doc.get('verified'):
+            return "already registered"
+        # Update the existing document if not verified
+        collection.update_one(
+            {"email": email},
+            {"$set": {
+                "password": password,
+                "verification_code": verification_code,
+                "expiresAt": exp,
+                "created_on": datetime.now(timezone.utc)
+            }}
+        )
+        return "verification code updated"
+
+    # Insert a new document if user doesn't exist
+    collection.insert_one({
+        "email": email,
+        "password": password,
+        "verified": False,
+        "verification_code": verification_code,
+        "expiresAt": exp,
+        "created_on": datetime.now(timezone.utc)
+    })
+    return "registered as unverified"
+
+async def check_verification_code(email, code, mongodb):
+    db = mongodb['lumi-api']
+    collection = db['accounts_registered']
+    doc = collection.find_one({"email": email})
+
+    if str(doc['verification_code']) == code:
+        password = doc['password']
+        created_on = doc['created_on']
+        collection.delete_one({"email": email})
+        collection.insert_one({
+            "email": email,
+            "password": password,
+            "verified": True,
+            "created_on": created_on
+        })
+        return "verified"
+    else: return "unverified"
+
+
+async def send_verify_email(to_email, email_from, password, code):
+    subject = "XET - Email verification"
+    body = f"""
+    <html>
+    <body>
+        <h2 style="color: #4CAF50;">Email Verification</h2>
+        <p>Hello,</p>
+        <p>Thank you for registering with us. The code below is valid only for 5 minutes. To complete your registration, please verify your email address by entering the following 6-digit code:</p>
+        <h3 style="color: #FF5733; font-size: 30px;">{code}</h3>
+        <p>If you did not request this verification, please ignore this email.</p>
+        <p>Best regards,<br>XET</p>
+    </body>
+    </html>
+    """
+    # Create the email
+    msg = MIMEMultipart()
+    msg['From'] = email_from
+    msg['To'] = to_email
+    msg['Subject'] = subject
+    msg.attach(MIMEText(body, 'html'))
+
+    with smtplib.SMTP('smtp.zoho.com', 587) as server:
+        server.starttls()
+        server.login(email_from, password)
+        server.send_message(msg)
+    return code
+
+from datetime import timezone
+
+async def get_account_info(jwt_token, mongodb):
+    db = mongodb['lumi-api']
+    collection = db['jwt_tokens']
+    doc = collection.find_one({"jwt_access_token": jwt_token})
+    email = doc['email']
+
+    exp = str(doc['expiration'])
+    given_datetime = datetime.fromisoformat(exp).replace(tzinfo=timezone.utc)  # Make it aware
+    current_datetime = datetime.now(timezone.utc)  # Already aware
+    time_difference = given_datetime - current_datetime
+    hours, remainder = divmod(time_difference.total_seconds(), 3600)
+    minutes, _ = divmod(remainder, 60)
+
+    logged_out_in = f"{hours} hour(s), {minutes} minute(s)"
+    return email, logged_out_in
+
+async def insert_account_token(token, email, mongodb):
+    db = mongodb['lumi-api']
+    collection = db['accounts_registered']
+    doc = collection.find_one({"email": email})
+    password = doc['password']
+    collection.delete_one({"email": email})
+    collection.insert_one({
+        "email":  email,
+        "password": password,
+        "verified": True,
+        "api_token": token
+    })
+async def delete_account_token(email, mongodb):
+    db = mongodb['lumi-api']
+    collection = db['accounts_registered']
+    doc = collection.find_one({"email": email})
+    password = doc['password']
+    collection.delete_one({"email": email})
+    collection.insert_one({
+        "email": email,
+        "password": password,
+        "verified": True
+    })
+
+async def list_token(email, mongodb):
+    db = mongodb['lumi-api']
+    collection = db['accounts_registered']
+    doc = collection.find_one({"email": email})
+
+    try:
+        return doc['api_token']
+    except KeyError: return None
+
+async def get_api_stats(mongodb):
+    db = mongodb['lumi-api']
+    collection = db['stats']
+    doc = collection.find_one({"key": "api_stats"})
+    return doc['value']
 
 async def get_engine_id(model, size):
     if model == "flux-dev":
