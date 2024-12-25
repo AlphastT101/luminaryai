@@ -327,22 +327,16 @@ async def login(request: Request, background_tasks: BackgroundTasks):
     check = await check_verification_code(email, code, clientdb)
 
     if check == "verified":
-        background_tasks.add_task(
-            log_message,
-            "User Verified",
-            f"Email: `{email}`",
-            0x00FF00,
-            headers
-        )
-        return JSONResponse(status_code=200, content={"detail": "Account verified."})
+        background_tasks.add_task(log_message, "User Verified", f"Email: `{email}`", 0x00FF00, headers)
 
-    background_tasks.add_task(
-        log_message,
-        "User Failed To Verify",
-        f"Email: `{email}`\n**Reason:** Invalid Verification code.",
-        0xFF0000,
-        headers
-    )
+        access_token_expires = datetime.now(timezone.utc) + timedelta(minutes=120)
+        access_token = await create_access_token(jwt_secret, ALGORITHM, jwt, {"sub": email}, access_token_expires)
+        await insert_access_token(email, access_token, access_token_expires, clientdb)
+
+        background_tasks.add_task(log_message, "User Logged in", f"Email: `{email}`", 0x3498db, headers)
+        return JSONResponse(status_code=200, content={"detail": "Account verified.", "access_token": access_token, "exp": str(access_token_expires)})
+
+    background_tasks.add_task(log_message, "User Failed To Verify", f"Email: `{email}`\n**Reason:** Invalid Verification code.", 0xFF0000, headers)
     return JSONResponse(status_code=401, content={"detail": "Invalid verification code."})
 
 @app.post("/v1/account/info")
