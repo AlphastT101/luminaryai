@@ -4,7 +4,6 @@ import datetime
 from discord.ext import commands
 from discord.ui import Button, View
 from bot_utilities.help_embed import *
-from bot_utilities.about_embed import about_embed
 
 class Information(commands.Cog):
     def __init__(self, bot):
@@ -39,7 +38,7 @@ class Information(commands.Cog):
     @commands.command(name='about')
     @commands.cooldown(1, 30, commands.BucketType.user)
     async def about(self, ctx):
-        about = await about_embed(self.bot.start_time, self.bot)
+        about = await self.bot.about_embed(self.bot.start_time, self.bot)
         owner = self.bot.get_user(1026388699203772477)
         about.set_author(name="alphast101", icon_url=owner.avatar.url)
         await ctx.send(embed=about, file=discord.File("images/ai.png", filename="ai.png"))

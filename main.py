@@ -75,7 +75,7 @@ bot.modules_datetime = datetime
 bot.modules_requests = requests
 bot.modules_imagehash = imagehash
 
-bot.about_embedd = about_embed
+bot.about_embed = about_embed
 bot.start_time = time.time()
 bot.is_generating = {}
 
