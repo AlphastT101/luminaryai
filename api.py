@@ -23,8 +23,25 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI, Request, status, BackgroundTasks
 
 # Setup logging
-log = logging.getLogger('uvicorn')
-log.setLevel(logging.ERROR)
+logger = logging.getLogger("custom_logger")
+logger.setLevel(logging.INFO)
+
+# File handler to log errors to a file
+file_handler = logging.FileHandler("error.log")
+file_handler.setLevel(logging.INFO)
+
+# Formatter for logging
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+file_handler.setFormatter(formatter)
+
+# Add the handler to the logger
+logger.addHandler(file_handler)
+
+# Suppress uvicorn's error logs
+uvicorn_logger = logging.getLogger("uvicorn.error")
+uvicorn_logger.propagate = False
+
+# Suppress warnings
 warnings.filterwarnings("ignore", message="Using the in-memory storage for tracking rate limits")
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
@@ -63,15 +80,15 @@ clientdb['lumi-api']['jwt_tokens'].create_index("expiration", expireAfterSeconds
 sbot = get_t_sbot(clientdb)
 bot_token, open_r, jwt_secret, verify_email_pass= api_start(clientdb)
 
-cache_folder = os.path.join(os.getcwd(), 'cache')
-os.makedirs(cache_folder, exist_ok=True)
 api_stats = {}
 headers = {"Authorization": f"Bot {bot_token}", "Content-Type": "application/json"}
 sheader = {'Authorization': sbot}
 
 @app.exception_handler(Exception)
 async def custom_internal_server_error_handler(request: Request, exc: Exception):
+    logger.error(f"An error occurred: {exc}")
     return JSONResponse(status_code=500, content={"error": "Sorry, we've hit the ratelimit, we're working on it to fix it :( "})
+logging.getLogger("uvicorn.error").handlers = []
 
 @app.get('/')
 async def index():
@@ -388,4 +405,14 @@ async def list_tokens(request: Request, background_tasks: BackgroundTasks):
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", flask_port))
     import uvicorn
-    uvicorn.run("api:app", host='0.0.0.0', port=port, log_level="warning")
+
+    # Suppress uvicorn's default access and error logging
+    logging.getLogger("uvicorn.access").disabled = True
+    logging.getLogger("uvicorn.error").disabled = True
+
+    uvicorn.run(
+        "api:app",
+        host='0.0.0.0',
+        port=port,
+        log_level="critical",  # Suppresses most of uvicorn's logs
+    )
