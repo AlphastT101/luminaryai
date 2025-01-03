@@ -2,11 +2,9 @@ bot:
   prefix: "ai."
   text_model: "google/gemma-2-9b-it:free"
   mongodb: "mongodb://localhost:27017/"
-  webhook_images: "https://discord.com/api/webhooks/1278889064157679616/HbwjxkhwK099_aXSTGgg7vK1EFAnbmmSiPT6d01-uxvqfPgyFsCbMrx3LSAyAMB9Lg_M" # Replace with urs
 api:
-  port: 6750
+  port: 6705
   guild_id: 1253765266115133442
   guild_id_verify: 1144903052717985806
-  upload2discord: False
   logging: True
   verification_email: "verify@xet.one"
