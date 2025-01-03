@@ -1,5 +1,4 @@
 import io
-import os
 import bs4
 import cv2
 import PIL
@@ -20,7 +19,6 @@ from discord.ui import View, Button
 from discord.ext import commands, tasks
 from pymongo.mongo_client import MongoClient
 
-from slash.fun import fun_slash
 from slash.moderation import moderation_slash
 
 from events.on_messages import on_messages
@@ -36,7 +34,7 @@ from bot_utilities.ai_utils import image_generate, poly_image_gen, search_image,
 
 with open("config.yml", "r") as config_file: config = yaml.safe_load(config_file)
 def run_api():
-    port = int(os.environ.get("PORT", config["api"]["port"]))
+    port = config["api"]["port"]
     uvicorn.run("api:app", host='0.0.0.0', port=port, log_level="warning")
 
 async def run_flask_app_async(asyncio):
@@ -71,6 +69,8 @@ bot.modules_view = View
 bot.modules_random = random
 bot.modules_button = Button
 bot.modules_aiohttp = aiohttp
+bot.modules_discord = discord
+bot.modules_asyncio = asyncio
 bot.modules_datetime = datetime
 bot.modules_requests = requests
 bot.modules_imagehash = imagehash
@@ -94,7 +94,6 @@ bot.xet_client = AsyncOpenAI(
     api_key="aner123!",
 )
 
-fun_slash(bot, bot.db)
 moderation_slash(bot, bot.db)
 
 on_messages(bot, bot.db)
@@ -131,6 +130,7 @@ async def on_ready():
     await bot.load_extension("prefix.ai")
 
     await bot.load_extension("slash.ai")
+    await bot.load_extension("slash.fun")
     await bot.load_extension("slash.information")
 
     sync_slash_cmd.start()
@@ -138,12 +138,10 @@ async def on_ready():
 
     global flask_task
     flask_task = asyncio.create_task(run_flask_app_async(asyncio))
-
-    print("API Engine has been started.") 
     print(f"Booted in {time.time() - bot.start_time}s")
 
-    await asyncio.sleep(2)
-    requests.get("http://localhost:6750/create-task")
+    await asyncio.sleep(1)
+    requests.get(f'http://localhost:{config["api"]["port"]}/create-task')
 
 @bot.event
 async def on_guild_join(guild):
@@ -165,7 +163,7 @@ def handle_shutdown(signal, frame):
 
 async def shutdown_bot():
     try:
-        requests.get("http://localhost:6750/shutdown")
+        requests.get(f'http://localhost:{config["api"]["port"]}/shutdown')
         await bot.close()
     except Exception as e:
         await bot.close()
