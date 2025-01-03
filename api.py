@@ -1,4 +1,3 @@
-import io
 import os
 import jwt
 import yaml
@@ -10,7 +9,6 @@ import string
 import logging
 import asyncio
 import warnings
-from PIL import Image
 from pydantic import BaseModel
 from collections import defaultdict
 from bot_utilities.api_utils import *
@@ -31,15 +29,11 @@ file_handler = logging.FileHandler("error.log")
 file_handler.setLevel(logging.INFO)
 
 # Formatter for logging
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-file_handler.setFormatter(formatter)
-
-# Add the handler to the logger
+file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
 logger.addHandler(file_handler)
 
 # Suppress uvicorn's error logs
-uvicorn_logger = logging.getLogger("uvicorn.error")
-uvicorn_logger.propagate = False
+logging.getLogger("uvicorn.error").propagate = False
 
 # Suppress warnings
 warnings.filterwarnings("ignore", message="Using the in-memory storage for tracking rate limits")
@@ -65,16 +59,13 @@ async def sync_api_stats():
 with open("config.yml", "r") as config_file:
     config = yaml.safe_load(config_file)
 
-mongodb_uri = config["bot"]["mongodb"]
 token_rate_limits = defaultdict(list)
-flask_port = str(config["api"]["port"])
 guild_id = str(config["api"]["guild_id"])
-webhook = str(config["bot"]["webhook_images"])
 guild_id_verify = str(config["api"]["guild_id_verify"])
 verification_email = config['api']['verification_email']
 
 ALGORITHM = "HS256" # JWT
-clientdb = MongoClient(mongodb_uri)
+clientdb = MongoClient(config["bot"]["mongodb"])
 clientdb['lumi-api']['accounts_registered'].create_index("expiresAt", expireAfterSeconds=0)
 clientdb['lumi-api']['jwt_tokens'].create_index("expiration", expireAfterSeconds=0)
 sbot = get_t_sbot(clientdb)
@@ -100,6 +91,7 @@ async def create_task(request: Request):
         return JSONResponse(status_code=403, content={"code": "403"})
     
     asyncio.create_task(sync_api_stats())
+    print("API Engine has been started.") 
     return JSONResponse(status_code=200, content={"code": "200"})
 
 @app.get("/shutdown")
@@ -123,17 +115,17 @@ async def image(request: Request, background_tasks: BackgroundTasks):
         size = data['size']
     except KeyError: return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"detail": "You MUST include 'prompt', 'model', 'size' in the JSON."})
     except Exception as e:
-        print(e)
+        logger.error(f"An error occurred: {e}\n\n")
         return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content={"detail": "An internal server error occured, please try again a few moments later."})
 
     if not engine in ["sdxl-turbo", "flux-dev", "flux-schnell", "poli"]:
         return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"detail":"Unknown engine. Available engines are: 'sdxl-turbo', 'flux-dev', 'flux-schnell', 'poli'"})
-    if not size in ['1024x1024', '1024x576', '1024x768', '512x512', '576x1024', '786x1024']:
+    if not size in ['1024x1024', '1024x576', '1024x768', '512x512', '576x1024', '768x1024']:
         return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"detail":"Unknown Size. Available sizes are: '1024x1024', '1024x576', '1024x768', '512x512', '576x1024', '786x1024'"})
 
     api_stats[engine] = api_stats.get(engine, 0) + 1 # API Stats + 1
-
     result, discord_user, email = await check_token(clientdb, token)
+
     if not result: return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"detail": "Unauthorized, check your API token and try again."})
 
     # Rate limiting by token
@@ -161,6 +153,7 @@ async def image(request: Request, background_tasks: BackgroundTasks):
 
     img_url = ""
     if engine == "poli":
+        if size!= "1024x1024": return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"detail": "The specified size is not available for poli."})
         img_url = await poli(prompt)
 
     elif engine in ["sdxl-turbo", "flux-schnell", "flux-dev"]:
@@ -171,53 +164,52 @@ async def image(request: Request, background_tasks: BackgroundTasks):
             engine_id = await get_engine_id(engine, size)
             if engine_id == "error": return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"detail": "The requested size is not available for this model."})
             seconds = 0
-            await client.post(f'https://discord.com/api/v9/channels/{channel_id}/messages', json={"content": f"<@{engine_id}> !imagine {prompt}"}, headers=sheader)
+            retries = 0
+            error_ids = []
+            checked = []
+            do_break = False
+            failed = False
+            content = f"<@{engine_id}> !imagine {prompt}"
+            await client.post(f'https://discord.com/api/v9/channels/{channel_id}/messages', json={"content": content}, headers=sheader)
 
             while True:
                 try:
                     res = await client.get(f"https://discord.com/api/v9/channels/{channel_id}/messages", headers=headers)
                     messages = res.json()
-                    do_break = False
-                    failed = False
                     for message in messages:
-                        if message['content'].startswith("https://"):
+                        message_id = message['id']
+                        if message_id in checked: pass
+                        elif message['content'] in ['error', 'uhh can you say that again?'] and message_id not in error_ids:
+                            if retries > 3:
+                                failed = True
+                            await client.post(f'https://discord.com/api/v9/channels/{channel_id}/messages', json={"content": content}, headers=sheader)
+                            retries += 1
+                            error_ids.append(message_id)
+
+                        elif message['content'].startswith("https://"):
                             img_url = message['content']
                             do_break = True
                             break
-                        elif message['content'] in ['error', 'uhh can you say that again?']:
-                            failed = True
+                        elif message['content'] != content and message_id not in checked:
+                            await client.post(f'https://discord.com/api/v9/channels/{channel_id}/messages', json={"content": content}, headers=sheader)
+                        checked.append(message_id)
 
-                    if do_break: # break when the image generation is done
-                        break
-                    elif failed or seconds >= 50: # return 500 if failed or seconds>50
+                    if do_break: break
+                    elif failed or seconds >= 50:  # Return 500 if failed or seconds > 50
                         background_tasks.add_task(delete_channel, channel_id, headers, httpx)
                         return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content={"detail": "Shapes.inc faced a server error."})
                     else:
                         seconds += 1.5
                         await asyncio.sleep(1.5)
+
                 except Exception as e:
+                    logger.error(f"An error occurred: {e}\n\n")
                     background_tasks.add_task(delete_channel, channel_id, headers, httpx)
                     return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content={"detail": "An internal server error occurred."})
-            background_tasks.add_task(delete_channel, channel_id, headers, httpx) # delete after generation
 
-    upload2discord = bool(config["api"]["upload2discord"])
+            background_tasks.add_task(delete_channel, channel_id, headers, httpx)
+
     logging_enabled = bool(config["api"]["logging"])
-
-    if upload2discord:
-        async with httpx.AsyncClient() as client:
-            img_response = await client.get(img_url)
-            img = Image.open(io.BytesIO(img_response.content))
-            img_io = io.BytesIO()
-            img.save(img_io, 'PNG')
-            img_io.seek(0)
-            file_path = os.path.join('cache', f'{random_string}.png')
-            with open(file_path, 'wb') as f:
-                f.write(img_io.getbuffer())
-            with open(file_path, 'rb') as f:
-                response = await client.post(webhook, files={'file': f})
-            response = response.json()
-            img_url = response['attachments'][0]['url']
-            os.remove(file_path)
 
     if logging_enabled and email: background_tasks.add_task(log_image, email, engine, img_url, prompt, headers)
     else: background_tasks.add_task(log_image, user_id, engine, img_url, prompt, headers)
@@ -403,16 +395,13 @@ async def list_tokens(request: Request, background_tasks: BackgroundTasks):
 
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", flask_port))
-    import uvicorn
-
     # Suppress uvicorn's default access and error logging
     logging.getLogger("uvicorn.access").disabled = True
     logging.getLogger("uvicorn.error").disabled = True
-
+    import uvicorn
     uvicorn.run(
         "api:app",
         host='0.0.0.0',
-        port=port,
+        port=int(os.environ.get("PORT", str(config["api"]["port"]))),
         log_level="critical",  # Suppresses most of uvicorn's logs
     )
