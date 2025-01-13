@@ -1,4 +1,6 @@
 import io
+import os
+import re
 import bs4
 import cv2
 import PIL
@@ -19,18 +21,16 @@ from discord.ui import View, Button
 from discord.ext import commands, tasks
 from pymongo.mongo_client import MongoClient
 
-from slash.moderation import moderation_slash
-
+from bot_utilities.start_util import *
 from events.on_messages import on_messages
 from events.member_join import member_join
 from events.on_cmd_error import on_cmd_error
-
-from api import app
-
-from bot_utilities.start_util import *
 from bot_utilities.about_embed import about_embed
 from bot_utilities.owner_utils import check_blist
 from bot_utilities.ai_utils import image_generate, poly_image_gen, search_image, create_and_send_embed
+
+from api import app
+
 
 with open("config.yml", "r") as config_file: config = yaml.safe_load(config_file)
 def run_api():
@@ -41,10 +41,10 @@ async def run_flask_app_async(asyncio):
     loop = asyncio.get_running_loop()
     await loop.run_in_executor(None, run_api)
 
+# sp_id, sp_secret = spotify_token(client) Not used for now
 activity = discord.Game(name="/help")
 intents = discord.Intents.all()
 intents.presences = False
-# sp_id, sp_secret = spotify_token(client) Not used for now
 bot = commands.AutoShardedBot(
     shard_count=2,
     command_prefix=config["bot"]["prefix"],
@@ -60,6 +60,8 @@ bot.db = MongoClient(mongodb)
 bot_token, openr_api_token = start(bot.db)
 
 bot.modules_io = io
+bot.modules_re = re
+bot.modules_os = os
 bot.modules_np = np
 bot.modules_cv2 = cv2
 bot.modules_bs4 = bs4
@@ -93,8 +95,6 @@ bot.xet_client = AsyncOpenAI(
     base_url = f'http://localhost:{config["api"]["port"]}/v1',
     api_key="aner123!",
 )
-
-moderation_slash(bot, bot.db)
 
 on_messages(bot, bot.db)
 on_cmd_error(bot)
@@ -132,6 +132,7 @@ async def on_ready():
     await bot.load_extension("slash.ai")
     await bot.load_extension("slash.fun")
     await bot.load_extension("slash.information")
+    await bot.load_extension("slash.moderation")
 
     sync_slash_cmd.start()
     update_bio.start()

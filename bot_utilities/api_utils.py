@@ -249,22 +249,28 @@ async def insert_access_token(email, token, expiration, mongodb):
     )
 
 async def verify_access_token(token, mongodb):
-    db = mongodb['lumi-api']
-    collection = db['jwt_tokens']
-    doc = collection.find_one({"jwt_access_token": token})
-    
-    if doc: return True
-    else: return False
+    try:
+        db = mongodb['lumi-api']
+        collection = db['jwt_tokens']
+        doc = collection.find_one({"jwt_access_token": token})
+        
+        if doc: return True
+        else: return False
+    except Exception as e:
+        return False
 
 async def verify_login_details(email, password, mongodb):
-    db = mongodb['lumi-api']
-    collection = db['accounts_registered']
-    doc = collection.find_one({"email": email})
+    try:
+        db = mongodb['lumi-api']
+        collection = db['accounts_registered']
+        doc = collection.find_one({"email": email})
 
-    if doc is None: return None
-    if password != doc['password']: return None
-    if doc['verified'] is False: return None
-    else: return True
+        if doc is None: return None
+        if password != doc['password']: return None
+        if doc['verified'] is False: return None
+        else: return True
+    except Exception as e:
+        return None
 
 async def register_user(email, password, verification_code, exp,  mongodb):
     db = mongodb['lumi-api']
@@ -299,22 +305,25 @@ async def register_user(email, password, verification_code, exp,  mongodb):
     return "registered as unverified"
 
 async def check_verification_code(email, code, mongodb):
-    db = mongodb['lumi-api']
-    collection = db['accounts_registered']
-    doc = collection.find_one({"email": email})
+    try:
+        db = mongodb['lumi-api']
+        collection = db['accounts_registered']
+        doc = collection.find_one({"email": email})
 
-    if str(doc['verification_code']) == code:
-        password = doc['password']
-        created_on = doc['created_on']
-        collection.delete_one({"email": email})
-        collection.insert_one({
-            "email": email,
-            "password": password,
-            "verified": True,
-            "created_on": created_on
-        })
-        return "verified"
-    else: return "unverified"
+        if str(doc['verification_code']) == code:
+            password = doc['password']
+            created_on = doc['created_on']
+            collection.delete_one({"email": email})
+            collection.insert_one({
+                "email": email,
+                "password": password,
+                "verified": True,
+                "created_on": created_on
+            })
+            return "verified"
+        else: return "unverified"
+    except Exception as e:
+        return "unverified"
 
 
 async def send_verify_email(to_email, email_from, password, code):

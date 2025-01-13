@@ -56,19 +56,19 @@ models = {
             "owned_by": "stabilityai"
         },
         {
-            "id": "dalle3",
-            "object": "model",
-            "created": 0,
-            "owned_by": "openai"
-        },
-        {
             "id": "polinations",
             "object": "model",
             "created": 0,
             "owned_by": "polinations.ai"
         },
         {
-            "id": "flux",
+            "id": "flux-dev",
+            "object": "model",
+            "created": 0,
+            "owned_by": "flux"
+        },
+        {
+            "id": "flux-schnell",
             "object": "model",
             "created": 0,
             "owned_by": "flux"

@@ -1,13 +1,9 @@
-import re
 import discord
-import asyncio
-from datetime import timedelta
 from discord import app_commands
 from discord.ext import commands
-from bot_utilities.owner_utils import check_blist
 
 
-def parse_duration(duration_str):
+def parse_duration(duration_str, re, timedelta):
     match = re.match(r"(\d+)([dhm])", duration_str)
     if not match:
         return None
@@ -21,14 +17,16 @@ def parse_duration(duration_str):
         return timedelta(minutes=duration)
     
 
-def moderation_slash(bot, mongodb):
+class ModerationSlash(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
 
-    @bot.tree.command(name='purge', description='Deletes a specified number of messages')
+    @app_commands.command(name='purge', description='Deletes a specified number of messages')
     @commands.guild_only()
     @app_commands.describe(messages="The number of messages you want to purge.")
-    async def purge(interaction: discord.Interaction, messages: int):
+    async def purge(self, interaction: discord.Interaction, messages: int):
 
-        if await check_blist(interaction, mongodb): return
+        if await self.bot.func_checkblist(interaction, self.bot.db): return
         await interaction.response.defer(ephemeral=False)
 
         channel = interaction.channel
@@ -52,19 +50,19 @@ def moderation_slash(bot, mongodb):
             await interaction.followup.send("**You do not have the necessary permissions to perform this action!**")
 
 
-    @bot.tree.command(name='kick', description="Kick a member")
+    @app_commands.command(name='kick', description="Kick a member")
     @commands.guild_only()
     @app_commands.describe(member="Select the member you want to kick.")
     @app_commands.describe(member="Reason for the kick")
-    async def kick(interaction: discord.Interaction, member: discord.Member, reason: str):
-        if await check_blist(interaction, mongodb): return
+    async def kick(self, interaction: discord.Interaction, member: discord.Member, reason: str):
+        if await self.bot.func_checkblist(interaction, self.bot.db): return
         await interaction.response.defer(ephemeral=False)
 
         # Protect the bot from kicking itself or the server owner
         if member == interaction.guild.owner:
             await interaction.followup.send(embed=discord.Embed(description="**I cannot kick the server owner**.",colour=0xFF0000))
             return
-        if member == bot.user:
+        if member == self.bot.user:
             await interaction.followup.send(embed=discord.Embed(description="**I can't kick myself!**",colour=0xFF0000))
             return
         
@@ -90,7 +88,7 @@ def moderation_slash(bot, mongodb):
             def check(reaction, user):
                 return user == interaction.user and str(reaction.emoji) in ['✅', '❌']
 
-            reaction, user = await bot.wait_for('reaction_add', timeout=20.0, check=check)
+            reaction, user = await self.bot.wait_for('reaction_add', timeout=20.0, check=check)
             
             if str(reaction.emoji) == '✅':
                 await member.kick(reason=reason)
@@ -101,7 +99,7 @@ def moderation_slash(bot, mongodb):
                 await confirm_msg.delete()
                 await interaction.followup.send(embed=discord.Embed(description="**Action cancelled.**\n`{member}` has not been kicked.",colour=0xc8dc6c))
 
-        except asyncio.TimeoutError:
+        except self.modules_asyncio.TimeoutError:
             await confirm_msg.delete()
             await interaction.followup.send(embed=discord.Embed(description="**No reaction received. Kick action cancelled.**",colour=0xFF0000))
         except discord.Forbidden:
@@ -109,19 +107,19 @@ def moderation_slash(bot, mongodb):
             await interaction.followup.send(embed=discord.Embed(description="**Kick failed. I don't have enough permissions to kick this user.**",colour=0xFF0000))
 
 
-    @bot.tree.command(name='ban', description="Ban a member")
+    @app_commands.command(name='ban', description="Ban a member")
     @commands.guild_only()
     @app_commands.describe(member="Select the member you want to ban.")
     @app_commands.describe(member="Reason for the ban")
-    async def kick(interaction: discord.Interaction, member: discord.Member, reason: str):
-        if await check_blist(interaction, mongodb): return
+    async def kick(self, interaction: discord.Interaction, member: discord.Member, reason: str):
+        if await self.bot.func_checkblist(interaction, self.bot.db): return
         await interaction.response.defer(ephemeral=False)
 
         # Protect the bot from kicking itself or the server owner
         if member == interaction.guild.owner:
             await interaction.followup.send(embed=discord.Embed(description="**I cannot ban the server owner.**",colour=0xFF0000))
             return
-        if member == bot.user:
+        if member == self.bot.user:
             await interaction.followup.send(embed=discord.Embed(description="**I can't ban myself**",colour=0xFF0000))
             return
         
@@ -146,7 +144,7 @@ def moderation_slash(bot, mongodb):
             def check(reaction, user):
                 return user == interaction.user and str(reaction.emoji) in ['✅', '❌']
 
-            reaction, user = await bot.wait_for('reaction_add', timeout=20.0, check=check)
+            reaction, user = await self.bot.wait_for('reaction_add', timeout=20.0, check=check)
             
             if str(reaction.emoji) == '✅':
                 await member.ban(reason=reason)
@@ -158,7 +156,7 @@ def moderation_slash(bot, mongodb):
                 await confirm_msg.delete()
                 await interaction.followup.send(embed=discord.Embed(description=f"**Action cancelled.**`\n{member}` has not been banned.",colour=0xFF0000))
 
-        except asyncio.TimeoutError:
+        except self.modules_asyncio.TimeoutError:
             await confirm_msg.delete()
             await interaction.followup.send(embed=discord.Embed(description="**No reaction received. ban action cancelled.**", color=0xFF0000))
         except discord.Forbidden:
@@ -167,13 +165,13 @@ def moderation_slash(bot, mongodb):
 
 
 
-    @bot.tree.command(name='unban', description='Unban a previously banned user.')
+    @app_commands.command(name='unban', description='Unban a previously banned user.')
     @commands.guild_only()
     @app_commands.describe(user="Select the member you want to unban.")
     @app_commands.describe(reason="Reason for the unban")
-    async def unban(interaction: discord.Interaction, user: discord.User, reason: str):
+    async def unban(self, interaction: discord.Interaction, user: discord.User, reason: str):
 
-        if await check_blist(interaction, mongodb): return
+        if await self.bot.func_checkblist(interaction, self.bot.db): return
         await interaction.response.defer(ephemeral=False)
 
         # Check if the command caller has the required permission
@@ -201,8 +199,8 @@ def moderation_slash(bot, mongodb):
 
                     try:
                         # Waiting for the reaction to be added
-                        reaction, user_check = await bot.wait_for('reaction_add', timeout=20.0, check=check)
-                    except asyncio.TimeoutError:
+                        reaction, user_check = await self.bot.wait_for('reaction_add', timeout=20.0, check=check)
+                    except self.modules_asyncio.TimeoutError:
                         await confirm_message.delete()
                         await interaction.followup.send(embed=discord.Embed(description="**Unban confirmation failed. Command cancelled.**", color=0xFF0000))
                         return
@@ -230,25 +228,21 @@ def moderation_slash(bot, mongodb):
             await interaction.followup.send(embed=discord.Embed(description=f"**{user.mention} is not banned.**", color=0xFF0000))
 
 
-
-
-
-
-    @bot.tree.command(name='timeout', description='Timeout a user for a specified duration.')
+    @app_commands.command(name='timeout', description='Timeout a user for a specified duration.')
     @commands.guild_only()
     @app_commands.describe(member="Select the member you want to timeout.")
     @app_commands.describe(reason="Reason for the timeout")
     @app_commands.describe(duration="Please provide a valid time duration(eg, 1m, 4d, 1h)")
-    async def timeout(interaction: discord.Interaction, member: discord.Member, duration: str, reason: str):
+    async def timeout(self, interaction: discord.Interaction, member: discord.Member, duration: str, reason: str):
 
-        if await check_blist(interaction, mongodb): return
+        if await self.bot.func_checkblist(interaction, self.bot.db): return
         await interaction.response.defer(ephemeral=False)
 
         if member == interaction.guild.owner:
             await interaction.followup.send(embed=discord.Embed(description="**I cannot timeout the server owner.**", color=0xFF0000))
             return
 
-        if member == bot.user:
+        if member == self.bot.user:
             await interaction.followup.send(embed=discord.Embed(description="**I cannot timeout myself.**", color=0xFF0000))
             return
 
@@ -266,7 +260,7 @@ def moderation_slash(bot, mongodb):
             return
         
 
-        time_delta = parse_duration(duration)
+        time_delta = parse_duration(duration, self.bot.modules_re, self.bot.modules_datetime.timedelta)
         if time_delta is None:
             await interaction.followup.send(embed=discord.Embed(description="**Invalid duration. Use 'd' for days, 'h' for hours, 'm' for minutes.**", color=0xFF0000))
             return
@@ -285,8 +279,8 @@ def moderation_slash(bot, mongodb):
 
             try:
 
-                reaction, user = await bot.wait_for('reaction_add', timeout=20.0, check=check)
-            except asyncio.TimeoutError:
+                reaction, user = await self.bot.wait_for('reaction_add', timeout=20.0, check=check)
+            except self.modules_asyncio.TimeoutError:
                 await confirm_message.delete()
                 await interaction.followup.send(embed=discord.Embed(description="**Timeout confirmation failed. Command cancelled.**", color=0xFF0000))
                 return
@@ -308,26 +302,23 @@ def moderation_slash(bot, mongodb):
             await interaction.followup.send(embed=discord.Embed(description=f"**Failed to timeout due to an HTTP error.**", color=0xFF0000))
 
 
-    @bot.tree.command(name="unmute", description="Unmute a member.")
+    @app_commands.command(name="unmute", description="Unmute a member.")
     @commands.guild_only()
     @app_commands.describe(member="Select the member you want to Unmute.")
     @app_commands.describe(reason="Reason for the Unmute")
-    async def unmute(interaction: discord.Interaction, member: discord.Member, reason: str):
+    async def unmute(self, interaction: discord.Interaction, member: discord.Member, reason: str):
 
-        if await check_blist(interaction, mongodb): return
+        if await self.bot.func_checkblist(interaction, self.bot.db): return
         await interaction.response.defer(ephemeral=False)
 
-        # Check if bot has necessary permissions
         if not interaction.guild.me.guild_permissions.manage_roles:
             await interaction.followup.send(embed=discord.Embed(description="**I don't have the `manage roles` permission to perform this action.**", color=0xFF0000))
             return
 
-        # Check if member is already unmuted
         if member.timed_out_until is None:
             await interaction.followup.send(embed=discord.Embed(description="**Member is not muted.**", color=0xFF0000))
             return
 
-        # Check if command caller has necessary permissions
         if not interaction.user.guild_permissions.manage_roles:
             await interaction.followup.send(embed=discord.Embed(description="**You don't have the necessary permissions to perform this command**", color=0xFF0000))
             return
@@ -341,7 +332,7 @@ def moderation_slash(bot, mongodb):
             def check(reaction, user):
                 return user == interaction.user and str(reaction.emoji) in ['✅', '❌'] and reaction.message.id == confirm_message.id
 
-            reaction, user = await bot.wait_for('reaction_add', timeout=20.0, check=check)
+            reaction, user = await self.bot.wait_for('reaction_add', timeout=20.0, check=check)
             if str(reaction.emoji) == '✅':
                 # Apply unmute
                 await member.edit(timed_out_until=None)
@@ -353,7 +344,7 @@ def moderation_slash(bot, mongodb):
                 await interaction.followup.send(embed=discord.Embed(description=f"**Action cancelled, {member} has not been unmuted**", color=0xFF0000))
                 return
 
-        except asyncio.TimeoutError:
+        except self.modules_asyncio.TimeoutError:
             await confirm_message.delete()
             await interaction.followup.send(embed=discord.Embed(description="**Confirmation timed out. Action cancelled.**", color=0xFF0000))
         except discord.Forbidden:
@@ -364,12 +355,12 @@ def moderation_slash(bot, mongodb):
             await interaction.followup.send(embed=discord.Embed(description="**Failed to unmute due to an HTTP error.**", color=0xFF0000))
 
 
-    @bot.tree.command(name='purgelinks', description='Purges messages containing links from the channel.')
+    @app_commands.command(name='purgelinks', description='Purges messages containing links from the channel.')
     @commands.guild_only()
     @app_commands.describe(limit="The number of messages you want to purge that contains links")
-    async def purge_links(interaction: discord.Interaction, limit: int):        
+    async def purge_links(self, interaction: discord.Interaction, limit: int):        
 
-        if await check_blist(interaction, mongodb): return
+        if await self.bot.func_checkblist(interaction, self.bot.db): return
         await interaction.response.defer(ephemeral=False)
         
         if not interaction.channel.permissions_for(interaction.channel.guild.me).manage_messages:
@@ -393,8 +384,8 @@ def moderation_slash(bot, mongodb):
 
         try:
             # Wait for confirmation reaction
-            reaction, user = await bot.wait_for('reaction_add', timeout=20.0, check=check)
-        except asyncio.TimeoutError:
+            reaction, user = await self.bot.wait_for('reaction_add', timeout=20.0, check=check)
+        except self.modules_asyncio.TimeoutError:
             await confirmation_message.delete()
             await interaction.followup.send(embed=discord.Embed(description="**Purge links command cancelled.**", color=0xFF0000))
             return
@@ -418,15 +409,14 @@ def moderation_slash(bot, mongodb):
 
 
 
-    @bot.tree.command(name='purgefiles', description='Purges messages containing files/attachments from the channel.')
+    @app_commands.command(name='purgefiles', description='Purges messages containing files/attachments from the channel.')
     @commands.guild_only()
     @app_commands.describe(limit="The number of messages you want to purge that contains files")
-    async def purge_files(interaction: discord.Interaction, limit: int):
+    async def purge_files(self, interaction: discord.Interaction, limit: int):
 
-        if await check_blist(interaction, mongodb): return
+        if await self.bot.func_checkblist(interaction, self.bot.db): return
         await interaction.response.defer(ephemeral=False)
-    
-        # Check permissions
+
         if not interaction.channel.permissions_for(interaction.guild.me).manage_messages:
             await interaction.followup.send(embed=discord.Embed(description="**I don't have the necessary permissions to manage messages in this channel.**",colour=0xFF0000))
             return
@@ -448,8 +438,8 @@ def moderation_slash(bot, mongodb):
 
         try:
             # Wait for confirmation reaction
-            reaction, user = await bot.wait_for('reaction_add', timeout=20.0, check=check)
-        except asyncio.TimeoutError:
+            reaction, user = await self.bot.wait_for('reaction_add', timeout=20.0, check=check)
+        except self.modules_asyncio.TimeoutError:
             await confirmation_message.delete()
             await interaction.followup.send(embed=discord.Embed(description="**Purge files command cancelled.**",colour=0xFF0000))
             return
@@ -469,3 +459,7 @@ def moderation_slash(bot, mongodb):
         elif str(reaction.emoji) == '❌':
             await confirmation_message.delete()
             await interaction.followup.send(embed=discord.Embed(description="**Action cancelled.**",colour=0xFF0000))
+
+
+async def setup(bot):
+    await bot.add_cog(ModerationSlash(bot))
