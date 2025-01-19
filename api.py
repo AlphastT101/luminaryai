@@ -132,8 +132,8 @@ async def image(request: Request, background_tasks: BackgroundTasks):
     current_time = time.time()
     if token.startswith("luminary") or token.startswith("XET"):
         token_rate_limits[token] = [timestamp for timestamp in token_rate_limits[token] if current_time - timestamp < 60]
-        if len(token_rate_limits[token]) >= 200:
-            return JSONResponse(status_code=status.HTTP_429_TOO_MANY_REQUESTS, content={"detail": "Rate limit exceeded for this API token."})
+        if len(token_rate_limits[token]) >= 100:
+            return JSONResponse(status_code=status.HTTP_429_TOO_MANY_REQUESTS, content={"detail": "Rate limit exceeded for this API token. 100/RPM"})
         token_rate_limits[token].append(current_time)
 
     # Fetch the userID and check if the user has the verified role or not, if user is owner, then skip verification.
@@ -165,6 +165,7 @@ async def image(request: Request, background_tasks: BackgroundTasks):
             if engine_id == "error": return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"detail": "The requested size is not available for this model."})
             seconds = 0
             retries = 0
+            xRetries = 0
             error_ids = []
             checked = []
             do_break = False
@@ -180,8 +181,7 @@ async def image(request: Request, background_tasks: BackgroundTasks):
                         message_id = message['id']
                         if message_id in checked: pass
                         elif message['content'] in ['error', 'uhh can you say that again?'] and message_id not in error_ids:
-                            if retries > 3:
-                                failed = True
+                            if retries > 3: failed = True
                             await client.post(f'https://discord.com/api/v9/channels/{channel_id}/messages', json={"content": content}, headers=sheader)
                             retries += 1
                             error_ids.append(message_id)
@@ -191,13 +191,16 @@ async def image(request: Request, background_tasks: BackgroundTasks):
                             do_break = True
                             break
                         elif message['content'] != content and message_id not in checked:
+                            if xRetries >= 5: failed = True
                             await client.post(f'https://discord.com/api/v9/channels/{channel_id}/messages', json={"content": content}, headers=sheader)
+                            xRetries+=1
+
                         checked.append(message_id)
 
                     if do_break: break
-                    elif failed or seconds >= 50:  # Return 500 if failed or seconds > 50
+                    elif failed or seconds >= 50:
                         background_tasks.add_task(delete_channel, channel_id, headers, httpx)
-                        return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content={"detail": "Shapes.inc faced a server error."})
+                        return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content={"detail": "It's either shapes.inc faced a server error or the image content was NSFW."})
                     else:
                         seconds += 1.5
                         await asyncio.sleep(1.5)
@@ -237,8 +240,8 @@ async def text(request: Request):
     current_time = time.time()
     if token.startswith("luminary") or token.startswith("XET"):
         token_rate_limits[token] = [timestamp for timestamp in token_rate_limits[token] if current_time - timestamp < 60]
-        if len(token_rate_limits[token]) >= 15:
-            return JSONResponse(status_code=status.HTTP_429_TOO_MANY_REQUESTS, content={"detail": "Rate limit exceeded for this API token. >15RPS"})
+        if len(token_rate_limits[token]) >= 1:
+            return JSONResponse(status_code=status.HTTP_429_TOO_MANY_REQUESTS, content={"detail": "Rate limit exceeded for this API token. >1RPM"})
 
         token_rate_limits[token].append(current_time)
 
