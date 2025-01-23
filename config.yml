@@ -1,10 +1,10 @@
 bot:
   prefix: "ai."
-  text_model: "google/gemma-2-9b-it:free"
+  text_model: ""
   mongodb: "mongodb://localhost:27017/"
 api:
   port: 6705
-  guild_id: 1253765266115133442
-  guild_id_verify: 1144903052717985806
+  guild_id:
+  guild_id_verify:
   logging: True
-  verification_email: "verify@xet.one"
+  verification_email: ""
