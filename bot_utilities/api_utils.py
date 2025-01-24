@@ -149,7 +149,7 @@ def get_t_sbot(mongodb):
     sbot = collection.find_one({"key": "sbot"})
     
     if sbot is None:
-        print("get_t_sbot: 404 Not Found, enter password for sbot:")
+        print("sBot: 404 Not Found, enter password for sbot:")
         sbot_value = input("> ")
         collection.insert_one({"key": "sbot", "value": sbot_value})
         return sbot_value
