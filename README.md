@@ -10,17 +10,17 @@ Currently, XET AI has a functional, user-friendly dashboard, an AI playground, a
 
 <hr>
 
-**Current image generation models:**
+**🖼️ Current image generation models:**
 * Flux-dev
 * Flux-schnell
 * SDXL-Turbo
 
-available sizes: `'1024x1024', '1024x576', '1024x768', '512x512', '576x1024', '786x1024'`.
+available sizes: `'1024x1024', '1024x576', '1024x768', '512x512', '576x1024', '786x1024'`.<br>
 Ratelimit: 100 requests per minute.
 
 <hr>
 
-**Current text generation models:**
+**🔠 Current text generation models:**
 * GPT-4
 * GPT-4-Turbo
 * GPT-3.5
@@ -30,7 +30,7 @@ Ratelimit: 100 requests per minute.
 * Gemma-2
 * Mistral
 
-Note: model names are case-sensitive in code, use `gpt-4`, not `GPT-4`. Plus, we use some system prompts for the models.
+Note: model names are case-sensitive in code, use `gpt-4`, not `GPT-4`. Plus, we use some system prompts for the models.<br>
 Ratelimit: 1 request per minute.
 
 <hr>
