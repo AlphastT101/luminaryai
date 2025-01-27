@@ -18,8 +18,6 @@ Currently, XET AI has a functional, user-friendly dashboard, an AI playground, a
 available sizes: `'1024x1024', '1024x576', '1024x768', '512x512', '576x1024', '786x1024'`.<br>
 Ratelimit: 100 requests per minute.
 
-<hr>
-
 **🔠 Current text generation models:**
 * GPT-4
 * GPT-4-Turbo
@@ -52,4 +50,4 @@ Ratelimit: 1 request per minute.
 
 # 📄 API Docs
 
-The models listed above is the only supported models and image sizes. Our API is in OpenAI format.
+The models listed above is the only supported models and image sizes. Our API is in OpenAI format. Please join our ([discord](https://discord.com/invite/hmMBe8YyJ4)) for more info.
