@@ -1,6 +1,6 @@
 <p align="center">
   <img src="https://cdn.discordapp.com/attachments/1201176761422061678/1333426938626314240/logo.png?ex=6798da1c&is=6797889c&hm=63ddfbf2a12f60dc331a1fb0138f4aef6a2afea2d883f006bf67d4f345b4bfb0&" alt="icon" width="50">
-  <bs tyle="font-size: 50px;">XET AI</b>
+  <b style="font-size: 50px;">XET AI</b>
 </p>
 
 This repository includes the codebase for XET AI team and LuminaryAI discord bot which is owned by us. XET is built by students, for the students.
