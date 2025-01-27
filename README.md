@@ -1,4 +1,5 @@
-# XET AI
+<img src="https://cdn.discordapp.com/attachments/1201176761422061678/1333426938626314240/logo.png?ex=6798da1c&is=6797889c&hm=63ddfbf2a12f60dc331a1fb0138f4aef6a2afea2d883f006bf67d4f345b4bfb0&" width="20" alt="icon"> XET AI
+
 This repository includes the codebase for XET AI team and LuminaryAI discord bot which is owned by us. XET is built by students, for the students.
 
 <hr>
@@ -32,7 +33,7 @@ Ratelimit: 1 request per minute.
 
 <hr>
 
-## Folders:
+## 📁 Folders:
 * `bot_utilities`: includes bunch of files, the files basically includes a lots of functions. we have imported them to other files.
 * `events`: includes some files with events for the discord bot.
 * `images`: includes some images that are used in bot's messages.
@@ -40,7 +41,13 @@ Ratelimit: 1 request per minute.
 * `slash`: includes too many file with the codes of slash commands.
 * `unused`: includes files with some unused functions, currently we don't need them. but we may need them in the feature. Please do not delete without asking.
 
-## Files in the root folder:
+## 🗃️ Files in the root folder:
 * `api_test`: a simple file for testing the API in ur local environment.
 * `api.py`: contains the code for the API.
 * `main.py`: startup file.
+
+<hr>
+
+# 📄 API Docs
+
+The models listed above is the only supported models and image sizes. Our API is in OpenAI format.
