@@ -5,7 +5,6 @@
 
 This repository includes the codebase for XET AI team and LuminaryAI discord bot which is owned by us. XET is built by students, for the students.
 
-<hr>
 
 Currently, XET AI has a functional, user-friendly dashboard, an AI playground, and an API so you can use the AI in your app. The API supports image generation and text generation. We also have a Discord bot, "LuminaryAI," which runs in the main thread, while the API runs in a separate thread. The project is built entirely with Python, using FastAPI for the API and discord.py for the bot.
 
