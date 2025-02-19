@@ -7,14 +7,16 @@ import PIL
 import time
 import yaml
 import signal
+import string
 import random
+import psutil
 import aiohttp
 import asyncio
 import discord
-import uvicorn
 import datetime
 import requests
 import imagehash
+import contextlib
 import numpy as np
 from openai import AsyncOpenAI
 from discord.ui import View, Button
@@ -29,15 +31,18 @@ from bot_utilities.about_embed import about_embed
 from bot_utilities.owner_utils import check_blist
 from bot_utilities.ai_utils import image_generate, poly_image_gen, search_image, create_and_send_embed
 
-from api import app
-
-
 with open("config.yml", "r") as config_file: config = yaml.safe_load(config_file)
-def run_api():
-    port = config["api"]["port"]
-    uvicorn.run("api:app", host='0.0.0.0', port=port, log_level="warning")
+
+if config['bot']['start_api']:
+    import uvicorn
+    from api import app
 
 async def run_flask_app_async(asyncio):
+
+    def run_api():
+        port = config["api"]["port"]
+        uvicorn.run("api:app", host='0.0.0.0', port=port, log_level="warning")
+
     loop = asyncio.get_running_loop()
     await loop.run_in_executor(None, run_api)
 
@@ -46,7 +51,7 @@ activity = discord.Game(name="/help")
 intents = discord.Intents.all()
 intents.presences = False
 bot = commands.AutoShardedBot(
-    shard_count=2,
+    shard_count=1,
     command_prefix=config["bot"]["prefix"],
     intents=intents,
     activity=activity,
@@ -57,7 +62,7 @@ flask_task = None
 flask_thread = None
 mongodb = config["bot"]["mongodb"]
 bot.db = MongoClient(mongodb)
-bot_token, openr_api_token = start(bot.db)
+bot_token = start(bot.db)
 
 bot.modules_io = io
 bot.modules_re = re
@@ -69,13 +74,16 @@ bot.modules_PIL = PIL
 bot.modules_time = time
 bot.modules_view = View
 bot.modules_random = random
+bot.modules_string = string
 bot.modules_button = Button
+bot.modules_psutil = psutil
 bot.modules_aiohttp = aiohttp
 bot.modules_discord = discord
 bot.modules_asyncio = asyncio
 bot.modules_datetime = datetime
 bot.modules_requests = requests
 bot.modules_imagehash = imagehash
+bot.modules_contextlib = contextlib
 
 bot.about_embed = about_embed
 bot.start_time = time.time()
@@ -87,10 +95,6 @@ bot.func_checkblist = check_blist
 bot.func_poly_imgen = poly_image_gen
 bot.func_cse = create_and_send_embed
 
-bot.openai_client = AsyncOpenAI(
-    base_url="https://openrouter.ai/api/v1",
-    api_key=openr_api_token,
-)
 bot.xet_client = AsyncOpenAI(
     base_url = f'http://localhost:{config["api"]["port"]}/v1',
     api_key="aner123!",
@@ -137,12 +141,15 @@ async def on_ready():
     sync_slash_cmd.start()
     update_bio.start()
 
-    global flask_task
-    flask_task = asyncio.create_task(run_flask_app_async(asyncio))
+    if config['bot']['start_api']:
+        global flask_task
+        flask_task = asyncio.create_task(run_flask_app_async(asyncio))
+    
     print(f"Booted in {time.time() - bot.start_time}s")
 
-    await asyncio.sleep(1)
-    requests.get(f'http://localhost:{config["api"]["port"]}/create-task')
+    if config['bot']['start_api']:
+        await asyncio.sleep(1)
+        requests.get(f'http://localhost:{config["api"]["port"]}/create-task')
 
 @bot.event
 async def on_guild_join(guild):
@@ -164,7 +171,7 @@ def handle_shutdown(signal, frame):
 
 async def shutdown_bot():
     try:
-        requests.get(f'http://localhost:{config["api"]["port"]}/shutdown')
+        if config['bot']['start_api']: requests.get(f'http://localhost:{config["api"]["port"]}/shutdown')
         await bot.close()
     except Exception as e:
         await bot.close()
