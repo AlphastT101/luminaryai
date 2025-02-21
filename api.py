@@ -3,21 +3,25 @@ import jwt
 import yaml
 import time
 import httpx
-import random
 import signal
+import random
 import string
 import logging
+import smtplib
 import asyncio
 import warnings
+import requests
 from pydantic import BaseModel
 from collections import defaultdict
-from bot_utilities.api_utils import *
-from bot_utilities.api_models import models
+from email.mime.text import MIMEText
+from api_utilities.api_utils import *
 from fastapi.responses import JSONResponse
+from api_utilities.api_models import models
 from pymongo.mongo_client import MongoClient
-from bot_utilities.start_util import api_start
-from datetime import datetime, timedelta, timezone
+from api_utilities.start_util import api_start
+from email.mime.multipart import MIMEMultipart
 from fastapi.middleware.cors import CORSMiddleware
+from datetime import datetime, timedelta, timezone
 from fastapi import FastAPI, Request, status, BackgroundTasks
 
 # Setup logging
@@ -67,7 +71,7 @@ clientdb = MongoClient(config["bot"]["mongodb"])
 clientdb['lumi-api']['accounts_registered'].create_index("expiresAt", expireAfterSeconds=0)
 clientdb['lumi-api']['jwt_tokens'].create_index("expiration", expireAfterSeconds=0)
 sbot = get_t_sbot(clientdb)
-bot_token, open_r, jwt_secret, verify_email_pass= api_start(clientdb)
+bot_token, jwt_secret, verify_email_pass= api_start(clientdb)
 
 api_stats = {}
 headers = {"Authorization": f"Bot {bot_token}", "Content-Type": "application/json"}
@@ -141,17 +145,14 @@ async def image(request: Request, background_tasks: BackgroundTasks):
                 if verified_role_id not in user_roles:
                     return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"detail":"Your account is not verified/You left the XET server."})
 
-
-    characters = string.ascii_letters + string.digits
-    random_string = ''.join(random.choice(characters) for _ in range(10))
-
     img_url = ""
     if engine == "poli":
-        if size!= "1024x1024": return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"detail": "The specified size is not available for poli."})
-        img_url = await poli(prompt)
+        if size != "1024x1024": return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"detail": "The specified size is not available for poli."})
+        img_url = await poli(prompt, random, requests)
 
     elif engine in ["sdxl-turbo", "flux-schnell", "flux-dev"]:
         async with httpx.AsyncClient() as client:
+            random_string = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(10))
             res = await client.post(f"https://discord.com/api/v9/guilds/{guild_id}/channels", json={"name": f"api-{random_string}", "permission_overwrites": [], "type": 0}, headers=headers)
             channel_info = res.json()
             channel_id = channel_info['id']
@@ -208,14 +209,14 @@ async def image(request: Request, background_tasks: BackgroundTasks):
 
     logging_enabled = bool(config["api"]["logging"])
 
-    if logging_enabled and email: background_tasks.add_task(log_image, email, engine, img_url, prompt, headers)
-    else: background_tasks.add_task(log_image, user_id, engine, img_url, prompt, headers)
+    if logging_enabled and email: background_tasks.add_task(log_image, email, engine, img_url, prompt, headers, httpx, datetime)
+    else: background_tasks.add_task(log_image, user_id, engine, img_url, prompt, headers, httpx, datetime)
     return JSONResponse(content={"data": [{"url": img_url}]})
 
 
 
 @app.post('/v1/chat/completions')
-async def text(request: Request):
+async def text(request: Request, background_tasks: BackgroundTasks):
     try:
         token = request.headers.get('Authorization', '').split()[1] if 'Authorization' in request.headers else None
         if not token: return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"detail": "Auth failed, API is token not found in the JSON."})
@@ -224,7 +225,8 @@ async def text(request: Request):
         model = data['model']
     except KeyError:
         return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"detail":"You MUST include 'messages' and 'model' in the JSON."})
-    if model not in available:return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"detail": "Model is not available."})
+
+    if model not in available: return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"detail": "Model is not available."})
 
     api_stats[model] = api_stats.get(model, 0) + 1
     result, discord_user, email = await check_token(clientdb, token)
@@ -233,12 +235,12 @@ async def text(request: Request):
     current_time = time.time()
     if token.startswith("luminary") or token.startswith("XET"):
         token_rate_limits[token] = [timestamp for timestamp in token_rate_limits[token] if current_time - timestamp < 60]
-        if len(token_rate_limits[token]) >= 1:
-            return JSONResponse(status_code=status.HTTP_429_TOO_MANY_REQUESTS, content={"detail": "Rate limit exceeded for this API token. >1RPM"})
+        if len(token_rate_limits[token]) >= 15:
+            return JSONResponse(status_code=status.HTTP_429_TOO_MANY_REQUESTS, content={"detail": "Rate limit exceeded for this API token. >15RPM"})
 
         token_rate_limits[token].append(current_time)
 
-    # Fetch the userID and check if the user has the verified role or not, if user is owner, then skip verification.
+    # FCheck if the user has the verified role or not, if user is owner, then skip verification.
     if discord_user:
         user_id = str(await get_id(clientdb, token))
         if not user_id.startswith('owner'):
@@ -247,10 +249,53 @@ async def text(request: Request):
                 member_data = member_response.json()
                 user_roles = member_data.get('roles', [])
                 if "1279261339574861895" not in user_roles:
-                    return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"detail": "Your account is not verified."})
+                    return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"detail": "Your account is not verified or you left the XET discord server"})
 
-    response = await gen_text(open_r, messages, model)
+    async with httpx.AsyncClient() as client:
+
+        engine_id = await get_engine_id(model, None)
+        content = f"<@{engine_id}> {messages}"
+        if len(content) >= 1900: return JSONResponse(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, content={"error": "Message history limit exceed. >1900 characters."})
+
+        random_string = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(9))
+        res = await client.post(f"https://discord.com/api/v9/guilds/{guild_id}/channels", json={"name": f"apiT-{random_string}", "permission_overwrites": [], "type": 0}, headers=headers)
+
+        channel_info = res.json()
+        channel_id = channel_info['id']
+        seconds = 0
+        do_break = False
+        retries = 0
+        error_ids = []
+
+        await client.post(f'https://discord.com/api/v9/channels/{channel_id}/messages', json={"content": content}, headers=sheader)
+
+        while True:
+            res = await client.get(f"https://discord.com/api/v9/channels/{channel_id}/messages", headers=headers)
+            messages = res.json()
+
+            for message in messages:
+                if message['content'] in ['error', 'uhh can u say that again?'] and message['id'] not in error_ids:
+                    error_ids.append(message['content'])
+                    retries+=1
+
+                elif int(message['author']['id']) not in [1212631443667423282]:
+                    response = message['content']
+                    do_break = True
+                    break
+
+            if do_break: break
+
+            elif seconds >= 60 or retries>=3:
+                background_tasks.add_task(delete_channel, channel_id, headers, httpx)
+                return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content={"error": "Shapes.inc faced a server error. Not a problem on our end."})
+            else:
+                seconds += 2
+                time.sleep(2)
+
+        background_tasks.add_task(delete_channel, channel_id, headers, httpx)
     return JSONResponse(content={"choices": [{"message": {"content": response}}]})
+
+
 
 
 @app.get('/v1/models')
@@ -266,13 +311,7 @@ class FetchCredentials(BaseModel):
 async def login(request: Request, background_tasks: BackgroundTasks, login_request: FetchCredentials):
     valid = await verify_login_details(login_request.email, login_request.password, clientdb)
     if not valid:
-        background_tasks.add_task(
-            log_message,
-            "User Failed To login",
-            f"Email: `{login_request.email}`\n**Reason:** Invalid Credentials.",
-            0xFF0000,
-            headers
-        )
+        background_tasks.add_task(log_message, "User Failed To login", f"Email: `{login_request.email}`\n**Reason:** Invalid Credentials.", 0xFF0000, headers, httpx, datetime)
         return JSONResponse(status_code=401, content={"error": "Invalid credentials"})
 
     # Generate JWT token
@@ -285,13 +324,7 @@ async def login(request: Request, background_tasks: BackgroundTasks, login_reque
         access_token_expires
     )
     await insert_access_token(login_request.email, access_token, access_token_expires, clientdb)
-    background_tasks.add_task(
-        log_message,
-        "User Logged in",
-        f"Email: `{login_request.email}`",
-        0x3498db,
-        headers
-    )
+    background_tasks.add_task(log_message, "User Logged in", f"Email: `{login_request.email}`", 0x3498db, headers, httpx, datetime)
     return JSONResponse(status_code=200, content={"access_token": access_token, "expiration": str(access_token_expires)})
 
 @app.post("/v1/auth/register")
@@ -299,26 +332,14 @@ async def login(request: Request, background_tasks: BackgroundTasks, register_re
 
     verify_code_expire = datetime.now(timezone.utc) + timedelta(minutes=5)
     code = random.randint(100000, 999999)
-    register = await register_user(register_request.email, register_request.password, code, verify_code_expire, clientdb)
+    register = await register_user(register_request.email, register_request.password, code, verify_code_expire, clientdb, datetime)
     if register == "already registered":
-        background_tasks.add_task(
-            log_message,
-            "User Failed To register",
-            f"Email: `{register_request.email}`\n**Reason:** Account already exists.",
-            0xFF0000,
-            headers
-        )
+        background_tasks.add_task(log_message, "User Failed To register", f"Email: `{register_request.email}`\n**Reason:** Account already exists.", 0xFF0000, headers, httpx, datetime)
         return JSONResponse(status_code=401, content={"error": "Account already registered."})
 
-    code = await send_verify_email(register_request.email, verification_email, verify_email_pass, code)
+    code = await send_verify_email(register_request.email, verification_email, verify_email_pass, code, MIMEMultipart, MIMEText, smtplib)
 
-    background_tasks.add_task(
-        log_message,
-        "User Registered",
-        f"Email: `{register_request.email}`",
-        0x00FF00,
-        headers
-    )
+    background_tasks.add_task(log_message, "User Registered", f"Email: `{register_request.email}`", 0x00FF00, headers, httpx, datetime)
     return JSONResponse(status_code=200, content={"detail": "Account created as unverified."})
 
 
@@ -331,16 +352,16 @@ async def login(request: Request, background_tasks: BackgroundTasks):
     check = await check_verification_code(email, code, clientdb)
 
     if check == "verified":
-        background_tasks.add_task(log_message, "User Verified", f"Email: `{email}`", 0x00FF00, headers)
+        background_tasks.add_task(log_message, "User Verified", f"Email: `{email}`", 0x00FF00, headers, httpx, datetime)
 
         access_token_expires = datetime.now(timezone.utc) + timedelta(minutes=120)
         access_token = await create_access_token(jwt_secret, ALGORITHM, jwt, {"sub": email}, access_token_expires)
         await insert_access_token(email, access_token, access_token_expires, clientdb)
 
-        background_tasks.add_task(log_message, "User Logged in", f"Email: `{email}`", 0x3498db, headers)
+        background_tasks.add_task(log_message, "User Logged in", f"Email: `{email}`", 0x3498db, headers, httpx, datetime)
         return JSONResponse(status_code=200, content={"detail": "Account verified.", "access_token": access_token, "exp": str(access_token_expires)})
 
-    background_tasks.add_task(log_message, "User Failed To Verify", f"Email: `{email}`\n**Reason:** Invalid Verification code.", 0xFF0000, headers)
+    background_tasks.add_task(log_message, "User Failed To Verify", f"Email: `{email}`\n**Reason:** Invalid Verification code.", 0xFF0000, headers, httpx, datetime)
     return JSONResponse(status_code=401, content={"detail": "Invalid verification code."})
 
 @app.post("/v1/account/info")
@@ -348,7 +369,7 @@ async def account_info(request: Request, background_tasks: BackgroundTasks):
     json = await request.json()
     if not await verify_access_token(json['jwt_token'], clientdb): return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
  
-    email, logged_out_in = await get_account_info(json['jwt_token'], clientdb)
+    email, logged_out_in = await get_account_info(json['jwt_token'], clientdb, datetime)
     name = email.split('@')[0]
     return JSONResponse(status_code=200, content={"name": name, "email": email, "logged_out_in": logged_out_in})
 
@@ -364,8 +385,8 @@ async def generate_token(request: Request, background_tasks: BackgroundTasks):
     json = await request.json()
     if not await verify_access_token(json['jwt_token'], clientdb): return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
     
-    token = await generate_api_key()
-    email, logged_out_in = await get_account_info(json['jwt_token'], clientdb)
+    token = await generate_api_key(random, string)
+    email, logged_out_in = await get_account_info(json['jwt_token'], clientdb, datetime)
     await insert_account_token(token, email, clientdb)
 
     return JSONResponse(status_code=200, content={"token": token})
@@ -375,7 +396,7 @@ async def generate_token(request: Request, background_tasks: BackgroundTasks):
     json = await request.json()
     if not await verify_access_token(json['jwt_token'], clientdb): return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
 
-    email, logged_out_in = await get_account_info(json['jwt_token'], clientdb)
+    email, logged_out_in = await get_account_info(json['jwt_token'], clientdb, datetime)
     await delete_account_token(email, clientdb)
     return JSONResponse(status_code=200, content={"detail": "done"})
 
@@ -384,7 +405,7 @@ async def list_tokens(request: Request, background_tasks: BackgroundTasks):
     json = await request.json()
     if not await verify_access_token(json['jwt_token'], clientdb): return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
 
-    email, logged_out_in = await get_account_info(json['jwt_token'], clientdb)
+    email, logged_out_in = await get_account_info(json['jwt_token'], clientdb, datetime)
     token = await list_token(email, clientdb)
     return JSONResponse(status_code=200, content={"token": token})
 
