@@ -1,7 +1,6 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
-from bot_utilities.api_utils import check_user, insert_token, delete_token, get_api_stat
 
 class AiSlash(commands.Cog):
     def __init__(self, bot):
@@ -15,7 +14,7 @@ class AiSlash(commands.Cog):
         size="Select the size for the model.")
     @app_commands.choices(model=[
         app_commands.Choice(name="Flux-Dev", value="flux-dev"),
-        app_commands.Choice(name="Flux-Schnell", value="flux-dev"),
+        app_commands.Choice(name="Flux-Schnell", value="flux-schnell"),
         app_commands.Choice(name="SDXL-Turbo", value="sdxl-turbo"),
         app_commands.Choice(name="Polinations.ai", value="poli")
     ],
@@ -28,8 +27,8 @@ class AiSlash(commands.Cog):
         app_commands.Choice(name="768x1024" ,value="768x1024")
     ])
     async def imagine_pla(self, interaction: discord.Interaction, prompt: str, model: app_commands.Choice[str], size: app_commands.Choice[str]):
-        if await self.bot.func_checkblist(interaction, self.bot.db): return
         await interaction.response.defer(ephemeral=False)
+        if await self.bot.func_checkblist(interaction, self.bot.db): return
 
         if model.value == "poli" and not size.value == "1024x1024":
             await interaction.followup.send(f"> **Size `{size.value}` is not available for polinations.ai**")
@@ -66,8 +65,8 @@ class AiSlash(commands.Cog):
     @app_commands.describe(prompt="Enter the prompt for the image to generate.")
     async def poli_gen(self, interaction: discord.Interaction, prompt: str):
 
-        if await self.bot.func_checkblist(interaction, self.bot.db): return
         await interaction.response.defer(ephemeral=False)
+        if await self.bot.func_checkblist(interaction, self.bot.db): return
         delete_msg = await interaction.followup.send("> **⌚Please wait while I process your request.**")
 
         async with self.bot.modules_aiohttp.ClientSession() as session:
@@ -86,8 +85,8 @@ class AiSlash(commands.Cog):
     @app_commands.guild_only()
     @app_commands.describe(prompt="Enter prompt for the web to search!")
     async def search(self, interaction: discord.Interaction, prompt: str):
-        if await self.bot.func_checkblist(interaction, self.bot.db): return
         await interaction.response.defer(ephemeral=False)
+        if await self.bot.func_checkblist(interaction, self.bot.db): return
         image_urls = self.bot.func_search_img(prompt, self.bot)
         await self.bot.func_cse(discord, prompt, interaction, self.bot, image_urls)
 
@@ -95,70 +94,37 @@ class AiSlash(commands.Cog):
     @app_commands.command(name="generate-api-key", description="Generate an API key for XET")
     @app_commands.guild_only()
     async def create_api(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=False)
         if await self.bot.func_checkblist(interaction, self.bot.db): return
-        await interaction.response.defer(ephemeral=True)
-        
-        if interaction.guild.id != 1144903052717985806:
-            await interaction.followup.send("> :x: **You're not allowed to generate an API key in this server. Join XET to generate an API key: https://discord.com/invite/hmMBe8YyJ4**")
-            guild = await self.bot.fetch_guild(1144903052717985806)
-            channel = await guild.fetch_channel(1279262113503645706)
-            await channel.send(f"{interaction.user.mention} | {interaction.user.id} Failed to generate an API key in {interaction.guild}")
-            return
-
-        role = interaction.guild.get_role(1279261339574861895)
-        if role not in interaction.user.roles:  # Check if the user has the role
-            await interaction.followup.send("> :x: **You don't have the required role `verified` to generate an API key.**")
-            channel = interaction.guild.get_channel(1279262113503645706)
-            await channel.send(f"{interaction.user.mention} | {interaction.user.id} Failed to generate an API key in {interaction.guild} as the user is not verified")
-            return
-        
-        check = await check_user(self.bot.db, interaction.user.id)
-        if check:
-            await interaction.followup.send("> ❌ **You already have an API token! You can generate only one API token.**")
-            return
-        
-        token = await insert_token(self.bot.db, interaction.user.id)
-        await interaction.followup.send(f"> ✅ **API token is generated successfully. Do not share this key with anyone, even if they are from LuminaryAI!**\n* **Join our support server for help on how to use the API Key.**\n* **API token:**\n```bash\n{token}```\n")
-        channel = interaction.guild.get_channel(1279262113503645706)
-        await channel.send(f"{interaction.user.mention} Generated an API key in <#{interaction.channel.id}>.")
+        await interaction.followup.send("> :x: **Please use the [dashboard](https://xet.one/dashboard) to generate an API key.**")
 
     @app_commands.command(name="delete-api-key", description="Delete Your API key for XET")
     @app_commands.guild_only()
     async def delete_api(self, interaction: discord.Interaction):
-        if await self.bot.func_checkblist(interaction, self.bot.db): return
         await interaction.response.defer(ephemeral=False)
-        check = await check_user(self.bot.db, interaction.user.id)
-
-        if interaction.guild.id != 1144903052717985806:
-            await interaction.followup.send("> :x: **You're not allowed to delete API key in this server. Join XET to generate an API key:  https://discord.com/invite/hmMBe8YyJ4**")
-            guild = await self.bot.fetch_guild(1144903052717985806)
-            channel = await guild.fetch_channel(1279262113503645706)
-            await channel.send(f"{interaction.user.mention} | {interaction.user.id} Failed to delete API key in {interaction.guild}")
-            return
-        
-        role = interaction.guild.get_role(1279261339574861895)
-        if role not in interaction.user.roles:  # Check if the user has the role
-            await interaction.followup.send("> :x: **You don't have the required role `verified` to delete an API key.**")
-            channel = interaction.guild.get_channel(1279262113503645706)
-            await channel.send(f"{interaction.user.mention} | {interaction.user.id} Failed to delete API key in {interaction.guild} as the user is not verified.")
-            return
-        if check:
-            deleted = await delete_token(self.bot.db, interaction.user.id)
-            if deleted:
-                await interaction.followup.send("> ✅ **API token is deleted successfully**")
-                channel = interaction.guild.get_channel(1279262113503645706)
-                await channel.send(f"{interaction.user.mention} Deleted an API key in <#{interaction.channel.id}>.")
-            else:
-                await interaction.followup.send("> ❌ **Failed to delete API token**")
-        else: await interaction.followup.send("> ❌ **You don't have an API key!**")
-
+        if await self.bot.func_checkblist(interaction, self.bot.db): return
+        await interaction.followup.send("> :x: **Please use the [dashboard](https://xet.one/dashboard) to delete an API key.**")
 
     @app_commands.command(name="api-stats", description="View our API stats")
     @app_commands.guild_only()
     async def api_stats(self, interaction: discord.Interaction):
         if await self.bot.func_checkblist(interaction, self.bot.db): return
         await interaction.response.defer(ephemeral=False)
-        stats = await get_api_stat(self.bot.db)
+
+        db = self.bot.db['lumi-api']
+        collection = db['stats']
+        stats = collection.find_one({"key": "api_stats"})
+
+        if stats and 'value' in stats:
+            model_stats = stats['value']
+            formatted_stats = []
+
+            for model_name, total_requests in model_stats.items():
+                formatted_stats.append(f"**{model_name}:** `{total_requests}`")
+
+            stats = "\n".join(formatted_stats)
+        else:
+            stats = "No API stats found."
 
         embed = discord.Embed(
             title="XET API Stats",
