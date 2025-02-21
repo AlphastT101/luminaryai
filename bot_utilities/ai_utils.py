@@ -39,7 +39,6 @@ def search_image(query, bot):
         response.raise_for_status()
         soup = bot.modules_bs4.BeautifulSoup(response.text, 'html.parser')
 
-        # Find all image tags
         image_tags = soup.find_all('img', {'class': 'mimg'})
         image_urls = [img['src'] for img in image_tags[:10]]
         
@@ -47,8 +46,6 @@ def search_image(query, bot):
     except bot.modules_requests.exceptions.RequestException as e:
         print(f"Error searching for images: {e}")
         return None
-
-
 
 async def create_and_send_embed(discord, query, interaction, image_urls, bot, target_size=(256, 256)):
 
@@ -72,11 +69,10 @@ async def create_and_send_embed(discord, query, interaction, image_urls, bot, ta
         for url in image_urls:
             try:
                 async with session.get(url) as response:
-                    content_type = response.headers.get('Content-Type') # Get the content type from the response headers
+                    content_type = response.headers.get('Content-Type')
                     if content_type and 'image' in content_type:
                         img_data = await response.read()
-                        
-                        # Special handling for GIFs
+
                         if 'gif' in content_type:
                             images.append((img_data, 'gif'))
                             continue
@@ -84,23 +80,18 @@ async def create_and_send_embed(discord, query, interaction, image_urls, bot, ta
                         img = bot.modules_PIL.Image.open(bot.modules_io.BytesIO(img_data))
                         img = img.resize(target_size, bot.modules_PIL.Image.LANCZOS)
 
-                        # Convert image to numpy array for OpenCV
                         img_cv = bot.modules_np.array(img)
                         img_cv = bot.modules_cv2.cvtColor(img_cv, bot.modules_cv2.COLOR_RGB2BGR)
 
-                        # Calculate image hash
                         img_hash = bot.modules_imagehash.average_hash(img)
 
-                        # Check for duplicates
                         if is_duplicate(img_hash, img_cv):
                             continue
 
-                        # Add image and buffer if not duplicate
                         hashes.add(img_hash)
                         images.append((img_data, 'image'))
                         buffers.append(img_cv)
                     else:
-                        # If the content is not an image, skip it
                         continue
 
             except Exception as e:
@@ -110,13 +101,11 @@ async def create_and_send_embed(discord, query, interaction, image_urls, bot, ta
         await channel.send("No valid images found.")
         return
 
-    # Prepare a list of image URLs to include in embeds
-    attachment_urls = image_urls[:4]  # Adjust this as needed
+    attachment_urls = image_urls[:4]
 
-    # Create a list of embeds
     embeds = []
     for i, img_url in enumerate(attachment_urls):
-        result = web_search(query)
+        result = web_search(query, bot)
         description = (
             f':mag: **Search Query:** {query}\n\n'
             f'{result}'
@@ -126,7 +115,6 @@ async def create_and_send_embed(discord, query, interaction, image_urls, bot, ta
         except AttributeError: user = interaction.author; avatar_url = interaction.author.avatar.url
         embed.set_footer(text=f"Requested by {user}", icon_url=avatar_url)
 
-        # Set image in embed
         embed.set_image(url=img_url)
         embeds.append(embed)
 
