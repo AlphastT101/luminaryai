@@ -162,12 +162,10 @@ cython_debug/
 #.idea/
 
 
-# Custom made - alphast101
+# Custom made - XET
 *.exe
-*.yml
+*.log
 cache/
-fh_xeh_fr/
-flux.py
-api_test.py
+api-test.py
 test.py
-formator.py
+config.yml
