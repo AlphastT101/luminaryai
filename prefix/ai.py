@@ -49,7 +49,8 @@ class Ai(commands.Cog):
                 timestamp=ctx.message.created_at
             )
             send_embed.set_footer(icon_url=self.bot.user.avatar.url, text="Thanks for using LuminaryAI!")
-            image = await self.bot.poly_imgen(session, prompt, self.bot)
+            image = await self.bot.func_poly_imgen(session, prompt, self.bot)
+
             file=discord.File(image, 'generated_image.png')
             send_embed.set_image(url=f'attachment://generated_image.png')
             await delete_msg.delete()
@@ -74,13 +75,13 @@ class Ai(commands.Cog):
         wait.set_thumbnail(url='attachment://web_search.png')
         wait_message = await ctx.send(embed=wait, file=file_web_search)
 
-        image_urls = self.bot.search_img(query, self.bot)
+        image_urls = self.bot.func_searchimg(query, self.bot)
         if not image_urls:
             await wait_message.delete()
             await ctx.send("> ❌ **Aww, no results found!**")
             return
 
-        await self.bot.cse(query, self.bot, ctx, image_urls)
+        await self.bot.func_cse(self.bot.modules_discord, query, ctx, image_urls, self.bot)
         await wait_message.delete()
 
 async def setup(bot):
