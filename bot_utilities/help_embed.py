@@ -41,11 +41,9 @@ information_commannds = [
 ai_commands = [
     ('`/imagine {prompt}`', "❯ Generate images using our API."),
     ('`/poli {prompt}`', "❯ Generate images using pollinations.ai according to user-inputs. We prefer to use the slash command `/imagine`"),
-    # ('`/ask {prompt}`', "❯ Generates answers according to user-inputs. Message history available"),
     ('`/search {prompt}`', "❯ Search the web for text and images"),
-    # ('`/vision {prompt}`', "❯ Vision an image. This command is slash only."),
-    ('`/generate-api-key`', "❯ Generate an API key for our API, join our support server for more info."),
-    ('`/delete-api-key`', "❯ deletes your API key for our API."),
+    ('`/generate-api-key`', "❯ Generate API key, now disabled."),
+    ('`/delete-api-key`', "❯ Delete API key, now disaled."),
     ('`@luminaryai {prompt}`', "❯ Ping LuminaryAI to generate text and images."),
     ('`@luminaryai activate`', "❯ Enable AI responses, You need admin permissions to run this command."),
     ('`@luminaryai deactivate`', "❯ Disable AI responses. You need admin permissions to run this command."),
@@ -90,7 +88,6 @@ embed_moderation = discord.Embed(title="MODERATION Commands", color=c)
 embed_automod = discord.Embed(title="AUTOMOD Commands - under development", color=c)
 embed_admin = discord.Embed(title="ADMIN Commands - under development", color=c)
 embed_music = discord.Embed(title="MUSIC Commands", color=c)
-del c
 
 bot_thumbnail = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRMqcwdPNaGunh0E1J4YV2O5ch0jbFPL8dw1Q&s"
 ai_thumbnail = "https://th.bing.com/th/id/OIP._C4wM7_FMFicRBck9H6T-QHaHa?w=512&h=512&rs=1&pid=ImgDetMain"
@@ -107,5 +104,3 @@ embed_moderation.set_thumbnail(url=moderation_thumbnail)
 embed_music.set_thumbnail(url=music_thumbnail)
 # embed_automod.set_thumbnail(url=automod_thumbnail)
 # embed_admin.set_thumbnail(url=admin_thumbnail)
-
-del bot_thumbnail, ai_thumbnail, fun_thumbnail, moderation_thumbnail, music_thumbnail
