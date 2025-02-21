@@ -1,7 +1,4 @@
-import discord
-from discord import Embed as em
 from discord.ext import commands
-from discord import Color as color
 from bot_utilities.music_utils import *
 
 

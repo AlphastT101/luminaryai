@@ -1,6 +1,3 @@
-import time
-import discord
-import datetime
 from discord.ext import commands
 from discord.ui import Button, View
 from bot_utilities.help_embed import *
@@ -27,9 +24,9 @@ class Information(commands.Cog):
     @commands.command(name="uptime")
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def uptime(self, ctx):
-        current_time = time.time()
+        current_time = self.bot.modules_time.time()
         difference = int(round(current_time - self.bot.start_time))
-        uptime_duration = datetime.timedelta(seconds=difference)
+        uptime_duration = self.bot.modules_datetime.timedelta(seconds=difference)
 
         embed = discord.Embed(colour=0xc8dc6c)
         embed.add_field(name="LuminaryAI - Uptime", value=str(uptime_duration))

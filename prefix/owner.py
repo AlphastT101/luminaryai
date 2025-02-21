@@ -1,6 +1,4 @@
-import io
 import discord
-import contextlib
 from discord.ext import commands
 from bot_utilities.owner_utils import *
 
@@ -10,7 +8,8 @@ class Owner(commands.Cog):
 
     @commands.command(name="server")
     async def list_guilds(self, ctx):
-        """Lists all the guilds the bot is in along with their IDs."""
+        if ctx.author.id != 1026388699203772477: return
+
         guilds = ctx.bot.guilds
         per_page = 20  # Number of guilds to display per page
         total_pages = (len(guilds) + per_page - 1) // per_page  # Calculate total pages
@@ -180,13 +179,13 @@ class Owner(commands.Cog):
             "__import__": __import__
         }
 
-        stdout = io.StringIO()
+        stdout = self.bot.modules_io.StringIO()
         def wrapped_exec():
             try:
                 exec(f"async def func():\n{code}", local_variables)
             except Exception as e:
                 stdout.write(f"{type(e).__name__}: {e}")
-        with contextlib.redirect_stdout(stdout):
+        with self.bot.modules_contextlib.redirect_stdout(stdout):
             wrapped_exec()
             if 'func' in local_variables:
                 func = local_variables['func']

@@ -1,24 +1,18 @@
-import re
-import asyncio
 import discord
-from datetime import timedelta
 from discord.ext import commands
 
-def parse_duration(duration_str):
-    match = re.match(r"(\d+)([dhm])", duration_str)
+def parse_duration(duration_str, bot):
+    match = bot.modules_re.match(r"(\d+)([dhm])", duration_str)
     if not match:
         return None
     duration, unit = match.groups()
     duration = int(duration)
     if unit == 'd':
-        return timedelta(days=duration)
+        return bot.modules_datetime.timedelta(days=duration)
     elif unit == 'h':
-        return timedelta(hours=duration)
+        return bot.modules_datime.timedelta(hours=duration)
     elif unit == 'm':
-        return timedelta(minutes=duration)
-
-
-
+        return bot.modules_datetime.timedelta(minutes=duration)
 
 class Moderation(commands.Cog):
     def __init__(self, bot):
@@ -41,7 +35,7 @@ class Moderation(commands.Cog):
                         await ctx.send("**If you want to delete just one message, then please do this manually.**", delete_after=3)
                     else:
                         await ctx.channel.purge(limit=num_messages_int + 1)  # +1 to include the command message
-                        await ctx.send(embed=discord.Embed(title=f"**Successfully purged {num_messages_int} messages**"), delete_after=3)
+                        await ctx.send(embed=self.bot.modules_discord.Embed(title=f"**Successfully purged {num_messages_int} messages**"), delete_after=3)
                 except ValueError:
                     await ctx.send("**Invalid input. Please provide a valid number of messages.**", delete_after=3)
             else:
@@ -92,7 +86,7 @@ class Moderation(commands.Cog):
                 await confirm_msg.delete()
                 await ctx.send(embed=discord.Embed(description="**Action cancelled.**\n`{member}` has not been kicked.",colour=0xc8dc6c))
 
-        except asyncio.TimeoutError:
+        except self.bot.modules_asyncio.TimeoutError:
             await confirm_msg.delete()
             await ctx.send(embed=discord.Embed(description="**No reaction received. Kick action cancelled.**",colour=0xFF0000))
         except discord.Forbidden:
@@ -143,7 +137,7 @@ class Moderation(commands.Cog):
                 await confirm_msg.delete()
                 await ctx.send(embed=discord.Embed(description=f"**Action cancelled.**`\n{member}` has not been banned.",colour=0xFF0000))
 
-        except asyncio.TimeoutError:
+        except self.bot.modules_asyncio.TimeoutError:
             await confirm_msg.delete()
             await ctx.send(embed=discord.Embed(description="**No reaction received. ban action cancelled.**", color=0xFF0000))
         except discord.Forbidden:
@@ -176,7 +170,7 @@ class Moderation(commands.Cog):
 
                     try:
                         reaction, user_check = await self.bot.wait_for('reaction_add', timeout=20.0, check=check)
-                    except asyncio.TimeoutError:
+                    except self.bot.modules_asyncio.TimeoutError:
                         await confirm_message.delete()
                         await ctx.send(embed=discord.Embed(description="**Unban confirmation failed. Command cancelled.**", color=0xFF0000))
                         return
@@ -233,7 +227,7 @@ class Moderation(commands.Cog):
         if duration is None:
             await ctx.send(embed=discord.Embed(description="**Please provide a valid duration.**", color=0xFF0000))
             return
-        time_delta = parse_duration(duration)
+        time_delta = parse_duration(duration, self.bot)
         if time_delta is None:
             await ctx.send(embed=discord.Embed(description="**Invalid duration. Use 'd' for days, 'h' for hours, 'm' for minutes.**", color=0xFF0000))
             return
@@ -253,7 +247,7 @@ class Moderation(commands.Cog):
             try:
 
                 reaction, user = await ctx.bot.wait_for('reaction_add', timeout=20.0, check=check)
-            except asyncio.TimeoutError:
+            except self.bot.modules_asyncio.TimeoutError:
                 await confirm_message.delete()
                 await ctx.send(embed=discord.Embed(description="**Timeout confirmation failed. Command cancelled.**", color=0xFF0000))
                 return
@@ -316,7 +310,7 @@ class Moderation(commands.Cog):
                 await ctx.send(embed=discord.Embed(description=f"**Action cancelled, {member} has not been unmuted**", color=0xFF0000))
                 return
 
-        except asyncio.TimeoutError:
+        except self.bot.modules_asyncio.TimeoutError:
             await confirm_message.delete()
             await ctx.send(embed=discord.Embed(description="**Confirmation timed out. Action cancelled.**", color=0xFF0000))
         except discord.Forbidden:
@@ -362,7 +356,7 @@ class Moderation(commands.Cog):
         try:
 
             reaction, user = await ctx.bot.wait_for('reaction_add', timeout=20.0, check=check)
-        except asyncio.TimeoutError:
+        except self.bot.modules_asyncio.TimeoutError:
             await confirmation_message.delete()
             await ctx.send(embed=discord.Embed(description="**Purge links command cancelled.**", color=0xFF0000))
             return
@@ -417,7 +411,7 @@ class Moderation(commands.Cog):
         try:
 
             reaction, user = await self.bot.wait_for('reaction_add', timeout=20.0, check=check)
-        except asyncio.TimeoutError:
+        except self.bot.modules_asyncio.TimeoutError:
             await confirmation_message.delete()
             await ctx.send(embed=discord.Embed(description="**Purge files command cancelled.**",colour=0xFF0000))
             return
