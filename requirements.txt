@@ -9,9 +9,10 @@ openai
 psutil
 yt_dlp
 youtube_dl
-fastapi
 uvicorn
 websockets
 PyNaCl
 audioop-lts
+
+fastapi
 PyJWT
