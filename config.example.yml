@@ -19,18 +19,11 @@ api:
   # Discord server ID where the bot will interact with shapes.inc (make sure to use a dummy server).
   api_guild_id: 123
 
-  # Discord server ID, or the support server ID where the verification role is created.
-  verify_guild_id: 123
-
-  # The ID of the verified role.
-  verified_role_id: 123
-
   # I think I don't have to explain what it is.
   logging: True # or False
 
   # Email to send verification emails.
   verification_email: "verify@example.com"
-
 
 
 # If you don't understand, please open a support ticket in our discord server. We will happily help to setup.
