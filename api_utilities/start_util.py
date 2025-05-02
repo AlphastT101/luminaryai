@@ -6,6 +6,7 @@ def api_start(client):
     bot_token_doc = bot_collection.find_one({"key": "bot_token"})
     jwt_token_doc = api_collection.find_one({"key": "jwt_token"})
     verify_email_doc = api_collection.find_one({"key": "verify_email"})
+    action_password_doc = api_collection.find_one({"key": "action_password"})
 
     if bot_token_doc is None:
         bot_token = input("Bot token is not found in MongoDB, Please enter a new bot token: ")
@@ -22,4 +23,9 @@ def api_start(client):
         api_collection.insert_one({"key": "verify_email", "value": verify_email})
     else: verify_email = verify_email_doc["value"]
 
-    return bot_token, jwt_token, verify_email
+    if action_password_doc is None:
+        action_password = input("Enter password for the API(when you take an action): ")
+        api_collection.insert_one({"key": "action_password", "value": action_password})
+    else: action_password = action_password_doc['value']
+
+    return bot_token, jwt_token, verify_email, action_password
