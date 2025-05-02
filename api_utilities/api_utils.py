@@ -1,43 +1,47 @@
+import httpx
+import random
+import string
+import smtplib
+import requests
+from email.mime.text import MIMEText
+from datetime import datetime, timezone
+from email.mime.multipart import MIMEMultipart
+
 available = [
-'llama-3.3-70b-turbo', 'phi-4', 'deepseek-r1', 'deepseek-v3',
-'deepseek-r1-llama-3.3-70b-distill', 'lunaris-l3-8b', 'wazardlm-2-8x22b',
-'mythomax-13b', 'mistral-nemo', 'gemini-1.5-flash', 'gemini-1.5-pro',
-'gemma-2-27b', 'gemma-2-9b-turbo', 'llama-3-70b-intruct', 'llama-3.1-70b',
-'llama-3.1-70b-instruct', 'llama-3.1-8b-turbo', 'llama-3.3-70b', 'qwen-2.5-coder-32b',
-'qwq-32b'
+'qwen/qwen3-0.6b-04-28:free', 'qwen/qwen3-1.7b:free', 'qwen/qwen3-4b:free', 'opengvlab/internvl3-14b:free', 'opengvlab/internvl3-2b:free', 'deepseek/deepseek-prover-v2:free',
+'qwen/qwen3-30b-a3b:free', 'qwen/qwen3-8b:free', 'qwen/qwen3-14b:free', 'qwen/qwen3-32b:free', 'qwen/qwen3-235b-a22b:free', 'tngtech/deepseek-r1t-chimera:free',
+'thudm/glm-z1-9b:free', 'thudm/glm-4-9b:free', 'microsoft/mai-ds-r1:free', 'thudm/glm-z1-32b:free', 'thudm/glm-4-32b:free', 'shisa-ai/shisa-v2-llama3.3-70b:free',
+'arliai/qwq-32b-arliai-rpr-v1:free', 'agentica-org/deepcoder-14b-preview:free', 'moonshotai/kimi-vl-a3b-thinking:free', 'nvidia/llama-3.3-nemotron-super-49b-v1:free',
+'nvidia/llama-3.1-nemotron-ultra-253b-v1:free', 'meta-llama/llama-4-maverick:free', 'meta-llama/llama-4-scout:free', 'deepseek/deepseek-v3-base:free', 'allenai/molmo-7b-d:free',
+'bytedance-research/ui-tars-72b:free', 'qwen/qwen2.5-vl-3b-instruct:free', 'google/gemini-2.5-pro-exp-03-25', 'qwen/qwen2.5-vl-32b-instruct:free',
+'deepseek/deepseek-chat-v3-0324:free', 'featherless/qwerky-72b:free', 'mistralai/mistral-small-3.1-24b-instruct:free', 'open-r1/olympiccoder-32b:free', 'google/gemma-3-1b-it:free',
+'google/gemma-3-4b-it:free', 'google/gemma-3-12b-it:free', 'rekaai/reka-flash-3:free', 'google/gemma-3-27b-it:free', 'deepseek/deepseek-r1-zero:free', 'qwen/qwq-32b:free',
+'moonshotai/moonlight-16b-a3b-instruct:free', 'nousresearch/deephermes-3-llama-3-8b-preview:free', 'cognitivecomputations/dolphin3.0-r1-mistral-24b:free',
+'cognitivecomputations/dolphin3.0-mistral-24b:free', 'qwen/qwen2.5-vl-72b-instruct:free', 'mistralai/mistral-small-24b-instruct-2501:free',
+'deepseek/deepseek-r1-distill-qwen-32b:free', 'deepseek/deepseek-r1-distill-qwen-14b:free', 'deepseek/deepseek-r1-distill-llama-70b:free', 'deepseek/deepseek-r1:free',
+'deepseek/deepseek-chat:free', 'google/gemini-2.0-flash-exp:free', 'meta-llama/llama-3.3-70b-instruct:free', 'qwen/qwq-32b-preview:free', 'google/learnlm-1.5-pro-experimental:free',
+'qwen/qwen-2.5-coder-32b-instruct:free', 'qwen/qwen-2.5-7b-instruct:free', 'meta-llama/llama-3.2-3b-instruct:free', 'meta-llama/llama-3.2-1b-instruct:free',
+'meta-llama/llama-3.2-11b-vision-instruct:free', 'qwen/qwen-2.5-72b-instruct:free', 'qwen/qwen-2.5-vl-7b-instruct:free', 'google/gemini-flash-1.5-8b-exp',
+'meta-llama/llama-3.1-405b:free', 'meta-llama/llama-3.1-8b-instruct:free', 'mistralai/mistral-nemo:free', 'google/gemma-2-9b-it:free', 'mistralai/mistral-7b-instruct:free',
+'huggingfaceh4/zephyr-7b-beta:free'
 ]
 
-
-async def poli(prompt, random, requests):
+async def poli(prompt):
     seed = random.randint(1, 100000)
     image_url = f"https://image.pollinations.ai/prompt/{prompt}?seed={seed}"
     response = requests.get(image_url)
     return response.url
 
-async def generate_api_key(random, string):
+async def generate_api_key():
     random_string = ''.join(random.choices(string.ascii_letters + string.digits, k=40))
     api_key = f'XET-{random_string}'
     return api_key
 
-
 async def check_token(mongodb, token):
-    db = mongodb["lumi-api"]
-    collection = db["apitokens"]
-    collection_accounts = db['accounts_registered']
-
-    result = collection.find_one({"apitoken": token})
+    collection_accounts = mongodb["lumi-api"]['accounts_registered']
     result_accounts = collection_accounts.find_one({"api_token": token})
-    if result and not result_accounts: return True, True, None # discord user
-    elif not result and result_accounts: return True, False, result_accounts['email'] # not a discord user
-    else: return None, None, None
-
-async def get_id(mongodb, token):
-    db = mongodb["lumi-api"]
-    collection = db["apitokens"]
-    id_doc = collection.find_one({"apitoken": token})
-    user_id = "None" if not id_doc["userid"] else id_doc["userid"]
-    return user_id
-
+    if result_accounts: return True, result_accounts['email']
+    else: return False, None
 
 async def save_api_stats(new_api_stats, mongodb):
     db = mongodb['lumi-api']
@@ -63,7 +67,6 @@ async def save_api_stats(new_api_stats, mongodb):
 
     return existing_stats
 
-
 def get_t_sbot(mongodb):
     db = mongodb['tokens']
     collection = db['bot']
@@ -78,13 +81,12 @@ def get_t_sbot(mongodb):
     else:
         return sbot['value']
 
-
-async def delete_channel(channel_id, headers, httpx):
+async def delete_channel(channel_id, headers):
     async with httpx.AsyncClient() as client:
         try:
-            req = await client.delete(f"https://discord.com/api/v9/channels/{channel_id}", headers=headers)
-        except httpx.HTTPError as e:
-            print(f"Failed to delete channel: {str(e)}")
+            await client.delete(f"https://discord.com/api/v9/channels/{channel_id}", headers=headers)
+        except Exception as e:
+            print(f"ERROR delete_channel(): {e}")
 
 async def get_api_stat(mongodb):
     db = mongodb['lumi-api']
@@ -102,13 +104,13 @@ async def get_api_stat(mongodb):
     else:
         return "No API stats found."
 
-async def log_image(user_id, engine, img_url, prompt, headers, httpx, datetime):
+async def log_image(email, engine, img_url, prompt, headers):
     async with httpx.AsyncClient() as client:
         try:
 
             embed = {
                 "title": "Image Generated",
-                "description": f"**User**: <@{user_id}>\n**Model:** {engine}\n\n **Prompt:**\n```{prompt}```",
+                "description": f"**User**: {email}\n**Model:** {engine}\n\n **Prompt:**\n```{prompt}```",
                 "color": 0x3498db,  # Blue color
                 "image": {"url": img_url},
                 "timestamp": datetime.now(timezone.utc).isoformat()
@@ -128,7 +130,7 @@ async def log_image(user_id, engine, img_url, prompt, headers, httpx, datetime):
             print("Error in api_utils.py at line 147.")
             print(f"WARNING: An unexpected error occurred: {str(e)}")
 
-async def log_message(title, description, color, headers, httpx, datetime):
+async def log_message(title, description, color, headers, channel_id=None):
     async with httpx.AsyncClient() as client:
         try:
 
@@ -141,15 +143,15 @@ async def log_message(title, description, color, headers, httpx, datetime):
 
             data = {"embeds": [embed]}
             req = await client.post(
-                f'https://discord.com/api/v9/channels/1318968624958013491/messages',
+                f'https://discord.com/api/v9/channels/{channel_id or "1318968624958013491"}/messages',
                 json=data,
                 headers=headers
             )
             req.raise_for_status()
         except httpx.HTTPStatusError as exc:
-            print(f"WARNING: FAILED TO LOG IMAGE, ERROR: {exc.response.text}")
+            print(f"Error while trying to log message: {exc.response.text}")
         except Exception as e:
-            print(f"WARNING: An unexpected error occurred: {str(e)}")
+            print(f"Error while trying to log message: {str(e)}")
 
 
 async def create_access_token(SECRET_KEY, ALGORITHM, jwt, data, expires_delta):
@@ -195,7 +197,7 @@ async def verify_login_details(email, password, mongodb):
     except Exception as e:
         return None
 
-async def register_user(email, password, verification_code, exp,  mongodb, datetime):
+async def register_user(email, password, verification_code, exp,  mongodb):
     db = mongodb['lumi-api']
     collection = db['accounts_registered']
 
@@ -249,7 +251,7 @@ async def check_verification_code(email, code, mongodb):
         return "unverified"
 
 
-async def send_verify_email(to_email, email_from, password, code, MIMEMultipart, MIMEText, smtplib):
+async def send_verify_email(to_email, email_from, password, code):
     subject = "XET - Email verification"
     body = f"""
     <html>
@@ -278,7 +280,7 @@ async def send_verify_email(to_email, email_from, password, code, MIMEMultipart,
 
 from datetime import timezone
 
-async def get_account_info(jwt_token, mongodb, datetime):
+async def get_account_info(jwt_token, mongodb):
     db = mongodb['lumi-api']
     collection = db['jwt_tokens']
     doc = collection.find_one({"jwt_access_token": jwt_token})
@@ -332,51 +334,3 @@ async def get_api_stats(mongodb):
     collection = db['stats']
     doc = collection.find_one({"key": "api_stats"})
     return doc['value']
-
-async def get_engine_id(model, size):
-    if model == "flux-dev":
-        if size == "1024x1024": return "1280547383330996265"
-        if size == "1024x576": return "1317112160178012211"
-        if size == "1024x768": return "1317111418746572871"
-        if size == "512x512": return "1309060402579243039"
-        if size == "576x1024": return "1317054614205632582"
-        if size == "768x1024": return "1309051413401436200"
-
-    if model == "flux-schnell":
-        if size == "1024x1024": return "1254085308614709318"
-        if size == "1024x576": return "1317045818636898335"
-        if size == "1024x768": return "1317042650573963316"
-        if size == "512x512": return "1309091286912860190"
-        if size == "576x1024": return "1317026958391119903"
-        if size == "768x1024": return "1309093699631714364"
-
-    if model == "sdxl-turbo":
-        if size == "1024x1024": return "1265594684084981832"
-        if size == "1024x576": return "1317120446285742171"
-        if size == "1024x768": return "1317119334933594143"
-        if size == "512x512": return "1309096880470233139"
-        if size == "576x1024": return "1317118112512086127"
-        if size == "768x1024": return "1309098603196846161"
-
-    if model == 'llama-3.3-70b-turbo': return "1334027674041188403"
-    if model == "phi-4" : return "1269268810452697171"
-    if model == 'deepseek-v3' : return "1267667453400322048"
-    if model == 'deepseek-r1' : return "1334014377531150417"
-    if model == 'deepseek-r1-llama-3.3-70b-distill' : return "1335829304872796171"
-    if model == 'lunaris-l3-8b' : return "1335840965776244777"
-    if model == 'wazardlm-2-8x22b' : return "1335847430163402832"
-    if model == 'mythomax-13b' : return "1335849207571021914"
-    if model == 'mistral-nemo' : return "1335848676609757244"
-    if model == "gemini-1.5-flash" : return "1335983706569179176"
-    if model == 'gemini-1.5-pro' : return "1335984488437518398"
-    if model == 'gemma-2-27b' : return "1335981921481658440"
-    if model == 'gemma-2-9b-turbo' : return "1335982976005312613"
-    if model == 'llama-3-70b-intruct' : return "1336333593244602480"
-    if model == 'llama-3.1-70b' : return "1336332553023524875"
-    if model == 'llama-3.1-70b-instruct' : return "1336333074031448217"
-    if model == 'llama-3.1-8b-turbo' : return "1335985846104625183"
-    if model == 'llama-3.3-70b' : return "1336327195857256510"
-    if model == 'qwen-2.5-coder-32b' : return "1336328341569015888"
-    if model == 'qwq-32b' : return "1336327778693288087"
-
-    else: return "error"
