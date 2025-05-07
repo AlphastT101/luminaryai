@@ -1,35 +1,16 @@
-import io
-import os
-import re
-import bs4
-import cv2
-import PIL
 import time
 import yaml
 import signal
-import string
-import random
-import psutil
-import aiohttp
 import asyncio
 import discord
-import datetime
 import requests
-import imagehash
-import contextlib
-import numpy as np
-from openai import AsyncOpenAI
-from discord.ui import View, Button
-from discord.ext import commands, tasks
+from discord.ext import commands
 from pymongo.mongo_client import MongoClient
 
 from bot_utilities.start_util import *
 from events.on_messages import on_messages
 from events.member_join import member_join
 from events.on_cmd_error import on_cmd_error
-from bot_utilities.about_embed import about_embed
-from bot_utilities.owner_utils import check_blist
-from bot_utilities.ai_utils import image_generate, poly_image_gen, search_image, create_and_send_embed
 
 with open("config.yml", "r") as config_file: config = yaml.safe_load(config_file)
 
@@ -38,11 +19,9 @@ if config['bot']['start_api']:
     from api import app
 
 async def run_flask_app_async(asyncio):
-
     def run_api():
         port = config["api"]["port"]
         uvicorn.run("api:app", host='0.0.0.0', port=port, log_level="warning")
-
     loop = asyncio.get_running_loop()
     await loop.run_in_executor(None, run_api)
 
@@ -64,71 +43,17 @@ mongodb = config["bot"]["mongodb"]
 bot.db = MongoClient(mongodb)
 bot_token = start(bot.db)
 
-bot.modules_io = io
-bot.modules_re = re
-bot.modules_os = os
-bot.modules_np = np
-bot.modules_cv2 = cv2
-bot.modules_bs4 = bs4
-bot.modules_PIL = PIL
-bot.modules_time = time
-bot.modules_view = View
-bot.modules_random = random
-bot.modules_string = string
-bot.modules_button = Button
-bot.modules_psutil = psutil
-bot.modules_aiohttp = aiohttp
-bot.modules_discord = discord
-bot.modules_asyncio = asyncio
-bot.modules_datetime = datetime
-bot.modules_requests = requests
-bot.modules_imagehash = imagehash
-bot.modules_contextlib = contextlib
-
-bot.about_embed = about_embed
 bot.start_time = time.time()
 bot.is_generating = {}
-
-bot.func_imgen = image_generate
-bot.func_searchimg = search_image
-bot.func_checkblist = check_blist
-bot.func_poly_imgen = poly_image_gen
-bot.func_cse = create_and_send_embed
-
-bot.xet_client = AsyncOpenAI(
-    base_url = f'http://localhost:{config["api"]["port"]}/v1',
-    api_key="aner123!",
-)
 
 on_messages(bot, bot.db)
 on_cmd_error(bot)
 member_join(bot)
 
-
-bio = """Smart AI bot packed with features on Discord. Managed and developed by XET. AI Engine by shapes.inc.
-
-Site: https://xet.one
-Support: https://discord.gg/hmMBe8YyJ4
-API Playground: https://play.xet.one"""
-
-@tasks.loop(seconds=30)
-async def update_bio():
-    url = "https://discord.com/api/v9/applications/@me"
-    headers = {"Authorization": f"Bot {bot_token}"}
-    data = {"description": bio}
-    requests.patch(url=url, headers=headers, json=data)
-
-@tasks.loop(seconds=300)
-async def sync_slash_cmd():
-    await bot.tree.sync()
-
 @bot.event
 async def on_ready():
     print(f'We have logged in as {bot.user}')
-
-    await bot.load_extension("prefix.moderation")
     await bot.load_extension("prefix.information")
-    await bot.load_extension("prefix.music")
     await bot.load_extension("prefix.owner")
     await bot.load_extension("prefix.fun")
     await bot.load_extension("prefix.ai")
@@ -136,10 +61,6 @@ async def on_ready():
     await bot.load_extension("slash.ai")
     await bot.load_extension("slash.fun")
     await bot.load_extension("slash.information")
-    await bot.load_extension("slash.moderation")
-
-    sync_slash_cmd.start()
-    update_bio.start()
 
     if config['bot']['start_api']:
         global flask_task
