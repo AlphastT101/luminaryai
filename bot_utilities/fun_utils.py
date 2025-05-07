@@ -1,3 +1,5 @@
+from PIL import Image, ImageDraw, ImageFont
+
 facts = [
     "Honey never spoils. Archaeologists have found pots of honey in ancient Egyptian tombs that are over 3,000 years old and still perfectly edible.",
     "The shortest war in history was between Britain and Zanzibar on August 27, 1896. Zanzibar surrendered after 38 minutes.",
@@ -61,14 +63,14 @@ def wordleScore(target, guess):
     return score
 
 
-def generate_wordle_image(input_string, colors, pillow):
+def generate_wordle_image(input_string, colors):
     char_width = 40
     char_height = 60
     total_width = char_width * len(input_string)
     total_height = char_height
 
-    image = pillow.Image.new('RGB', (total_width, total_height), color=(238, 238, 238))  # Light gray background
-    draw = pillow.ImageDraw.Draw(image)
+    image = Image.new('RGB', (total_width, total_height), color=(238, 238, 238))  # Light gray background
+    draw = ImageDraw.Draw(image)
 
     color_map = {
         "1": (255, 187, 51),
@@ -76,7 +78,7 @@ def generate_wordle_image(input_string, colors, pillow):
         "0": (128, 128, 128),
     }
 
-    font = pillow.ImageFont.truetype('arial.ttf', 40)
+    font = ImageFont.truetype('arial.ttf', 40)
 
     for i, (char, color) in enumerate(zip(input_string, colors)):
         x_pos = i * char_width

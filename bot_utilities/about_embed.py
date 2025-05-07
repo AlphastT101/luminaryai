@@ -1,18 +1,23 @@
+import time
+import psutil
+import discord
+import datetime
+
 async def about_embed(start_time, bot):
 
-    cpu_percent = bot.modules_psutil.cpu_percent(interval=1)
-    ram_percent = bot.modules_psutil.virtual_memory().percent
-    cpu_cores = bot.modules_psutil.cpu_count(logical=True)
+    cpu_percent = psutil.cpu_percent(interval=1)
+    ram_percent = psutil.virtual_memory().percent
+    cpu_cores = psutil.cpu_count(logical=True)
     cpu_text = f"{cpu_percent:.0f}% of {cpu_cores} cores"
-    total_ram_gb = bot.modules_psutil.virtual_memory().total / (1024 ** 3)  # Convert to GB
+    total_ram_gb = psutil.virtual_memory().total / (1024 ** 3)  # Convert to GB
     ram_text = f"{ram_percent:.0f}% of {total_ram_gb:.0f}GB ({total_ram_gb * ram_percent / 100:.0f}GB)"
-    current_time = bot.modules_time.time()
+    current_time = time.time()
     difference = int(round(current_time - start_time))
-    uptime_duration = bot.modules_datetime.timedelta(seconds=difference)
+    uptime_duration = datetime.timedelta(seconds=difference)
     users = sum(guild.member_count for guild in bot.guilds)
     guilds = len(bot.guilds)
 
-    about = bot.modules_discord.Embed(
+    about = discord.Embed(
         title='About LuminaryAI',
         description=(
             "[Site](<https://xet.one>)\n"

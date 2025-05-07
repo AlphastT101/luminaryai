@@ -39,15 +39,9 @@ information_commannds = [
 ]
 
 ai_commands = [
-    ('`/imagine {prompt}`', "❯ Generate images using our API."),
-    ('`/poli {prompt}`', "❯ Generate images using pollinations.ai according to user-inputs. We prefer to use the slash command `/imagine`"),
+    ('`/imagine {prompt}`', "❯ Generate images using SDXL-Turbo"),
     ('`/search {prompt}`', "❯ Search the web for text and images"),
-    ('`/generate-api-key`', "❯ Generate API key, now disabled."),
-    ('`/delete-api-key`', "❯ Delete API key, now disaled."),
-    ('`@luminaryai {prompt}`', "❯ Ping LuminaryAI to generate text and images."),
-    ('`@luminaryai activate`', "❯ Enable AI responses, You need admin permissions to run this command."),
-    ('`@luminaryai deactivate`', "❯ Disable AI responses. You need admin permissions to run this command."),
-    ('`@luminaryai wack`', "❯ Clear your message history.")
+    ('`/api-stats`', "❯ View our API stats"),
 ]
 
 fun_commands = [
@@ -89,18 +83,10 @@ embed_automod = discord.Embed(title="AUTOMOD Commands - under development", colo
 embed_admin = discord.Embed(title="ADMIN Commands - under development", color=c)
 embed_music = discord.Embed(title="MUSIC Commands", color=c)
 
-bot_thumbnail = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRMqcwdPNaGunh0E1J4YV2O5ch0jbFPL8dw1Q&s"
-ai_thumbnail = "https://th.bing.com/th/id/OIP._C4wM7_FMFicRBck9H6T-QHaHa?w=512&h=512&rs=1&pid=ImgDetMain"
-fun_thumbnail = "https://i.pinimg.com/736x/9e/80/9a/9e809ad17207f4a040855cd9ebe24713.jpg"
-moderation_thumbnail = "https://images-ext-1.discordapp.net/external/BsiRCTyfJ2MTKjvIuabRlcOIGwxZ9G5Ydu-q6nhZ7Hc/https/files.shapes.inc/c11c9c80.png?format=webp&quality=lossless&width=671&height=671"
-music_thumbnail = "https://th.bing.com/th/id/OIP.Q96YLM_PXmqQ1EA7P9-zmwHaHa?pid=ImgDet&w=192&h=192&c=7&dpr=1.1"
-# automod_thumbnail = "https://img.freepik.com/free-vector/robot-arm-concept-illustration_114360-8436.jpg?size=338&ext=jpg&ga=GA1.1.2008272138.1720483200&semt=sph"
-# admin_thumbnail = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSQmO27HNo399ZS89SSJl3DfmfZjUhY-6Bm4Q&s"
-
-embed_info.set_thumbnail(url=bot_thumbnail)
-embed_ai.set_thumbnail(url=ai_thumbnail)
-embed_fun.set_thumbnail(url=fun_thumbnail)
-embed_moderation.set_thumbnail(url=moderation_thumbnail)
-embed_music.set_thumbnail(url=music_thumbnail)
-# embed_automod.set_thumbnail(url=automod_thumbnail)
-# embed_admin.set_thumbnail(url=admin_thumbnail)
+embed_info.set_thumbnail(url="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRMqcwdPNaGunh0E1J4YV2O5ch0jbFPL8dw1Q&s")
+embed_ai.set_thumbnail(url="https://th.bing.com/th/id/OIP._C4wM7_FMFicRBck9H6T-QHaHa?w=512&h=512&rs=1&pid=ImgDetMain")
+embed_fun.set_thumbnail(url="https://i.pinimg.com/736x/9e/80/9a/9e809ad17207f4a040855cd9ebe24713.jpg")
+embed_moderation.set_thumbnail(url="https://files.shapes.inc/c11c9c80.png")
+embed_music.set_thumbnail(url="https://th.bing.com/th/id/OIP.Q96YLM_PXmqQ1EA7P9-zmwHaHa?pid=ImgDet&w=192&h=192&c=7&dpr=1.1")
+# embed_automod.set_thumbnail(url="https://img.freepik.com/free-vector/robot-arm-concept-illustration_114360-8436.jpg?size=338&ext=jpg&ga=GA1.1.2008272138.1720483200&semt=sph")
+# embed_admin.set_thumbnail(url="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSQmO27HNo399ZS89SSJl3DfmfZjUhY-6Bm4Q&s")
