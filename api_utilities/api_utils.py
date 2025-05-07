@@ -28,7 +28,7 @@ available = [
 
 async def poli(prompt):
     seed = random.randint(1, 100000)
-    image_url = f"https://image.pollinations.ai/prompt/{prompt}?seed={seed}"
+    image_url = f"https://image.pollinations.ai/prompt/{prompt}?seed={seed}&nologo=true"
     response = requests.get(image_url)
     return response.url
 
