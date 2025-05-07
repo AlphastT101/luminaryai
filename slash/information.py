@@ -1,5 +1,10 @@
+import time
+import datetime
 from discord.ext import commands
+from discord.ui import View, Button
 from bot_utilities.help_embed import *
+from bot_utilities.owner_utils import *
+from bot_utilities.about_embed import *
 from discord import app_commands, Interaction
 
 class InformationSlash(commands.Cog):
@@ -10,7 +15,7 @@ class InformationSlash(commands.Cog):
     @app_commands.guild_only()
     @app_commands.describe(user="Select a user.")
     async def user(self, interaction: Interaction, user: discord.Member = None):
-        if await self.bot.func_checkblist(interaction, self.bot.db): return
+        if await check_blist(interaction, self.bot.db): return
         await interaction.response.defer(ephemeral=False)
 
         if user is None:user = interaction.user
@@ -40,48 +45,38 @@ class InformationSlash(commands.Cog):
     @app_commands.command(name='support', description="Shows support server invite link")
     @app_commands.guild_only()
     async def support(self, interaction: discord.Interaction):
-        if await self.bot.func_checkblist(interaction, self.bot.db): return
-        await interaction.response.send_message("> **Support server invite link:** [here](https://discord.com/invite/hmMBe8YyJ4)")
+        if await check_blist(interaction, self.bot.db): return
+        await interaction.response.defer(ephemeral=False)
+        await interaction.followup.send(embed=discord.Embed(description="**Support server:** [here](https://discord.com/invite/hmMBe8YyJ4)"))
 
     @app_commands.command(name='owner', description="Shows bot owner")
     @app_commands.guild_only()
     async def owner(self, interaction: discord.Interaction):
-        if await self.bot.func_checkblist(interaction, self.bot.db): return
-        await interaction.response.send_message("> **My owner is:** [AlphasT101](https://alphast101.netlify.app)")
-    
-    @app_commands.command(name="status", description="Check bot status")
-    @app_commands.guild_only()
-    async def check(self, interaction: discord.Interaction):
-        if await self.bot.func_checkblist(interaction, self.bot.db): return
-        await interaction.response.send_message("bot is online")
+        if await check_blist(interaction, self.bot.db): return
+        await interaction.response.defer(ephemeral=False)
+        await interaction.followup.send(embed=discord.Embed(description="My owner is [AlphasT101](https://owner.xet.one)"))
 
     @app_commands.command(name="ping", description="See bot ping")
     @app_commands.guild_only()
     async def check(self, interaction: discord.Interaction):
-        if await self.bot.func_checkblist(interaction, self.bot.db): return
+        if await check_blist(interaction, self.bot.db): return
         await interaction.response.defer(ephemeral=False)
-        latency_ms = round(self.bot.latency * 1000)
-        await interaction.followup.send(content=f'**Pong! My Latency is `{latency_ms}ms`.**')
+        await interaction.followup.send(embed=discord.Embed(description=f"**Latency:** `{round(self.bot.latency * 1000)}ms`"))
 
     @app_commands.command(name="uptime", description="Shows bot uptime")
     @app_commands.guild_only()
     async def uptime(self, interaction: discord.Interaction):
-        if await self.bot.func_checkblist(interaction, self.bot.db): return
+        if await check_blist(interaction, self.bot.db): return
         await interaction.response.defer(ephemeral=False)
-        current_time = self.bot.modules_time.time()
-        difference = int(round(current_time - self.bot.start_time))
-        uptime_duration = self.bot.modules_datetime.timedelta(seconds=difference)
-
-        embed = discord.Embed(colour=0xc8dc6c)
-        embed.add_field(name="LuminaryAI - Uptime", value=str(uptime_duration))
-        await interaction.followup.send(embed=embed)
+        uptime = str(datetime.timedelta(seconds=int(round(time.time() - self.bot.start_time))))
+        await interaction.followup.send(embed=discord.Embed(description=f"**Uptime:** `{uptime}`"))
 
     @app_commands.command(name="about", description="about the bot")
     @app_commands.guild_only()
     async def about(self, interaction: discord.Interaction):
-        if await self.bot.func_checkblist(interaction, self.bot.db): return
+        if await check_blist(interaction, self.bot.db): return
         await interaction.response.defer(ephemeral=False)
-        about = await self.bot.about_embed(self.bot.start_time, self.bot)
+        about = await about_embed(self.bot.start_time, self.bot)
         owner = self.bot.get_user(1026388699203772477)
         about.set_author(name="alphast101", icon_url=owner.avatar.url)
         await interaction.followup.send(embed=about, file=discord.File("images/ai.png", filename="ai.png"))
@@ -90,18 +85,18 @@ class InformationSlash(commands.Cog):
     @app_commands.command(name="help", description="Help/command list")
     @app_commands.guild_only()
     async def help(self, interaction: discord.Interaction):
-        if await self.bot.func_checkblist(interaction, self.bot.db): return
+        if await check_blist(interaction, self.bot.db): return
         await interaction.response.defer(ephemeral=False)
 
-        help_view = self.bot.modules_view()
+        help_view = View()
         help_view.add_item(help_select)
 
         help_embbed.set_thumbnail(url=self.bot.user.avatar)
         help_msg = await interaction.followup.send(embed=help_embbed, view=help_view)
         # Pagination buttons
         buttons = [
-            self.bot.modules_button(label="Previous", style=discord.ButtonStyle.primary, custom_id='Previous'),
-            self.bot.modules_button(label="Next", style=discord.ButtonStyle.primary, custom_id='Next')
+            Button(label="Previous", style=discord.ButtonStyle.primary, custom_id='Previous'),
+            Button(label="Next", style=discord.ButtonStyle.primary, custom_id='Next')
         ]
 
         help_view.add_item(buttons[0])

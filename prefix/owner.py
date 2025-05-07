@@ -1,4 +1,6 @@
+import io
 import discord
+import contextlib
 from discord.ext import commands
 from bot_utilities.owner_utils import *
 
@@ -7,8 +9,8 @@ class Owner(commands.Cog):
         self.bot = bot
 
     @commands.command(name="server")
+    @commands.is_owner()
     async def list_guilds(self, ctx):
-        if ctx.author.id != 1026388699203772477: return
 
         guilds = ctx.bot.guilds
         per_page = 20  # Number of guilds to display per page
@@ -77,8 +79,8 @@ class Owner(commands.Cog):
 
     @commands.command(name="say")
     async def say(self, ctx, *, message: str = None):
-		# 1026388699203772477 - alphast101
-		# 973461136680845382 - wqypp
+        # 1026388699203772477 - alphast101
+        # 973461136680845382 - wqypp
         # 885977942776246293 -jeydalio
         if message is None:
             return
@@ -90,26 +92,24 @@ class Owner(commands.Cog):
                 await ctx.send(message)
             else:
                 await ctx.send(message)
-        else:
-            await ctx.send("**This command is restricted**", delete_after=3)
 
     @commands.command(name="mp")
+    @commands.is_owner()
     async def mp(self, ctx,*,message):
-        if ctx.author.id == 1026388699203772477:
-            print(message)
-            await ctx.message.delete()
-            await ctx.send(message)
+        print(message)
+        await ctx.message.delete()
+        await ctx.send(message)
 
     @commands.command(name="sync")
+    @commands.is_owner()
     async def sync(self, ctx):
-        if ctx.author.id == 1026388699203772477:
-            await ctx.send("**<@1026388699203772477> Syncing slash commands...**")
-            await self.bot.tree.sync()
-            await ctx.send("**<@1026388699203772477> Slash commands synced!**")
+        await ctx.send("Syncing slash commands...")
+        await self.bot.tree.sync()
+        await ctx.send("Slash commands synced.")
 
     @commands.command(name="blist")
+    @commands.is_owner()
     async def blist(self, ctx, object, id = None):
-        if ctx.author.id != 1026388699203772477: return
 
         try:
             id = int(id)
@@ -136,8 +136,8 @@ class Owner(commands.Cog):
             await ctx.send(f"Invalid object")
 
     @commands.command(name="unblist")
+    @commands.is_owner()
     async def unblist(self, ctx, object, id = None):
-        if ctx.author.id != 1026388699203772477: return
 
         try: id = int(id)
         except TypeError:
@@ -164,8 +164,8 @@ class Owner(commands.Cog):
 
 
     @commands.command(name="eval")
+    @commands.is_owner()
     async def eval(self, ctx, *, code: str):
-        if not ctx.author.id == 1026388699203772477: return
 
         code = code.strip('` ')
         if code.startswith('python'):
@@ -179,13 +179,13 @@ class Owner(commands.Cog):
             "__import__": __import__
         }
 
-        stdout = self.bot.modules_io.StringIO()
+        stdout = io.StringIO()
         def wrapped_exec():
             try:
                 exec(f"async def func():\n{code}", local_variables)
             except Exception as e:
                 stdout.write(f"{type(e).__name__}: {e}")
-        with self.bot.modules_contextlib.redirect_stdout(stdout):
+        with contextlib.redirect_stdout(stdout):
             wrapped_exec()
             if 'func' in local_variables:
                 func = local_variables['func']
@@ -196,8 +196,8 @@ class Owner(commands.Cog):
         await ctx.send(f'{stdout.getvalue()}')
 
     @commands.command(name="cmd")
+    @commands.is_owner()
     async def cmdd(self, ctx):
-        if not ctx.author.id == 1026388699203772477: return
         cmd_list = []
         for command in self.bot.commands:
             cmd_prefix = "ai." + command.name

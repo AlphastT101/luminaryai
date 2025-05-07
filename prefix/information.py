@@ -1,6 +1,9 @@
+import time
+import datetime
 from discord.ext import commands
 from discord.ui import Button, View
 from bot_utilities.help_embed import *
+from bot_utilities.about_embed import about_embed
 
 class Information(commands.Cog):
     def __init__(self, bot):
@@ -9,36 +12,29 @@ class Information(commands.Cog):
     @commands.command(name='support')
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def support(self, ctx):
-        await ctx.send("> **Support server invite link:** [here](https://discord.com/invite/hmMBe8YyJ4)")
+        await ctx.reply(embed=discord.Embed(description="**Support server:** [here](https://discord.com/invite/hmMBe8YyJ4)"), mention_author=False)
 
     @commands.command(name='owner')
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def owner(self, ctx):
-        await ctx.send("> **My owner is:** [AlphasT101](https://owner.xet.one)")
-    
+        await ctx.reply(embed=discord.Embed(description="My owner is [AlphasT101](https://owner.xet.one)"), mention_author=False)
+        
     @commands.command(name="ping")
+    @commands.cooldown(1, 10, commands.BucketType.user)
     async def ping(self, ctx):
-        latency_ms = round(self.bot.latency * 1000)
-        await ctx.send(content=f'**Latency: `{latency_ms}ms`.**')
+        await ctx.reply(embed=discord.Embed(description=f"**Latency:** `{round(self.bot.latency * 1000)}ms`"), mention_author=False)
 
     @commands.command(name="uptime")
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def uptime(self, ctx):
-        current_time = self.bot.modules_time.time()
-        difference = int(round(current_time - self.bot.start_time))
-        uptime_duration = self.bot.modules_datetime.timedelta(seconds=difference)
-
-        embed = discord.Embed(colour=0xc8dc6c)
-        embed.add_field(name="LuminaryAI - Uptime", value=str(uptime_duration))
-        await ctx.send(embed=embed)
+        uptime = str(datetime.timedelta(seconds=int(round(time.time() - self.bot.start_time))))
+        await ctx.reply(embed=discord.Embed(description=f"**Uptime:** `{uptime}`"), mention_author=False)
 
     @commands.command(name='about')
     @commands.cooldown(1, 30, commands.BucketType.user)
     async def about(self, ctx):
-        about = await self.bot.about_embed(self.bot.start_time, self.bot)
-        owner = self.bot.get_user(1026388699203772477)
-        about.set_author(name="alphast101", icon_url=owner.avatar.url)
-        await ctx.send(embed=about, file=discord.File("images/ai.png", filename="ai.png"))
+        embed = await about_embed(self.bot.start_time, self.bot)
+        await ctx.reply(embed=embed, file=discord.File("images/ai.png", filename="ai.png"), mention_author=False)
 
     @commands.command(name='userinfo')
     @commands.cooldown(1, 10, commands.BucketType.user)
@@ -67,7 +63,7 @@ class Information(commands.Cog):
             color=0x99ccff
         )
         embed.set_thumbnail(url=user_mention.avatar.url)
-        await ctx.send(embed=embed)
+        await ctx.reply(embed=embed, mention_author=False)
 
     @commands.command(name="help")
     @commands.cooldown(1, 60, commands.BucketType.user)
@@ -76,7 +72,7 @@ class Information(commands.Cog):
         help_view.add_item(help_select)
 
         help_embbed.set_thumbnail(url=self.bot.user.avatar)
-        help_msg = await ctx.send(embed=help_embbed, view=help_view)
+        help_msg = await ctx.reply(embed=help_embbed, view=help_view, mention_author=False)
 
         # Pagination buttons
         buttons = [
