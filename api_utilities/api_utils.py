@@ -1,36 +1,29 @@
+import json
 import httpx
 import random
 import string
 import smtplib
+import aiohttp
 import requests
+from pathlib import Path
+from typing import Optional, Dict
 from email.mime.text import MIMEText
 from datetime import datetime, timezone
 from email.mime.multipart import MIMEMultipart
 
-available = [
-'qwen/qwen3-0.6b-04-28:free', 'qwen/qwen3-1.7b:free', 'qwen/qwen3-4b:free', 'opengvlab/internvl3-14b:free', 'opengvlab/internvl3-2b:free', 'deepseek/deepseek-prover-v2:free',
-'qwen/qwen3-30b-a3b:free', 'qwen/qwen3-8b:free', 'qwen/qwen3-14b:free', 'qwen/qwen3-32b:free', 'qwen/qwen3-235b-a22b:free', 'tngtech/deepseek-r1t-chimera:free',
-'thudm/glm-z1-9b:free', 'thudm/glm-4-9b:free', 'microsoft/mai-ds-r1:free', 'thudm/glm-z1-32b:free', 'thudm/glm-4-32b:free', 'shisa-ai/shisa-v2-llama3.3-70b:free',
-'arliai/qwq-32b-arliai-rpr-v1:free', 'agentica-org/deepcoder-14b-preview:free', 'moonshotai/kimi-vl-a3b-thinking:free', 'nvidia/llama-3.3-nemotron-super-49b-v1:free',
-'nvidia/llama-3.1-nemotron-ultra-253b-v1:free', 'meta-llama/llama-4-maverick:free', 'meta-llama/llama-4-scout:free', 'deepseek/deepseek-v3-base:free', 'allenai/molmo-7b-d:free',
-'bytedance-research/ui-tars-72b:free', 'qwen/qwen2.5-vl-3b-instruct:free', 'google/gemini-2.5-pro-exp-03-25', 'qwen/qwen2.5-vl-32b-instruct:free',
-'deepseek/deepseek-chat-v3-0324:free', 'featherless/qwerky-72b:free', 'mistralai/mistral-small-3.1-24b-instruct:free', 'open-r1/olympiccoder-32b:free', 'google/gemma-3-1b-it:free',
-'google/gemma-3-4b-it:free', 'google/gemma-3-12b-it:free', 'rekaai/reka-flash-3:free', 'google/gemma-3-27b-it:free', 'deepseek/deepseek-r1-zero:free', 'qwen/qwq-32b:free',
-'moonshotai/moonlight-16b-a3b-instruct:free', 'nousresearch/deephermes-3-llama-3-8b-preview:free', 'cognitivecomputations/dolphin3.0-r1-mistral-24b:free',
-'cognitivecomputations/dolphin3.0-mistral-24b:free', 'qwen/qwen2.5-vl-72b-instruct:free', 'mistralai/mistral-small-24b-instruct-2501:free',
-'deepseek/deepseek-r1-distill-qwen-32b:free', 'deepseek/deepseek-r1-distill-qwen-14b:free', 'deepseek/deepseek-r1-distill-llama-70b:free', 'deepseek/deepseek-r1:free',
-'deepseek/deepseek-chat:free', 'google/gemini-2.0-flash-exp:free', 'meta-llama/llama-3.3-70b-instruct:free', 'qwen/qwq-32b-preview:free', 'google/learnlm-1.5-pro-experimental:free',
-'qwen/qwen-2.5-coder-32b-instruct:free', 'qwen/qwen-2.5-7b-instruct:free', 'meta-llama/llama-3.2-3b-instruct:free', 'meta-llama/llama-3.2-1b-instruct:free',
-'meta-llama/llama-3.2-11b-vision-instruct:free', 'qwen/qwen-2.5-72b-instruct:free', 'qwen/qwen-2.5-vl-7b-instruct:free', 'google/gemini-flash-1.5-8b-exp',
-'meta-llama/llama-3.1-405b:free', 'meta-llama/llama-3.1-8b-instruct:free', 'mistralai/mistral-nemo:free', 'google/gemma-2-9b-it:free', 'mistralai/mistral-7b-instruct:free',
-'huggingfaceh4/zephyr-7b-beta:free'
-]
-
-async def poli(prompt):
-    seed = random.randint(1, 100000)
-    image_url = f"https://image.pollinations.ai/prompt/{prompt}?seed={seed}&nologo=true"
-    response = requests.get(image_url)
-    return response.url
+async def poli(prompt, model, cache="cache"):
+    Path(cache).mkdir(exist_ok=True)
+    url = f"https://image.pollinations.ai/prompt/{prompt}?seed={random.randint(1,100000)}&model={model}&nologo=true"
+    try:
+        async with aiohttp.ClientSession() as s:
+            async with s.get(url) as r:
+                ext = '.jpg' if 'jpeg' in r.headers.get('Content-Type','') else '.png'
+                filename = f"{random.getrandbits(64):x}{ext}"
+                path = f"{cache}/{filename}"
+                open(path,'wb').write(await r.read())
+                return filename
+    except:
+        return url
 
 async def generate_api_key():
     random_string = ''.join(random.choices(string.ascii_letters + string.digits, k=40))
@@ -334,3 +327,60 @@ async def get_api_stats(mongodb):
     collection = db['stats']
     doc = collection.find_one({"key": "api_stats"})
     return doc['value']
+
+
+async def fawom(output_path: str = "api_utilities/api_models.py") -> Optional[Dict]:
+    try:
+        response = requests.get("https://openrouter.ai/api/v1/models")
+        response.raise_for_status()
+        models_data = response.json()
+
+        free_models = []
+        for model in models_data.get('data', []):
+            pricing = model.get('pricing', {})
+            if pricing.get('prompt') == "0" and pricing.get('completion') == "0":
+                model_id = model.get('id', '').replace(':free', '')
+                owned_by = model_id.split('/')[0] if '/' in model_id else model_id
+                
+                free_models.append({"id": model_id,"object": "model","created": 0,"owned_by": owned_by,"pricing": "free"})
+        
+        # Sort models by provider and name
+        free_models.sort(key=lambda x: x['id'])
+
+        output_data = {
+            "object": "list",
+            "data": free_models
+        }
+
+        try:
+            Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+            
+            with open(output_path, 'w') as f:
+                f.write('"""\n')
+                f.write('Auto-generated list of free models from OpenRouter\n')
+                f.write(f'Generated by fawom() on {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}\n')
+                f.write('"""\n\n')
+                f.write('models = ')
+
+                json_str = json.dumps(output_data, indent=4)
+                
+                # Additional formatting for better readability
+                json_str = json_str.replace('"data": [', '"data": [\n        ')
+                json_str = json_str.replace('}, {', '},\n        {')
+                json_str = json_str.replace('}]', '}\n    ]')
+                
+                f.write(json_str)
+                f.write('\n')
+
+            return free_models
+            
+        except Exception as file_error:
+            print(f"Error writing to file: {file_error}")
+            return None
+            
+    except requests.exceptions.RequestException as req_error:
+        print(f"Error fetching models from OpenRouter: {req_error}")
+        return None
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+        return None

@@ -13,11 +13,11 @@ from pydantic import BaseModel
 from datetime import timedelta
 from collections import defaultdict
 from api_utilities.api_utils import *
-from fastapi.responses import JSONResponse
 from api_utilities.api_models import models
 from pymongo.mongo_client import MongoClient
 from api_utilities.start_util import api_start
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse, FileResponse
 from fastapi import FastAPI, Request, status, BackgroundTasks, Query
 
 # Setup logging
@@ -35,7 +35,6 @@ logging.getLogger("uvicorn.error").handlers = []
 warnings.filterwarnings("ignore", message="Using the in-memory storage for tracking rate limits")
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
@@ -52,8 +51,11 @@ openrouter = AsyncOpenAI(
 
 async def sync_api_stats():
     global api_stats
+    global available
+
     while True:
         await save_api_stats(api_stats, clientdb)
+        available = await fawom()
         api_stats = {}
         await asyncio.sleep(20)
 
@@ -71,6 +73,7 @@ clientdb['lumi-api']['jwt_tokens'].create_index("expiration", expireAfterSeconds
 bot_token, jwt_secret, verify_email_pass, action_password = api_start(clientdb)
 sbot = get_t_sbot(clientdb)
 
+available = None
 api_stats = {}
 headers = {"Authorization": f"Bot {bot_token}", "Content-Type": "application/json"}
 sheader = {'Authorization': sbot}
@@ -101,6 +104,13 @@ async def custom_internal_server_error_handler(request: Request, exc: Exception)
 async def index():
     return "hi, what are you doing here?"
 
+@app.get("/files/{image_name}")
+async def serve_image(image_name: str):
+
+    image_path = os.path.join("cache", image_name)
+    if os.path.isfile(image_path): return FileResponse(image_path)
+    return JSONResponse(status_code=404, content={"code": "404", "message": "not found"})
+
 @app.get("/create-task")
 async def create_task(request: Request, pass_: str = Query(None, alias="pass")):
     if pass_ != action_password:
@@ -126,17 +136,17 @@ async def image(request: Request, background_tasks: BackgroundTasks):
         token = request.headers.get('Authorization', '').split()[1] if 'Authorization' in request.headers else None
         data = await request.json()
         prompt = data['prompt']
-        engine = data['model']
+        model = data['model']
         size = data['size']
     except KeyError: return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"detail": "You MUST include 'prompt', 'model', 'size' and API token in the JSON."})
     except Exception as e: return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content={"detail": "An internal server error occured, please try again a few moments later."})
 
-    if not engine in ["poli"]:
-        return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"detail":"Unknown engine. Available engines are: 'poli'"})
+    if not model in ["sdxl-turbo", "flux"]:
+        return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"detail":"Unknown model. Available models are: 'sdxl-turbo'"})
     if not size in ['1024x1024', '1024x576', '1024x768', '512x512', '576x1024', '768x1024']:
         return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"detail":"Unknown Size. Available sizes are: '1024x1024', '1024x576', '1024x768', '512x512', '576x1024', '786x1024'"})
 
-    api_stats[engine] = api_stats.get(engine, 0) + 1 # API Stats + 1
+    api_stats[model] = api_stats.get(model, 0) + 1 # API Stats + 1
     result, email = await check_token(clientdb, token)
     if not result: return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"detail": "Unauthorized, check your API token and try again."})
 
@@ -149,14 +159,14 @@ async def image(request: Request, background_tasks: BackgroundTasks):
 
     img_url = ""
 
-    if size != "1024x1024": return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"detail": "The specified size is not available for poli."})
-    img_url = await poli(prompt)
+    if size != "1024x1024": return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"detail": "The specified size is not available for this model."})
+    img_url = await poli(prompt, model)
 
     logging_enabled = bool(config["api"]["logging"])
     if logging_enabled:
-        background_tasks.add_task(log_image, email, engine, img_url, prompt, headers)
+        background_tasks.add_task(log_image, email, model, img_url, prompt, headers)
 
-    return JSONResponse(content={"data": [{"url": img_url}]})
+    return JSONResponse(content={"data": [{"url": f"https://api.xet.one/files/{img_url}"}]})
 
 
 @app.post('/v1/chat/completions')
@@ -196,7 +206,7 @@ async def text(request: Request, background_tasks: BackgroundTasks):
 
 @app.get('/v1/models')
 async def model_list():
-    return JSONResponse(content=models)
+    return JSONResponse(content=available)
 
 class FetchCredentials(BaseModel):
     email: str
