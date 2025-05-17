@@ -5,12 +5,8 @@ import asyncio
 import discord
 import requests
 from discord.ext import commands
-from pymongo.mongo_client import MongoClient
-
 from bot_utilities.start_util import *
-from events.on_messages import on_messages
-from events.member_join import member_join
-from events.on_cmd_error import on_cmd_error
+from pymongo.mongo_client import MongoClient
 
 with open("config.yml", "r") as config_file: config = yaml.safe_load(config_file)
 
@@ -46,27 +42,21 @@ bot_token = start(bot.db)
 bot.start_time = time.time()
 bot.is_generating = {}
 
-on_messages(bot, bot.db)
-on_cmd_error(bot)
-member_join(bot)
-
 @bot.event
 async def on_ready():
     print(f'We have logged in as {bot.user}')
-    await bot.load_extension("prefix.information")
-    await bot.load_extension("prefix.owner")
-    await bot.load_extension("prefix.fun")
-    await bot.load_extension("prefix.ai")
 
     await bot.load_extension("slash.ai")
     await bot.load_extension("slash.fun")
     await bot.load_extension("slash.information")
+    await bot.load_extension("events.on_cmd_error")
+    
+    print(f"Booted in {time.time() - bot.start_time}s")
+    await bot.tree.sync()
 
     if config['bot']['start_api']:
         global flask_task
         flask_task = asyncio.create_task(run_flask_app_async(asyncio))
-    
-    print(f"Booted in {time.time() - bot.start_time}s")
 
     if config['bot']['start_api']:
         await asyncio.sleep(1)

@@ -1,40 +1,43 @@
 import discord
-from discord.ext import commands
 import traceback
+from discord.ext import commands
 
 error_log_channel_id = 1191754729592717383
 
-def on_cmd_error(bot):
+class CommandErrorHandler(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
 
-    @bot.event
-    async def on_command_error(ctx, error):
+    @commands.Cog.listener()
+    async def on_command_error(self, ctx, error):
 
         if isinstance(error, commands.CommandNotFound): return
-    
+
         elif isinstance(error, commands.CommandOnCooldown):
-            await ctx.send(embed=discord.Embed(description=f'**This command is on cooldown, you can use it in `{round(error.retry_after, 2)}s`.**'))
+            await ctx.send(embed=discord.Embed(description=error))
             return
 
-        if isinstance(error, commands.MissingPermissions):
-            await ctx.send(embed=discord.Embed(description="**I don't have the necessary permissions to perform this action.**"))
+        elif isinstance(error, commands.MissingPermissions):
+            await ctx.send(embed=discord.Embed(description="I don't have the necessary permissions to perform this action."))
             return
 
         command_name = ctx.command.name if ctx.command else "Unknown"
         if command_name == "eval": return
-        
-        try:
-            raise error
-        except discord.ext.commands.errors.MemberNotFound:
-            await ctx.send(embed=discord.Embed(title="Member not found", colour=0xFF0000), delete_after=10)
+
+        try: raise error
+
         except Exception as e:
-
             line_number = traceback.extract_stack()[-2].lineno
-            await ctx.bot.get_channel(error_log_channel_id).send(embed=discord.Embed(title="Ouch! Error!", description=f"`{ctx.author} used '{command_name}' command in {ctx.guild.name} at line {line_number}!`\n\n**Error:** ```bash\n{e}```", color=0xFF0000))
+            await self.bot.get_channel(error_log_channel_id).send(embed=discord.Embed(
+                title="Ouch! Error!",
+                description=f"`{ctx.author} used '{command_name}' command in {ctx.guild.name} at line {line_number}!`\n\n**Error:** ```bash\n{e}```",
+                color=discord.Color.red()
+            ))
 
-            error_embed = discord.Embed(
-                title="LuminaryAI - Error!",
-                description=f"An error occurred while executing the '{command_name}' command. Please try again a few moments later.",
-                color=0xFF0000
-            )
-            
-            await ctx.send(embed=error_embed)
+            await ctx.send(embed=discord.Embed(
+                description=f"An error occurred while executing the command. Please try again a few moments later.",
+                color=discord.Color.red()
+            ))
+
+async def setup(bot):
+    await bot.add_cog(CommandErrorHandler(bot))
