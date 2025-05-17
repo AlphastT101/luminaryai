@@ -1,5 +1,4 @@
 import os
-import PIL
 import random
 import discord
 import asyncio
