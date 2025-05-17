@@ -2,16 +2,10 @@ discord
 pymongo
 pyyaml
 requests
-opencv-python
-imagehash
 bs4
 openai
 psutil
-yt_dlp
-youtube_dl
 fastapi
 uvicorn
-websockets
-PyNaCl
-audioop-lts
 PyJWT
+Pillow
