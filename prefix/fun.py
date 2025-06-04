@@ -4,6 +4,7 @@ import discord
 import asyncio
 from discord.ext import commands
 from bot_utilities.fun_utils import *
+from bot_utilities.owner_utils import check_blist_msg
 
 class Fun(commands.Cog):
     def __init__(self, bot):
@@ -12,11 +13,12 @@ class Fun(commands.Cog):
     @commands.command(name="randomfact")
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def randomfact(self, ctx):
+        if await check_blist_msg(ctx, self.bot.db): return
         await ctx.reply(embed=discord.Embed(description=random.choice(facts)), mention_author=False)
 
     @commands.command(name='rps')
     async def rps(self, ctx, user_choice: str = None):
-
+        if await check_blist_msg(ctx, self.bot.db): return
         if user_choice is None or user_choice.lower() not in choices:
             await ctx.reply(embed=discord.Embed(description="Invalid choice, please choose rock, paper, or scissors."), mention_author=False)
             return
@@ -28,7 +30,8 @@ class Fun(commands.Cog):
 
     @commands.command(name="wordle")
     async def wordle(self, ctx):
-        
+        if await check_blist_msg(ctx, self.bot.db): return
+
         word = random.choice(words_list)
         await ctx.send(embed=discord.Embed(description=f"Welcome to Wordle! Try to guess this 5-letter word in 5 guesses. You have 60 seconds to complete this game."))
 

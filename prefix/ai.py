@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+from bot_utilities.owner_utils import check_blist_msg
 from bot_utilities.ai_utils import search_image, create_and_send_embed
 
 class Ai(commands.Cog):
@@ -9,8 +10,8 @@ class Ai(commands.Cog):
     @commands.command(name="search")
     @commands.cooldown(1, 1, commands.BucketType.user)
     async def search(self, ctx, *, query: str = None):
-        if query is None:
-            await ctx.reply(embed=discord.Embed(description="Please enter your query."), mention_author=False)
+        if await check_blist_msg(ctx, self.bot.db): return
+        if query is None: await ctx.reply(embed=discord.Embed(description="Please enter your query."), mention_author=False)
 
         message = await ctx.reply(embed=discord.Embed(description="Please wait while I process your request."), mention_author=False)
 

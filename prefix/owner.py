@@ -86,12 +86,10 @@ class Owner(commands.Cog):
             return
         allowed = [973461136680845382, 1026388699203772477, 885977942776246293]
         if ctx.author.id in allowed:
-            bot_member = ctx.guild.me
-            if bot_member.guild_permissions.manage_messages:
+            permissions = ctx.channel.permissions_for(ctx.guild.me)
+            if permissions.manage_messages:
                 await ctx.message.delete()
-                await ctx.send(message)
-            else:
-                await ctx.send(message)
+            await ctx.send(message)
 
     @commands.command(name="mp")
     @commands.is_owner()

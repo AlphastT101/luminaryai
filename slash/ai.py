@@ -3,7 +3,15 @@ import aiohttp
 from discord import app_commands
 from discord.ext import commands
 from bot_utilities.owner_utils import check_blist
-from bot_utilities.ai_utils import poli, search_image, create_and_send_embed
+from bot_utilities.ai_utils import poli, search_image, create_and_send_embed, gentext
+
+def is_admin_or_owner():
+    async def predicate(interaction: discord.Interaction) -> bool:
+        if await interaction.client.is_owner(interaction.user):
+            return True
+        perms = interaction.user.guild_permissions
+        return perms.administrator
+    return app_commands.check(predicate)
 
 class AiSlash(commands.Cog):
     def __init__(self, bot):
@@ -54,14 +62,60 @@ class AiSlash(commands.Cog):
             send_embed.set_image(url=f'attachment://generated_image.png')
             await interaction.followup.send(content="", embed=send_embed, file=discord.File(image, 'generated_image.png'))
 
-    @app_commands.command(name="search", description="Seaech the web for images and texts!")
+    @app_commands.command(name="search", description="Seaech the web for images and texts")
     @app_commands.guild_only()
     @app_commands.describe(prompt="Enter prompt for the web to search!")
     async def search(self, interaction: discord.Interaction, prompt: str):
         await interaction.response.defer(ephemeral=False)
         if await check_blist(interaction, self.bot.db): return
-        image_urls = search_image(prompt)
+        image_urls = await search_image(prompt)
         await create_and_send_embed(prompt, image_urls, None, interaction)
+
+
+    @app_commands.command(name="ask", description="Ask the bot a question.")
+    @app_commands.guild_only()
+    @app_commands.describe(question="what would u ask??")
+    async def ask(self, interaction: discord.Interaction, question: str):
+        await interaction.response.defer(ephemeral=False)
+        if await check_blist(interaction, self.bot.db): return
+
+        user_id = interaction.user.id
+        if user_id not in self.bot.history: self.bot.history[user_id] = []
+        history = self.bot.history[user_id]
+
+        history.append({"role": "user","content": question})
+        response = await gentext(history)
+        history.append({"role": "assistant","content": response})
+        self.bot.history[user_id] = history
+
+        await interaction.followup.send(response)
+    
+    @app_commands.command(name="activate", description="Activate AI responding to this channel")
+    @is_admin_or_owner()
+    @app_commands.guild_only()
+    async def activate(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=False)
+        if await check_blist(interaction, self.bot.db): return
+
+        collection = self.bot.db['bot']['activated_channels']
+        collection.update_one(
+            {"id": interaction.channel.id},
+            {"$set": {"id": interaction.channel.id}},
+            upsert=True
+        )
+        await interaction.followup.send("Now responding to **all** messages in this channel.")
+
+    @app_commands.command(name="deactivate", description="Deactivate AI responding to this channel")
+    @is_admin_or_owner()
+    @app_commands.guild_only()
+    async def deactivate(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=False)
+        if await check_blist(interaction, self.bot.db): return
+
+        collection = self.bot.db['bot']['activated_channels']
+        collection.delete_one({"id": interaction.channel.id})
+
+        await interaction.followup.send("AI has been deactivated.")
 
     @app_commands.command(name="api-stats", description="View our API stats")
     @app_commands.guild_only()
