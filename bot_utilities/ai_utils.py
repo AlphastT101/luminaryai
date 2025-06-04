@@ -11,6 +11,21 @@ async def poli(session, prompt):
         image_data = await response.read()
         return io.BytesIO(image_data)
 
+async def gentext(history):
+    headers = {
+        "Authorization": "Bearer TRYBrn1QIiyYYkQ2",
+        "Content-Type": "application/json"
+    }
+
+    data = {
+        "model": "openai-large",
+        "private": True,
+        "messages": history
+    }
+
+    response = requests.post("https://text.pollinations.ai/", json=data, headers=headers)
+    return response.text
+
 def web_search(query):
     api_url = 'https://api.duckduckgo.com/'
     params = {
@@ -29,7 +44,7 @@ def web_search(query):
     except requests.RequestException as e:
         return f"An error occurred: {e}"
 
-def search_image(query):
+async def search_image(query):
     search_url = f"https://www.bing.com/images/search?q={query}"
     try:
         response = requests.get(search_url)
