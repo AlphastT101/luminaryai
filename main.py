@@ -41,14 +41,19 @@ bot_token = start(bot.db)
 
 bot.start_time = time.time()
 bot.is_generating = {}
+bot.history = {}
 
 @bot.event
 async def on_ready():
     print(f'We have logged in as {bot.user}')
 
+    await bot.load_extension("prefix.owner")
+
     await bot.load_extension("slash.ai")
     await bot.load_extension("slash.fun")
     await bot.load_extension("slash.information")
+
+    await bot.load_extension("events.on_messages")
     await bot.load_extension("events.on_cmd_error")
     
     print(f"Booted in {time.time() - bot.start_time}s")
