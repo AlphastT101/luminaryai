@@ -13,7 +13,6 @@ from pydantic import BaseModel
 from datetime import timedelta
 from collections import defaultdict
 from api_utilities.api_utils import *
-from api_utilities.api_models import models
 from pymongo.mongo_client import MongoClient
 from api_utilities.start_util import api_start
 from fastapi.middleware.cors import CORSMiddleware
