@@ -103,13 +103,6 @@ async def custom_internal_server_error_handler(request: Request, exc: Exception)
 async def index():
     return "hi, what are you doing here?"
 
-@app.get("/files/{image_name}")
-async def serve_image(image_name: str):
-
-    image_path = os.path.join("cache", image_name)
-    if os.path.isfile(image_path): return FileResponse(image_path)
-    return JSONResponse(status_code=404, content={"code": "404", "message": "not found"})
-
 @app.get("/create-task")
 async def create_task(request: Request, pass_: str = Query(None, alias="pass")):
     if pass_ != action_password:
@@ -163,9 +156,16 @@ async def image(request: Request, background_tasks: BackgroundTasks):
 
     logging_enabled = bool(config["api"]["logging"])
     if logging_enabled:
-        background_tasks.add_task(log_image, email, model, img_url, prompt, headers)
+        background_tasks.add_task(log_image, email, model, f"https://api.xet.one/files/{img_url}", prompt, headers)
 
     return JSONResponse(content={"data": [{"url": f"https://api.xet.one/files/{img_url}"}]})
+
+@app.get("/files/{image_name}")
+async def serve_image(image_name: str):
+
+    image_path = os.path.join("cache", image_name)
+    if os.path.isfile(image_path): return FileResponse(image_path)
+    return JSONResponse(status_code=404, content={"code": "404", "message": "not found"})
 
 
 @app.post('/v1/chat/completions')

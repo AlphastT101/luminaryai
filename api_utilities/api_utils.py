@@ -117,10 +117,10 @@ async def log_image(email, engine, img_url, prompt, headers):
             )
             req.raise_for_status()
         except httpx.HTTPStatusError as exc:
-            print("Error in api_utils.py at line 145.")
+            print("Error in api_utils.py at line 120.")
             print(f"WARNING: FAILED TO LOG IMAGE, ERROR: {exc.response.text}")
         except Exception as e:
-            print("Error in api_utils.py at line 147.")
+            print("Error in api_utils.py at line 123.")
             print(f"WARNING: An unexpected error occurred: {str(e)}")
 
 async def log_message(title, description, color, headers, channel_id=None):
