@@ -1,39 +1,12 @@
 <h1 align="center">
   <img src="https://xet.one/images/logo.png" alt="icon" width="100"><br>
-  XET AI
+  LumixCore
 </h1>
 
-This repository includes the codebase for XET AI team and LuminaryAI discord bot which is owned by us. XET is built by students, for the students.
+This repository includes the codebase for LumixCore team and LuminaryAI discord bot which is owned by us. LumixCore is an open sourcec AI project, built for transparency.
 
 
-Currently, XET AI has a functional, user-friendly dashboard, an AI playground, and an API so you can use the AI in your app. The API supports image generation and text generation. We also have a Discord bot, "LuminaryAI," which runs in the main thread, while the API runs in a separate thread. The project is built entirely with Python, using FastAPI for the API and discord.py for the bot.
-
-<hr>
-
-**🖼️ Current image generation models:**
-* Flux-dev
-* Flux-schnell
-* SDXL-Turbo
-* Poli
-
-available sizes: `'1024x1024', '1024x576', '1024x768', '512x512', '576x1024', '786x1024'`.<br>
-Ratelimit: 100 requests per minute.
-
-**🔠 Current text generation models:**
-* GPT-4
-* GPT-4-Turbo
-* GPT-3.5
-* GPT-3.5-Turbo
-* Llama-3
-* Llama-3.1
-* Gemma-2
-* Mistral
-
-Ratelimit: 1 request per minute.
-
-> [!NOTE]  
-> Model names are case-sensitive in code, use `gpt-4`, not `GPT-4`. Plus, we use some system prompts for the models.
-
+Currently, LumixCore has a functional, user-friendly dashboard, an AI playground, and an API so you can use the AI in your app. The API supports image generation and text generation. We also have a Discord bot, "LuminaryAI," which runs in the main thread, while the API runs in a separate thread. The project is built entirely with Python, using FastAPI for the API and discord.py for the bot.
 
 <hr>
 
@@ -52,62 +25,10 @@ Ratelimit: 1 request per minute.
 
 <hr>
 
-# 📄 API Docs
-
-The models listed above is the only supported models and image sizes. Our API is in OpenAI format. Please join our [Discord](https://discord.com/invite/hmMBe8YyJ4) for more info.
-
-* Python 3 code example for text generation:
-```python
-from openai import OpenAI
-
-client = OpenAI(
-  base_url="https://api.xet.one/v1",
-  api_key="API key here",
-)
-
-message = []
-while True:
-  user = input("You: ")
-  user_dict = {
-    "role": "user",
-    "content": user
-  }
-  message.append(user_dict)
-  completion = openai.chat.completions.create(
-    model="gpt-4-turbo",
-    messages=message
-  )
-
-  ai_dict = {
-    "role": "assistant",
-    "content": completion.choices[0].message.content
-  }
-  message.append(ai_dict)
-  print(f"AI: {completion.choices[0].message.content}")
-```
-
-* Python3 code example for image generation
-```python
-from openai import OpenAI
-
-openai = OpenAI(
-    api_key = "API key here",
-    base_url = "https://api.xet.one/v1"
-)
-response = openai.images.generate(
-    prompt="A sunset over a mountain range",
-    model="flux-dev",
-    size="1024x1024"
-)
-print(response.data[0].url)
-```
-
-<hr>
-
 # 🔗 Links & other
 
 * Website: https://xet.one
 * Playground: https://play.xet.one
-* Discord Server: https://discord.com/invite/hmMBe8YyJ4
+* Discord Server: https://discord.gg/2h8hBx8A52
 * Email: xet@xet.one
 * Support Email: support@xet.one
