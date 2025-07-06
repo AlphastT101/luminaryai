@@ -9,7 +9,7 @@
 - **Text Ratelimits**: 5 requests per minute.
 
 ### Image generation models
-- `sdxl-lighting`, `flux`
+- `sdxl-turbo`, `flux`
 - available sizes: `'1024x1024'`
 
 ### Text generation models
