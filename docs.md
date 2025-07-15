@@ -1,4 +1,4 @@
-## LumixCore AI API
+## XET AI API
 
 * **Base URL**: https://api.xet.one/v1
 * **Playground:** https://play.xet.one
