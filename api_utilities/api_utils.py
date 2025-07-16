@@ -74,13 +74,6 @@ def get_t_sbot(mongodb):
     else:
         return sbot['value']
 
-async def delete_channel(channel_id, headers):
-    async with httpx.AsyncClient() as client:
-        try:
-            await client.delete(f"https://discord.com/api/v9/channels/{channel_id}", headers=headers)
-        except Exception as e:
-            print(f"ERROR delete_channel(): {e}")
-
 async def get_api_stat(mongodb):
     db = mongodb['lumi-api']
     collection = db['stats']
@@ -351,7 +344,8 @@ async def fawom(output_path: str = "api_utilities/api_models.py") -> Optional[Di
             "object": "list",
             "data": free_models
         }
-
+        html = requests.get("https://openrouter.ai/models?max_price=0").text
+        working_free_models = [m for m in free_models if m["id"] in html]
         try:
             Path(output_path).parent.mkdir(parents=True, exist_ok=True)
             
@@ -372,7 +366,7 @@ async def fawom(output_path: str = "api_utilities/api_models.py") -> Optional[Di
                 f.write(json_str)
                 f.write('\n')
 
-            return free_models
+            return working_free_models
             
         except Exception as file_error:
             print(f"Error writing to file: {file_error}")

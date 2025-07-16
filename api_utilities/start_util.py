@@ -3,6 +3,7 @@ def api_start(client):
     bot_collection = db["bot"]
     api_collection = db["api"]
 
+    openr_doc = api_collection.find_one({"key": "api_token"})
     bot_token_doc = bot_collection.find_one({"key": "bot_token"})
     jwt_token_doc = api_collection.find_one({"key": "jwt_token"})
     verify_email_doc = api_collection.find_one({"key": "verify_email"})
@@ -28,4 +29,9 @@ def api_start(client):
         api_collection.insert_one({"key": "action_password", "value": action_password})
     else: action_password = action_password_doc['value']
 
-    return bot_token, jwt_token, verify_email, action_password
+    if openr_doc is None:
+        openr = input("Enter openrouter token for the API: ")
+        api_collection.insert_one({"key": "api_token", "value": openr})
+    else: openr = openr_doc['value']
+
+    return bot_token, jwt_token, verify_email, action_password, openr

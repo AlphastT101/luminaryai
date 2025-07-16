@@ -43,11 +43,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-openrouter = AsyncOpenAI(
-  base_url="https://openrouter.ai/api/v1",
-  api_key="konnichiwaaaAAA",
-)
-
 async def sync_api_stats():
     global api_stats
     global available
@@ -62,20 +57,24 @@ with open("config.yml", "r") as config_file:
     config = yaml.safe_load(config_file)
 
 token_rate_limits = defaultdict(list)
-guild_id = str(config["api"]["api_guild_id"])
 verification_email = config['api']['verification_email']
 
 ALGORITHM = "HS256"
 clientdb = MongoClient(config["bot"]["mongodb"])
 clientdb['lumi-api']['accounts_registered'].create_index("expiresAt", expireAfterSeconds=0)
 clientdb['lumi-api']['jwt_tokens'].create_index("expiration", expireAfterSeconds=0)
-bot_token, jwt_secret, verify_email_pass, action_password = api_start(clientdb)
+bot_token, jwt_secret, verify_email_pass, action_password, openr = api_start(clientdb)
 sbot = get_t_sbot(clientdb)
 
 available = None
 api_stats = {}
 headers = {"Authorization": f"Bot {bot_token}", "Content-Type": "application/json"}
 sheader = {'Authorization': sbot}
+
+openrouter = AsyncOpenAI(
+  base_url="https://openrouter.ai/api/v1",
+  api_key=openr,
+)
 
 @app.exception_handler(Exception)
 async def custom_internal_server_error_handler(request: Request, exc: Exception):
@@ -133,8 +132,8 @@ async def image(request: Request, background_tasks: BackgroundTasks):
     except KeyError: return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"detail": "You MUST include 'prompt', 'model', 'size' and API token in the JSON."})
     except Exception as e: return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content={"detail": "An internal server error occured, please try again a few moments later."})
 
-    if not model in ["sdxl-turbo", "flux"]:
-        return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"detail":"Unknown model. Available models are: 'sdxl-turbo'"})
+    if not model in ["sdxl-turbo", "flux", 'kontext']:
+        return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"detail":"Unknown model. Available models are: 'sdxl-turbo', 'flux', 'kontext'."})
     if not size in ['1024x1024', '1024x576', '1024x768', '512x512', '576x1024', '768x1024']:
         return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"detail":"Unknown Size. Available sizes are: '1024x1024', '1024x576', '1024x768', '512x512', '576x1024', '786x1024'"})
 
@@ -149,9 +148,6 @@ async def image(request: Request, background_tasks: BackgroundTasks):
             return JSONResponse(status_code=status.HTTP_429_TOO_MANY_REQUESTS, content={"detail": "Rate limit exceeded for this API token. >5/RPM"})
         token_rate_limits[token].append(current_time)
 
-    img_url = ""
-
-    if size != "1024x1024": return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"detail": "The specified size is not available for this model."})
     img_url = await poli(prompt, model)
 
     logging_enabled = bool(config["api"]["logging"])
@@ -182,7 +178,8 @@ async def text(request: Request, background_tasks: BackgroundTasks):
     result, email = await check_token(clientdb, token)
     if not result: return JSONResponse(status_code=401, content={"error": "Invalid API token."})
 
-    if model not in available:
+    available_ids = [m['id'] for m in available]
+    if model not in available_ids:
         background_tasks.add_task(log_message, 'Request from unavailable model', f'**Model**: {model}\n**User**: {email}\n\n**Prompt**:\n`{messages}`', 0x00FF00, headers, 1344331989599387680)
         return JSONResponse(status_code=404, content={"error": "unavailable model."})
 
