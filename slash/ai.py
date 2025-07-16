@@ -18,43 +18,32 @@ class AiSlash(commands.Cog):
         self.bot = bot
 
 
-    # @app_commands.command(name="imagine", description="Imagine an image")
-    # @app_commands.guild_only()
-    # @app_commands.describe(
-    #     prompt="Enter the prompt for the image to generate.",
-    #     model="Select the model to use.",
-    #     size="Select the size for the model.")
-    # @app_commands.choices(model=[
-    #     # app_commands.Choice(name="Flux-Dev", value="flux-dev"),
-    #     app_commands.Choice(name="Flux-Schnell", value="flux-schnell"),
-    #     app_commands.Choice(name="SDXL-Lighting", value="sdxl-lighting"),
-    #     app_commands.Choice(name="Polinations.ai", value="poli")
-    # ],
-    # size=[
-    #     app_commands.Choice(name="1024x1024", value="1024x1024"),
-    #     app_commands.Choice(name="1024x576", value="1024x576"),
-    #     app_commands.Choice(name="1024x768" ,value="1024x768"),
-    #     app_commands.Choice(name="512x512" ,value="512x512"),
-    #     app_commands.Choice(name="576x1024" ,value="576x1024"),
-    #     app_commands.Choice(name="768x1024" ,value="768x1024")
-    # ])
-    # async def imagine_pla(self, interaction: discord.Interaction, prompt: str, model: app_commands.Choice[str], size: app_commands.Choice[str]):
-    #     await interaction.response.defer(ephemeral=False)
-    #     if await check_blist(interaction, self.bot.db): return
-
-    #     await interaction.followup.send(embed=discord.Embed(description="We're working on it."))
-
-
     @app_commands.command(name='imagine', description="Generate images using SDXL-Turbo")
     @app_commands.guild_only()
-    @app_commands.describe(prompt="Enter the prompt for the image to generate.")
-    async def poli_gen(self, interaction: discord.Interaction, prompt: str):
+    @app_commands.describe(
+        prompt="Enter the prompt for the image to generate.",
+        model="Select the model to use.",
+        size="Select the size for the model.")
+    @app_commands.choices(model=[
+        app_commands.Choice(name="Flux", value="flux"),
+        app_commands.Choice(name="SDXL-Turbo", value="turbo"),
+        app_commands.Choice(name="Kontext", value="kontext")
+    ],
+    size=[
+        app_commands.Choice(name="1024x1024", value="1024x1024"),
+        app_commands.Choice(name="1024x576", value="1024x576"),
+        app_commands.Choice(name="1024x768" ,value="1024x768"),
+        app_commands.Choice(name="512x512" ,value="512x512"),
+        app_commands.Choice(name="576x1024" ,value="576x1024"),
+        app_commands.Choice(name="768x1024" ,value="768x1024")
+    ])
+    async def poli_gen(self, interaction: discord.Interaction, prompt: str, model: app_commands.Choice[str], size: app_commands.Choice[str]):
 
         await interaction.response.defer(ephemeral=False)
         if await check_blist(interaction, self.bot.db): return
 
         async with aiohttp.ClientSession() as session:
-            image = await poli(session, prompt)
+            image = await poli(session, prompt, model.value, size.value, self.bot.poli_token)
             send_embed = discord.Embed(
                 title="LuminaryAI - Image generation",
                 description=f"Requested by: `{interaction.user}`\nPrompt: `{prompt}`.",

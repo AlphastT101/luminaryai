@@ -3,6 +3,7 @@ def start(client):
     bot_collection = db["bot"]
 
     bot_token_doc = bot_collection.find_one({"key": "bot_token"})
+    poli_token_doc = bot_collection.find_one({"key": "polinations"})
 
     if bot_token_doc is None:
         bot_token = input("Bot token is not found in MongoDB, Please enter a new bot token: ")
@@ -10,7 +11,13 @@ def start(client):
     else:
         bot_token = bot_token_doc["value"]
 
-    return bot_token
+    if poli_token_doc is None:
+        poli_token = input("Polinations token is not found in MongoDB, Please enter a new poli token: ")
+        bot_collection.insert_one({"key": "polinations", "value": poli_token})
+    else:
+        poli_token = poli_token_doc["value"]
+
+    return bot_token, poli_token
 
 # def spotify_token(client):
 #     db = client["tokens"]

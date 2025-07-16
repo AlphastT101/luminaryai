@@ -37,7 +37,7 @@ flask_task = None
 flask_thread = None
 mongodb = config["bot"]["mongodb"]
 bot.db = MongoClient(mongodb)
-bot_token = start(bot.db)
+bot_token, bot.poli_token = start(bot.db)
 
 bot.start_time = time.time()
 bot.is_generating = {}

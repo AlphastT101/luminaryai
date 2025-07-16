@@ -1,21 +1,18 @@
 import io
 import bs4
-import random
 import discord
 import requests
 
-async def poli(session, prompt):
-    seed = random.randint(1, 100000)
-    image_url = f"https://image.pollinations.ai/prompt/{prompt}?seed={seed}&nologo=true"
+async def poli(session, prompt, model, size, token):
+    parts = size.lower().split('x')
+    w, h = (int(parts[0]), int(parts[1])) if len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit() else (None, None)
+
+    image_url = f"https://image.pollinations.ai/prompt/{prompt}?nologo=true&model={model}&width={w}&height={h}&token={token}"
     async with session.get(image_url) as response:
         image_data = await response.read()
         return io.BytesIO(image_data)
 
 async def gentext(history):
-    headers = {
-        "Authorization": "Bearer TRYBrn1QIiyYYkQ2",
-        "Content-Type": "application/json"
-    }
 
     data = {
         "model": "openai-large",
@@ -23,7 +20,7 @@ async def gentext(history):
         "messages": history
     }
 
-    response = requests.post("https://text.pollinations.ai/", json=data, headers=headers)
+    response = requests.post("https://text.pollinations.ai/", json=data)
     return response.text
 
 def web_search(query):
