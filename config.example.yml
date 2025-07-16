@@ -16,9 +16,6 @@ api:
   # Port for the FastAPI app.
   port: 8080
 
-  # Discord server ID where the bot will interact with shapes.inc (make sure to use a dummy server).
-  api_guild_id: 123
-
   # I think I don't have to explain what it is.
   logging: True # or False
 
