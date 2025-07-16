@@ -12,7 +12,7 @@
 - `sdxl-turbo`, `flux`
 - available sizes: `'1024x1024'`
 
-### Text generation models
+### Text generation models[DISABLED]
 - View at [/models](https://api.xet.one/v1/models)
 - This list DOES NOT include image generation models, only text.
 
