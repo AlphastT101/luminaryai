@@ -6,6 +6,7 @@ def api_start(client):
     openr_doc = api_collection.find_one({"key": "api_token"})
     bot_token_doc = bot_collection.find_one({"key": "bot_token"})
     jwt_token_doc = api_collection.find_one({"key": "jwt_token"})
+    poli_token_doc = api_collection.find_one({"key": "polinations"})
     verify_email_doc = api_collection.find_one({"key": "verify_email"})
     action_password_doc = api_collection.find_one({"key": "action_password"})
 
@@ -34,4 +35,10 @@ def api_start(client):
         api_collection.insert_one({"key": "api_token", "value": openr})
     else: openr = openr_doc['value']
 
-    return bot_token, jwt_token, verify_email, action_password, openr
+    if poli_token_doc is None:
+        poli_token = input("Polinations token is not found in MongoDB, Please enter a new poli token: ")
+        api_collection.insert_one({"key": "polinations", "value": poli_token})
+    else:
+        poli_token = poli_token_doc["value"]
+
+    return bot_token, jwt_token, verify_email, action_password, openr, poli_token

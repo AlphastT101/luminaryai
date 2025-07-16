@@ -11,9 +11,12 @@ from email.mime.text import MIMEText
 from datetime import datetime, timezone
 from email.mime.multipart import MIMEMultipart
 
-async def poli(prompt, model, cache="cache"):
+async def poli(prompt, model, size, poli, cache="cache"):
     Path(cache).mkdir(exist_ok=True)
-    url = f"https://image.pollinations.ai/prompt/{prompt}?seed={random.randint(1,100000)}&model={model}&nologo=true"
+    parts = size.lower().split('x')
+    w, h = (int(parts[0]), int(parts[1])) if len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit() else (None, None)
+
+    url = f"https://image.pollinations.ai/prompt/{prompt}?model={model}&nologo=true&width={w}&height={h}&token={poli}"
     try:
         async with aiohttp.ClientSession() as s:
             async with s.get(url) as r:

@@ -63,7 +63,7 @@ ALGORITHM = "HS256"
 clientdb = MongoClient(config["bot"]["mongodb"])
 clientdb['lumi-api']['accounts_registered'].create_index("expiresAt", expireAfterSeconds=0)
 clientdb['lumi-api']['jwt_tokens'].create_index("expiration", expireAfterSeconds=0)
-bot_token, jwt_secret, verify_email_pass, action_password, openr = api_start(clientdb)
+bot_token, jwt_secret, verify_email_pass, action_password, openr, poli_token = api_start(clientdb)
 sbot = get_t_sbot(clientdb)
 
 available = None
@@ -148,7 +148,7 @@ async def image(request: Request, background_tasks: BackgroundTasks):
             return JSONResponse(status_code=status.HTTP_429_TOO_MANY_REQUESTS, content={"detail": "Rate limit exceeded for this API token. >5/RPM"})
         token_rate_limits[token].append(current_time)
 
-    img_url = await poli(prompt, model)
+    img_url = await poli(prompt, model, size, poli_token)
 
     logging_enabled = bool(config["api"]["logging"])
     if logging_enabled:
