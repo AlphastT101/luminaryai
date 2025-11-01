@@ -27,8 +27,7 @@ Currently, LumixCore has a functional, user-friendly dashboard, an AI playground
 
 # 🔗 Links & other
 
-* Website: https://xet.one
-* Playground: https://play.xet.one
+* Website: https://lumixcore.com 
+* Playground: https://play.lumixcore.com
 * Discord Server: https://discord.gg/2h8hBx8A52
-* Email: xet@xet.one
 * Support Email: support@xet.one
