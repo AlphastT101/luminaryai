@@ -30,7 +30,7 @@ async def poli(prompt, model, size, poli, cache="cache"):
 
 async def generate_api_key():
     random_string = ''.join(random.choices(string.ascii_letters + string.digits, k=40))
-    api_key = f'XET-{random_string}'
+    api_key = f'lumixcore-{random_string}'
     return api_key
 
 async def check_token(mongodb, token):
@@ -241,7 +241,7 @@ async def check_verification_code(email, code, mongodb):
 
 
 async def send_verify_email(to_email, email_from, password, code):
-    subject = "XET - Email verification"
+    subject = "LumixCore - Email verification"
     body = f"""
     <html>
     <body>
@@ -250,7 +250,7 @@ async def send_verify_email(to_email, email_from, password, code):
         <p>Thank you for registering with us. The code below is valid only for 5 minutes. To complete your registration, please verify your email address by entering the following 6-digit code:</p>
         <h3 style="color: #FF5733; font-size: 30px;">{code}</h3>
         <p>If you did not request this verification, please ignore this email.</p>
-        <p>Best regards,<br>XET</p>
+        <p>Best regards,<br>LumixCore</p>
     </body>
     </html>
     """

@@ -142,7 +142,7 @@ async def image(request: Request, background_tasks: BackgroundTasks):
     if not result: return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"detail": "Unauthorized, check your API token and try again."})
 
     current_time = time.time()
-    if token.startswith("luminary") or token.startswith("XET"):
+    if token.startswith("luminary") or token.startswith("XET") or token.startswith("lumixcore"):
         token_rate_limits[token] = [timestamp for timestamp in token_rate_limits[token] if current_time - timestamp < 60]
         if len(token_rate_limits[token]) >= 5:
             return JSONResponse(status_code=status.HTTP_429_TOO_MANY_REQUESTS, content={"detail": "Rate limit exceeded for this API token. >5/RPM"})
@@ -152,9 +152,9 @@ async def image(request: Request, background_tasks: BackgroundTasks):
 
     logging_enabled = bool(config["api"]["logging"])
     if logging_enabled:
-        background_tasks.add_task(log_image, email, model, f"https://api.xet.one/files/{img_url}", prompt, headers)
+        background_tasks.add_task(log_image, email, model, f"https://api.lumixcore.com/files/{img_url}", prompt, headers)
 
-    return JSONResponse(content={"data": [{"url": f"https://api.xet.one/files/{img_url}"}]})
+    return JSONResponse(content={"data": [{"url": f"https://api.lumixcore.com/files/{img_url}"}]})
 
 @app.get("/files/{image_name}")
 async def serve_image(image_name: str):

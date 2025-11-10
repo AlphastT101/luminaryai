@@ -1,10 +1,10 @@
 ## XET AI API
 
-* **Base URL**: https://api.xet.one/v1
-* **Playground:** https://play.xet.one
-* **Site:** https://xet.one
+* **Base URL**: https://api.lumixcore.com/v1
+* **Playground:** https://play.lumixcore.com
+* **Site:** https://lumixcore.com
 <br><br>
--  **API key**:  [Dashboard](https://xet.one/dashboard) > API Tokens
+-  **API key**:  [Dashboard](https://lumixcore.com/dashboard) > API Tokens
 - **Image Ratelimits**: 5 requests per minute.
 - **Text Ratelimits**: 5 requests per minute.
 
@@ -13,7 +13,7 @@
 - available sizes: `'1024x1024', '1024x576', '1024x768', '512x512', '576x1024', '768x1024'`
 
 ### Text generation models[DISABLED]
-- View at [/models](https://api.xet.one/v1/models)
+- View at [/models](https://api.lumixcore.com/v1/models)
 - This list DOES NOT include image generation models, only text.
 
 **Python3 code example for image generation:**
@@ -22,7 +22,7 @@ from openai import OpenAI
 
 openai = OpenAI(
     api_key = "API key here",
-    base_url = "https://api.xet.one/v1"
+    base_url = "https://api.lumixcore.com/v1"
 )
 response = openai.images.generate(
     prompt="A sunset over a mountain range",
@@ -37,7 +37,7 @@ print(response.data[0].url)
 from openai import OpenAI
 
 client = OpenAI(
-  base_url="https://api.xet.one/v1",
+  base_url="https://api.lumixcore.com/v1",
   api_key="API key here",
 )
 

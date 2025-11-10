@@ -14,7 +14,7 @@ help_select = Select(placeholder="Make a selection", options=[
 c = 0x99ccff
 help_embbed = discord.Embed(
     title="LuminaryAI - help",
-    description="[support server](<https://discord.com/invite/hmMBe8YyJ4>)\n[Invite bot](<https://discord.com/oauth2/authorize?client_id=1110111253256482826&permissions=8&scope=bot>)\n\nLuminaryAI is like a smart friend on Discord, using a powerful AI engine called 'Luminary' made by AlphasT101. It's here to help everyone in the Discord group with anything you need.",
+    description="[support server](<https://discord.com/invite/2h8hBx8A52>)\n[Invite bot](<https://discord.com/oauth2/authorize?client_id=1110111253256482826&permissions=8&scope=bot>)\n\nLuminaryAI is like a smart friend on Discord, using a powerful AI engine called 'Luminary' made by AlphasT101. It's here to help everyone in the Discord group with anything you need.",
     color=0x99ccff
 )
 

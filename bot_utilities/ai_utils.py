@@ -67,7 +67,7 @@ async def create_and_send_embed(query, image_urls, message, interaction):
             f':mag: **Search Query:** {query}\n\n'
             f'{result}'
         )
-        embed = discord.Embed(description=description, url="https://xet.one")
+        embed = discord.Embed(description=description, url="https://lumixcore.com")
         try: user = interaction.user; avatar_url = interaction.user.avatar.url
         except AttributeError: user = interaction.author; avatar_url = interaction.author.avatar.url
         embed.set_footer(text=f"Requested by {user}", icon_url=avatar_url)

@@ -20,13 +20,13 @@ async def about_embed(start_time, bot):
     about = discord.Embed(
         title='About LuminaryAI',
         description=(
-            "[Site](<https://xet.one>)\n"
+            "[Site](<https://lumixcore.com>)\n"
             "[Invite bot](<https://discord.com/oauth2/authorize?client_id=1110111253256482826&permissions=8&scope=bot>)\n"
-            "[Support server](<https://discord.com/invite/hmMBe8YyJ4>)\n"
-            "[API Playground](<https://play.xet.one>)\n"
-            "[Terms of Service](<https://xet.one>)\n"
+            "[Support server](<https://discord.com/invite/2h8hBx8A52>)\n"
+            "[API Playground](<https://play.lumixcore.com>)\n"
+            "[Terms of Service](<https://lumixcore.com>)\n"
             "[Discord bot list vote](<https://top.gg/bot/1110111253256482826/vote>)\n\n"
-            "LuminaryAI is your Discord bot powered by artificial intelligence, by XET. "
+            "LuminaryAI is your Discord bot powered by artificial intelligence, by LumixCore. "
             "It utilizes cutting-edge AI features to enrich your server's experience, providing automated moderation, text filtering, image generation, and more!\n\n"
 
             f"**Internal Statics**\n* **RAM:** {ram_text}\n* **CPU:** {cpu_text}\n* **AI Engine:** Luminary\n\n"

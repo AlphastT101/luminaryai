@@ -54,7 +54,7 @@ class InformationSlash(commands.Cog):
     async def owner(self, interaction: discord.Interaction):
         if await check_blist(interaction, self.bot.db): return
         await interaction.response.defer(ephemeral=False)
-        await interaction.followup.send(embed=discord.Embed(description="My owner is [AlphasT101](https://owner.xet.one)"))
+        await interaction.followup.send(embed=discord.Embed(description="My owner is [AlphasT101](https://me.lumixcore.com)"))
 
     @app_commands.command(name="ping", description="See bot ping")
     @app_commands.guild_only()

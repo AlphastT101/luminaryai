@@ -128,11 +128,11 @@ class AiSlash(commands.Cog):
             stats = "No API stats found."
 
         embed = discord.Embed(
-            title="XET API Stats",
+            title="lumixcore API Stats",
             description=stats,
             color=discord.Color.blue()
         )
-        embed.set_footer(text="Current XET API Stats")
+        embed.set_footer(text="Current lumixcore API Stats")
         await interaction.followup.send(embed=embed)
 
 async def setup(bot):
