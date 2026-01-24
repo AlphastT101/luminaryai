@@ -6,6 +6,7 @@ from bot_utilities.help_embed import *
 from bot_utilities.owner_utils import *
 from bot_utilities.about_embed import *
 from bot_utilities.credits_ranking import CreditsRanking
+from bot_utilities.credits_cache import CreditsCache
 from bot_utilities.embed_utils import create_embed, create_error_embed, create_success_embed, create_warning_embed, create_processing_embed
 from discord import app_commands, Interaction
 
@@ -165,15 +166,44 @@ class InformationSlash(commands.Cog):
         await interaction.response.defer(ephemeral=False)
         
         try:
-            # Initialize credits ranking with API key from bot config or environment
-            # You may need to adjust this based on how your bot stores API keys
-            api_key = getattr(self.bot, 'panel_api_key', None) or "your_api_key_here"
+            # Get the global cache instance
+            cache = CreditsCache()
             
-            ranking = CreditsRanking(api_key=api_key)
-            leaderboard_view = ranking.create_leaderboard_view(interaction.user.id)
+            # Initialize cache if not already done
+            if not cache.credits_ranking:
+                api_key = getattr(self.bot, 'panel_api_key', None) or "your_api_key_here"
+                cache.initialize(api_key)
             
-            # Create initial embed
+            # Get cached data
+            cached_users = cache.get_cached_users()
+            time_since_update = cache.get_time_since_update()
+            
+            if not cached_users:
+                # If no cache exists, trigger an update
+                await cache.update_cache()
+                cached_users = cache.get_cached_users()
+                time_since_update = cache.get_time_since_update()
+            
+            # Create leaderboard view with cached data
+            leaderboard_view = cache.create_leaderboard_view(interaction.user.id)
+            
+            # Create initial embed with update time
             embed = leaderboard_view.create_embed()
+            
+            # Add last update info to the embed
+            if time_since_update < 60:
+                update_text = f"Last updated {time_since_update} seconds ago"
+            else:
+                minutes = time_since_update // 60
+                seconds = time_since_update % 60
+                if minutes == 1:
+                    update_text = f"Last updated 1 minute ago"
+                else:
+                    update_text = f"Last updated {minutes} minutes ago"
+                if seconds > 0:
+                    update_text += f" {seconds} seconds ago"
+            
+            embed.description = f"{embed.description}\n\n📊 {update_text}"
             
             # Send message with view
             message = await interaction.followup.send(embed=embed, view=leaderboard_view)

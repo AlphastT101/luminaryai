@@ -6,6 +6,7 @@ import discord
 import requests
 from discord.ext import commands
 from bot_utilities.start_util import *
+from bot_utilities.credits_cache import CreditsCache
 from pymongo.mongo_client import MongoClient
 
 with open("config.yml", "r") as config_file: config = yaml.safe_load(config_file)
@@ -49,6 +50,13 @@ bot.panel_api_key = config['pterodactyl']['api_key']
 async def on_ready():
     print(f'We have logged in as {bot.user}')
 
+    # Initialize credits cache
+    cache = CreditsCache()
+    cache.initialize(bot.panel_api_key)
+    
+    # Start background cache updates
+    asyncio.create_task(cache.start_background_updates())
+
     await bot.load_extension("prefix.owner")
 
     await bot.load_extension("slash.ai")
@@ -90,6 +98,10 @@ def handle_shutdown(signal, frame):
 
 async def shutdown_bot():
     try:
+        # Shutdown credits cache
+        cache = CreditsCache()
+        cache.shutdown()
+        
         if config['bot']['start_api']: requests.get(f'http://localhost:{config["api"]["port"]}/shutdown')
         await bot.close()
     except Exception as e:

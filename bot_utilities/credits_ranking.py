@@ -7,6 +7,7 @@ Sorts users from highest to lowest credits with pagination support.
 import requests
 import json
 import asyncio
+import time
 from typing import List, Dict, Any, Optional
 import discord
 from discord.ui import View, Button
@@ -130,6 +131,11 @@ class CreditsRanking:
         
         try:
             response = self.session.get(url, params={'per_page': 1000})
+            
+            # Handle rate limiting
+            if response.status_code == 429:
+                return []
+            
             response.raise_for_status()
             
             data = response.json()
@@ -147,8 +153,10 @@ class CreditsRanking:
                 return data if isinstance(data, list) else []
                 
         except requests.exceptions.RequestException as e:
-            print(f"Error fetching users: {e}")
-            return []
+            if "429" in str(e):
+                return []
+            else:
+                return []
     
     def get_user_resources(self, user_id: int) -> Dict[str, Any]:
         """
@@ -164,6 +172,11 @@ class CreditsRanking:
         
         try:
             response = self.session.get(url)
+            
+            # Handle rate limiting
+            if response.status_code == 429:
+                return {'balance': 0, 'cpu': 0, 'memory': 0, 'disk': 0, 'slots': 0, 'ports': 0, 'backups': 0, 'databases': 0}
+            
             response.raise_for_status()
             
             data = response.json()
@@ -180,8 +193,10 @@ class CreditsRanking:
                 return data
                 
         except requests.exceptions.RequestException as e:
-            print(f"Error fetching resources for user {user_id}: {e}")
-            return {}
+            if "429" in str(e):
+                return {'balance': 0, 'cpu': 0, 'memory': 0, 'disk': 0, 'slots': 0, 'ports': 0, 'backups': 0, 'databases': 0}
+            else:
+                return {}
     
     def fetch_all_users_with_credits(self) -> List[Dict[str, Any]]:
         """
@@ -193,10 +208,16 @@ class CreditsRanking:
         users = self.get_users()
         users_with_credits = []
         
-        for user in users:
+        for i, user in enumerate(users, 1):
             user_id = user.get('id')
             if not user_id:
                 continue
+                
+            # Add delay to prevent rate limiting
+            if i > 1 and i % 50 == 0:
+                time.sleep(5)
+            elif i > 1:
+                time.sleep(0.1)  # Small delay between each request
                 
             # Get user resources for credits
             resources = self.get_user_resources(user_id)
