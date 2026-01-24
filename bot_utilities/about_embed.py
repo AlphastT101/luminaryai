@@ -2,6 +2,7 @@ import time
 import psutil
 import discord
 import datetime
+from .embed_utils import create_embed
 
 async def about_embed(start_time, bot):
 
@@ -17,7 +18,7 @@ async def about_embed(start_time, bot):
     users = sum(guild.member_count for guild in bot.guilds)
     guilds = len(bot.guilds)
 
-    about = discord.Embed(
+    about = create_embed(
         title='About LuminaryAI',
         description=(
             "[Site](<https://lumixcore.com>)\n"
@@ -31,8 +32,7 @@ async def about_embed(start_time, bot):
 
             f"**Internal Statics**\n* **RAM:** {ram_text}\n* **CPU:** {cpu_text}\n* **AI Engine:** Luminary\n\n"
             f"**Bot Statics**\n* **Users:** {users}\n* **Guilds:** {guilds}\n* **Uptime:** {str(uptime_duration)}"
-        ),
-        color=0x99ccff
+        )
     )
     about.set_image(url="attachment://ai.png")
     return about

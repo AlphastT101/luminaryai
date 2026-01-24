@@ -5,6 +5,7 @@ from discord.ui import Button, View
 from bot_utilities.help_embed import *
 from bot_utilities.about_embed import about_embed
 from bot_utilities.owner_utils import check_blist_msg
+from bot_utilities.embed_utils import create_embed
 
 class Information(commands.Cog):
     def __init__(self, bot):
@@ -14,26 +15,26 @@ class Information(commands.Cog):
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def support(self, ctx):
         if await check_blist_msg(ctx, self.bot.db): return
-        await ctx.reply(embed=discord.Embed(description="**Support server:** [here](https://discord.com/invite/hmMBe8YyJ4)"), mention_author=False)
+        await ctx.reply(embed=create_embed(description="**Support server:** [here](https://discord.com/invite/hmMBe8YyJ4)"), mention_author=False)
 
     @commands.command(name='owner')
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def owner(self, ctx):
         if await check_blist_msg(ctx, self.bot.db): return
-        await ctx.reply(embed=discord.Embed(description="My owner is [AlphasT101](https://owner.xet.one)"), mention_author=False)
+        await ctx.reply(embed=create_embed(description="My owner is [AlphasT101](https://owner.xet.one)"), mention_author=False)
         
     @commands.command(name="ping")
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def ping(self, ctx):
         if await check_blist_msg(ctx, self.bot.db): return
-        await ctx.reply(embed=discord.Embed(description=f"**Latency:** `{round(self.bot.latency * 1000)}ms`"), mention_author=False)
+        await ctx.reply(embed=create_embed(description=f"**Latency:** `{round(self.bot.latency * 1000)}ms`"), mention_author=False)
 
     @commands.command(name="uptime")
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def uptime(self, ctx):
         if await check_blist_msg(ctx, self.bot.db): return
         uptime = str(datetime.timedelta(seconds=int(round(time.time() - self.bot.start_time))))
-        await ctx.reply(embed=discord.Embed(description=f"**Uptime:** `{uptime}`"), mention_author=False)
+        await ctx.reply(embed=create_embed(description=f"**Uptime:** `{uptime}`"), mention_author=False)
 
     @commands.command(name='about')
     @commands.cooldown(1, 30, commands.BucketType.user)
@@ -56,7 +57,7 @@ class Information(commands.Cog):
         permissions = ctx.channel.permissions_for(user_mention)
         permissions_string = ", ".join([perm.replace('_', ' ').title() for perm, value in permissions if value])
 
-        embed = discord.Embed(
+        embed = create_embed(
             title=f"Username: {user_mention}",
             description=(
                 f"UserID: `{user_mention.id}`\n"
@@ -66,8 +67,7 @@ class Information(commands.Cog):
                 f"{roles_string}\n\n"
                 "**Channel Permissions:**\n"
                 f"{permissions_string}"
-            ),
-            color=0x99ccff
+            )
         )
         embed.set_thumbnail(url=user_mention.avatar.url)
         await ctx.reply(embed=embed, mention_author=False)

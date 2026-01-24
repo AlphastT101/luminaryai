@@ -3,6 +3,7 @@ import discord
 import contextlib
 from discord.ext import commands
 from bot_utilities.owner_utils import *
+from bot_utilities.embed_utils import create_embed
 
 class Owner(commands.Cog):
     def __init__(self, bot):
@@ -22,7 +23,7 @@ class Owner(commands.Cog):
         current_page = 0
 
         async def update_message(interaction):
-            embed = discord.Embed(title="Guilds List", color=discord.Color.blue())
+            embed = create_embed(title="Guilds List")
             embed.description = pages[current_page]
             embed.set_footer(text=f"Page {current_page + 1}/{total_pages}")
 
@@ -53,7 +54,7 @@ class Owner(commands.Cog):
             await paginator_message.edit(embed=initial_embed, view=None)
             view.stop()
 
-        initial_embed = discord.Embed(title="Guilds List", color=discord.Color.blue())
+        initial_embed = create_embed(title="Guilds List")
         initial_embed.description = pages[current_page]
         initial_embed.set_footer(text=f"Page {current_page + 1}/{total_pages}")
 
