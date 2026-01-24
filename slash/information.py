@@ -5,6 +5,8 @@ from discord.ui import View, Button
 from bot_utilities.help_embed import *
 from bot_utilities.owner_utils import *
 from bot_utilities.about_embed import *
+from bot_utilities.credits_ranking import CreditsRanking
+from bot_utilities.embed_utils import create_embed, create_error_embed, create_success_embed, create_warning_embed, create_processing_embed
 from discord import app_commands, Interaction
 
 class InformationSlash(commands.Cog):
@@ -25,7 +27,7 @@ class InformationSlash(commands.Cog):
         permissions = interaction.channel.permissions_for(user)
         permissions_string = ", ".join([perm.replace('_', ' ').title() for perm, value in permissions if value])
 
-        embed = discord.Embed(
+        embed = create_embed(
             title=f"Username: {user}",
             description=(
                 f"UserID: `{user.id}`\n"
@@ -35,8 +37,7 @@ class InformationSlash(commands.Cog):
                 f"{roles_string}\n\n"
                 "**Channel Permissions:**\n"
                 f"{permissions_string}"
-            ),
-            color=0x99ccff
+            )
         )
         embed.set_thumbnail(url=user.avatar.url)
         await interaction.followup.send(embed=embed)
@@ -47,21 +48,21 @@ class InformationSlash(commands.Cog):
     async def support(self, interaction: discord.Interaction):
         if await check_blist(interaction, self.bot.db): return
         await interaction.response.defer(ephemeral=False)
-        await interaction.followup.send(embed=discord.Embed(description="**Support server:** [here](https://discord.com/invite/hmMBe8YyJ4)"))
+        await interaction.followup.send(embed=create_embed(description="**Support server:** [here](https://discord.com/invite/hmMBe8YyJ4)"))
 
     @app_commands.command(name='owner', description="Shows bot owner")
     @app_commands.guild_only()
     async def owner(self, interaction: discord.Interaction):
         if await check_blist(interaction, self.bot.db): return
         await interaction.response.defer(ephemeral=False)
-        await interaction.followup.send(embed=discord.Embed(description="My owner is [AlphasT101](https://me.lumixcore.com)"))
+        await interaction.followup.send(embed=create_embed(description="My owner is [AlphasT101](https://me.lumixcore.com)"))
 
     @app_commands.command(name="ping", description="See bot ping")
     @app_commands.guild_only()
     async def check(self, interaction: discord.Interaction):
         if await check_blist(interaction, self.bot.db): return
         await interaction.response.defer(ephemeral=False)
-        await interaction.followup.send(embed=discord.Embed(description=f"**Latency:** `{round(self.bot.latency * 1000)}ms`"))
+        await interaction.followup.send(embed=create_embed(description=f"**Latency:** `{round(self.bot.latency * 1000)}ms`"))
 
     @app_commands.command(name="uptime", description="Shows bot uptime")
     @app_commands.guild_only()
@@ -69,7 +70,7 @@ class InformationSlash(commands.Cog):
         if await check_blist(interaction, self.bot.db): return
         await interaction.response.defer(ephemeral=False)
         uptime = str(datetime.timedelta(seconds=int(round(time.time() - self.bot.start_time))))
-        await interaction.followup.send(embed=discord.Embed(description=f"**Uptime:** `{uptime}`"))
+        await interaction.followup.send(embed=create_embed(description=f"**Uptime:** `{uptime}`"))
 
     @app_commands.command(name="about", description="about the bot")
     @app_commands.guild_only()
@@ -155,6 +156,36 @@ class InformationSlash(commands.Cog):
 
         for button in buttons:
             button.callback = button_callback
+
+    @app_commands.command(name='leaderboard', description="View the credits leaderboard")
+    @app_commands.guild_only()
+    async def leaderboard(self, interaction: Interaction):
+        if await check_blist(interaction, self.bot.db): 
+            return
+        await interaction.response.defer(ephemeral=False)
+        
+        try:
+            # Initialize credits ranking with API key from bot config or environment
+            # You may need to adjust this based on how your bot stores API keys
+            api_key = getattr(self.bot, 'panel_api_key', None) or "your_api_key_here"
+            
+            ranking = CreditsRanking(api_key=api_key)
+            leaderboard_view = ranking.create_leaderboard_view(interaction.user.id)
+            
+            # Create initial embed
+            embed = leaderboard_view.create_embed()
+            
+            # Send message with view
+            message = await interaction.followup.send(embed=embed, view=leaderboard_view)
+            leaderboard_view.message = message
+            
+        except Exception as e:
+            await interaction.followup.send(
+                embed=create_error_embed(
+                    title="Error",
+                    description=f"Failed to fetch leaderboard: {str(e)}"
+                )
+            )
 
 async def setup(bot):
     await bot.add_cog(InformationSlash(bot))

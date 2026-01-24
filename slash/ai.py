@@ -4,6 +4,7 @@ from discord import app_commands
 from discord.ext import commands
 from bot_utilities.owner_utils import check_blist
 from bot_utilities.ai_utils import poli, search_image, create_and_send_embed, gentext
+from bot_utilities.embed_utils import create_embed
 
 def is_admin_or_owner():
     async def predicate(interaction: discord.Interaction) -> bool:
@@ -44,9 +45,9 @@ class AiSlash(commands.Cog):
 
         async with aiohttp.ClientSession() as session:
             image = await poli(session, prompt, model.value, size.value, self.bot.poli_token)
-            send_embed = discord.Embed(
+            send_embed = create_embed(
                 title="LuminaryAI - Image generation",
-                description=f"Requested by: `{interaction.user}`\nPrompt: `{prompt}`.",
+                description=f"Requested by: `{interaction.user}`\nPrompt: `{prompt}`."
             )
             send_embed.set_image(url=f'attachment://generated_image.png')
             await interaction.followup.send(content="", embed=send_embed, file=discord.File(image, 'generated_image.png'))
