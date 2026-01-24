@@ -26,7 +26,7 @@ activity = discord.Game(name="/help")
 intents = discord.Intents.all()
 intents.presences = False
 bot = commands.AutoShardedBot(
-    shard_count=1,
+    shard_count=2,
     command_prefix=config["bot"]["prefix"],
     intents=intents,
     activity=activity,
@@ -42,6 +42,8 @@ bot_token, bot.poli_token = start(bot.db)
 bot.start_time = time.time()
 bot.is_generating = {}
 bot.history = {}
+
+bot.panel_api_key = config['pterodactyl']['api_key']
 
 @bot.event
 async def on_ready():
@@ -66,6 +68,7 @@ async def on_ready():
     if config['bot']['start_api']:
         await asyncio.sleep(1)
         requests.get(f'http://localhost:{config["api"]["port"]}/create-task')
+
 
 @bot.event
 async def on_guild_join(guild):
