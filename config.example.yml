@@ -23,4 +23,12 @@ api:
   verification_email: "verify@example.com"
 
 
+# Pterodactyl Panel Configuration
+pterodactyl:
+  # Panel URL
+  panel_url: "https://panel.lumixcore.com"
+  
+  # Application API Key
+  api_key: "PUT_YOUR_APPLICATION_API_KEY_HERE"
+
 # If you don't understand, please open a support ticket in our discord server. We will happily help to setup.
