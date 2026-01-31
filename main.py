@@ -65,6 +65,7 @@ async def on_ready():
 
     await bot.load_extension("events.on_messages")
     await bot.load_extension("events.on_cmd_error")
+    await bot.load_extension("events.on_member_join")
     
     print(f"Booted in {time.time() - bot.start_time}s")
     await bot.tree.sync()
