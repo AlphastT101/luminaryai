@@ -1,52 +1,94 @@
-import time
 import datetime
+import time
+
+import discord
 from discord.ext import commands
 from discord.ui import Button, View
-from bot_utilities.help_embed import *
-from bot_utilities.about_embed import about_embed
-from bot_utilities.owner_utils import check_blist_msg
-from bot_utilities.embed_utils import create_embed
+
+from bot import config
+from bot.utils.about import about_embed
+from bot.utils.blacklist import check_blist_msg
+from bot.utils.embeds import create_embed
+from bot.utils.help import (
+    admin_commands,
+    ai_commands,
+    automod_commands,
+    embed_admin,
+    embed_ai,
+    embed_automod,
+    embed_fun,
+    embed_info,
+    embed_moderation,
+    embed_music,
+    fun_commands,
+    get_chunk,
+    help_embed,
+    help_select,
+    information_commands,
+    moderation_commands,
+    music_commands,
+)
+
 
 class Information(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(name='support')
+    @commands.command(name="support")
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def support(self, ctx):
-        if await check_blist_msg(ctx, self.bot.db): return
-        await ctx.reply(embed=create_embed(description="**Support server:** [here](https://discord.com/invite/hmMBe8YyJ4)"), mention_author=False)
+        if await check_blist_msg(ctx, self.bot.db):
+            return
+        await ctx.reply(
+            embed=create_embed(description=f"**Support server:** [here]({config.SUPPORT_SERVER_URL})"),
+            mention_author=False,
+        )
 
-    @commands.command(name='owner')
+    @commands.command(name="owner")
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def owner(self, ctx):
-        if await check_blist_msg(ctx, self.bot.db): return
-        await ctx.reply(embed=create_embed(description="My owner is [AlphasT101](https://owner.xet.one)"), mention_author=False)
-        
+        if await check_blist_msg(ctx, self.bot.db):
+            return
+        await ctx.reply(
+            embed=create_embed(description=f"My owner is [{config.OWNER_NAME}]({config.OWNER_URL})"),
+            mention_author=False,
+        )
+
     @commands.command(name="ping")
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def ping(self, ctx):
-        if await check_blist_msg(ctx, self.bot.db): return
-        await ctx.reply(embed=create_embed(description=f"**Latency:** `{round(self.bot.latency * 1000)}ms`"), mention_author=False)
+        if await check_blist_msg(ctx, self.bot.db):
+            return
+        await ctx.reply(
+            embed=create_embed(description=f"**Latency:** `{round(self.bot.latency * 1000)}ms`"),
+            mention_author=False,
+        )
 
     @commands.command(name="uptime")
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def uptime(self, ctx):
-        if await check_blist_msg(ctx, self.bot.db): return
+        if await check_blist_msg(ctx, self.bot.db):
+            return
         uptime = str(datetime.timedelta(seconds=int(round(time.time() - self.bot.start_time))))
         await ctx.reply(embed=create_embed(description=f"**Uptime:** `{uptime}`"), mention_author=False)
 
-    @commands.command(name='about')
+    @commands.command(name="about")
     @commands.cooldown(1, 30, commands.BucketType.user)
     async def about(self, ctx):
-        if await check_blist_msg(ctx, self.bot.db): return
+        if await check_blist_msg(ctx, self.bot.db):
+            return
         embed = await about_embed(self.bot.start_time, self.bot)
-        await ctx.reply(embed=embed, file=discord.File("images/ai.png", filename="ai.png"), mention_author=False)
+        await ctx.reply(
+            embed=embed,
+            file=discord.File(str(config.AI_IMAGE_PATH), filename="ai.png"),
+            mention_author=False,
+        )
 
-    @commands.command(name='userinfo')
+    @commands.command(name="userinfo")
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def user(self, ctx, user_mention: discord.Member = None):
-        if await check_blist_msg(ctx, self.bot.db): return
+        if await check_blist_msg(ctx, self.bot.db):
+            return
 
         if user_mention is None:
             user_mention = ctx.author
@@ -55,7 +97,7 @@ class Information(commands.Cog):
         roles_string = ", ".join(roles) if roles else "No roles"
 
         permissions = ctx.channel.permissions_for(user_mention)
-        permissions_string = ", ".join([perm.replace('_', ' ').title() for perm, value in permissions if value])
+        permissions_string = ", ".join([perm.replace("_", " ").title() for perm, value in permissions if value])
 
         embed = create_embed(
             title=f"Username: {user_mention}",
@@ -67,41 +109,41 @@ class Information(commands.Cog):
                 f"{roles_string}\n\n"
                 "**Channel Permissions:**\n"
                 f"{permissions_string}"
-            )
+            ),
         )
-        embed.set_thumbnail(url=user_mention.avatar.url)
+        if user_mention.avatar:
+            embed.set_thumbnail(url=user_mention.avatar.url)
         await ctx.reply(embed=embed, mention_author=False)
 
     @commands.command(name="help")
     @commands.cooldown(1, 60, commands.BucketType.user)
     async def help_ctx(self, ctx):
-        if await check_blist_msg(ctx, self.bot.db): return
+        if await check_blist_msg(ctx, self.bot.db):
+            return
 
         help_view = View()
         help_view.add_item(help_select)
 
-        help_embbed.set_thumbnail(url=self.bot.user.avatar)
-        help_msg = await ctx.reply(embed=help_embbed, view=help_view, mention_author=False)
+        help_embed.set_thumbnail(url=self.bot.user.avatar)
+        help_msg = await ctx.reply(embed=help_embed, view=help_view, mention_author=False)
 
-        # Pagination buttons
         buttons = [
-            Button(label="Previous", style=discord.ButtonStyle.primary, custom_id='Previous'),
-            Button(label="Next", style=discord.ButtonStyle.primary, custom_id='Next')
+            Button(label="Previous", style=discord.ButtonStyle.primary, custom_id="Previous"),
+            Button(label="Next", style=discord.ButtonStyle.primary, custom_id="Next"),
         ]
 
         help_view.add_item(buttons[0])
         help_view.add_item(buttons[1])
 
-        # Variables to track current state
         current_page = 0
-        current_commands = information_commannds
+        current_commands = information_commands
         embed = embed_info
 
         async def help_callback(interaction):
             nonlocal current_page, current_commands, embed
 
             if help_select.values[0] == "Information":
-                current_commands = information_commannds
+                current_commands = information_commands
                 embed = embed_info
             elif help_select.values[0] == "AI":
                 current_commands = ai_commands
@@ -122,17 +164,15 @@ class Information(commands.Cog):
                 current_commands = music_commands
                 embed = embed_music
 
-            current_page = 0  # Reset to the first page
+            current_page = 0
             embed = get_chunk(embed, current_commands, current_page * 5)
             await interaction.response.defer()
             await help_msg.edit(embed=embed, view=help_view)
 
         help_select.callback = help_callback
 
-        # Callback for the buttons
         async def button_callback(interaction):
             nonlocal current_page, current_commands, embed
-
 
             if interaction.data["custom_id"] == "Previous":
                 current_page = max(current_page - 1, 0)
@@ -145,6 +185,7 @@ class Information(commands.Cog):
 
         for button in buttons:
             button.callback = button_callback
+
 
 async def setup(bot):
     await bot.add_cog(Information(bot))

@@ -1,5 +1,7 @@
 from PIL import Image, ImageDraw, ImageFont
 
+from bot import config
+
 facts = [
     "Honey never spoils. Archaeologists have found pots of honey in ancient Egyptian tombs that are over 3,000 years old and still perfectly edible.",
     "The shortest war in history was between Britain and Zanzibar on August 27, 1896. Zanzibar surrendered after 38 minutes.",
@@ -32,32 +34,32 @@ words_list = [
     "Scone", "Table", "Unity", "Vocal", "Whirl", "Xylan", "Yogis", "Zappy", "Angel", "Beach",
     "Candy", "Disco", "Earth", "Fable", "Globe", "Hasty", "Ivory", "Juice", "Kitty", "Lemon",
     "Mocha", "Nylon", "Omega", "Panda", "Queen", "Ruler", "Sunny", "Table", "Unity", "Velum",
-    "Whisk", "Xerox", "Yogis", "Zebra"
+    "Whisk", "Xerox", "Yogis", "Zebra",
 ]
+
 choices = ["rock", "paper", "scissors"]
 outcomes = {
     "rock": {"rock": "tie", "paper": "lose", "scissors": "win"},
     "paper": {"rock": "win", "paper": "tie", "scissors": "lose"},
-    "scissors": {"rock": "lose", "paper": "win", "scissors": "tie"}
+    "scissors": {"rock": "lose", "paper": "win", "scissors": "tie"},
 }
 
 
 def wordleScore(target, guess):
-    # score_name = {2: 'green', 1: 'amber', 0: 'gray'}
     if len(target) != 5:
-        return f'{target}: Expected 5 character target.'
-    elif len(guess) != 5:
-        return f'{guess}: Expected 5 character guess.'
+        return f"{target}: Expected 5 character target."
+    if len(guess) != 5:
+        return f"{guess}: Expected 5 character guess."
 
     score = []
     remaining_chars = target
     for tg, gg in zip(target, guess):
         if tg == gg:
             score.append(2)
-            remaining_chars = remaining_chars.replace(tg, '', 1)
+            remaining_chars = remaining_chars.replace(tg, "", 1)
         elif gg in remaining_chars:
             score.append(1)
-            remaining_chars = remaining_chars.replace(gg, '', 1)
+            remaining_chars = remaining_chars.replace(gg, "", 1)
         else:
             score.append(0)
     return score
@@ -69,7 +71,7 @@ def generate_wordle_image(input_string, colors):
     total_width = char_width * len(input_string)
     total_height = char_height
 
-    image = Image.new('RGB', (total_width, total_height), color=(238, 238, 238))  # Light gray background
+    image = Image.new("RGB", (total_width, total_height), color=(238, 238, 238))
     draw = ImageDraw.Draw(image)
 
     color_map = {
@@ -78,7 +80,7 @@ def generate_wordle_image(input_string, colors):
         "0": (128, 128, 128),
     }
 
-    font = ImageFont.truetype('arial.ttf', 40)
+    font = ImageFont.truetype(str(config.FONT_PATH), 40)
 
     for i, (char, color) in enumerate(zip(input_string, colors)):
         x_pos = i * char_width
@@ -87,13 +89,16 @@ def generate_wordle_image(input_string, colors):
 
         if color in color_map:
             bg_color = color_map[color]
-            draw.rectangle([x_pos, y_pos, x_pos + char_width, y_pos + char_height], fill=bg_color)
         else:
-            bg_color = (255, 255, 255)  # Default color is white
-            draw.rectangle([x_pos, y_pos, x_pos + char_width, y_pos + char_height], fill=bg_color)
+            bg_color = (255, 255, 255)
+        draw.rectangle([x_pos, y_pos, x_pos + char_width, y_pos + char_height], fill=bg_color)
 
-        char_width_offset, char_height_offset = 30,35
-        draw.text((x_pos + (char_width - char_width_offset) / 2, (char_height - char_height_offset) / 3),
-                  char, font=font, fill=(0, 0, 0))
+        char_width_offset, char_height_offset = 30, 35
+        draw.text(
+            (x_pos + (char_width - char_width_offset) / 2, (char_height - char_height_offset) / 3),
+            char,
+            font=font,
+            fill=(0, 0, 0),
+        )
 
     return image

@@ -1,113 +1,104 @@
-import time
-import yaml
 import signal
-import asyncio
+import time
+
 import discord
-import requests
 from discord.ext import commands
-from bot_utilities.start_util import *
-from bot_utilities.credits_cache import CreditsCache
 from pymongo.mongo_client import MongoClient
 
-with open("config.yml", "r") as config_file: config = yaml.safe_load(config_file)
+from bot import config
 
-if config['bot']['start_api']:
-    import uvicorn
-    from api import app
+if not config.DISCORD_TOKEN:
+    raise SystemExit("DISCORD_TOKEN is missing. Copy .env.example to .env and fill in your values.")
 
-async def run_flask_app_async(asyncio):
-    def run_api():
-        port = config["api"]["port"]
-        uvicorn.run("api:app", host='0.0.0.0', port=port, log_level="warning")
-    loop = asyncio.get_running_loop()
-    await loop.run_in_executor(None, run_api)
-
-# sp_id, sp_secret = spotify_token(client) Not used for now
-activity = discord.Game(name="/help")
+activity = discord.Game(name="/help" if config.ENABLE_SLASH_COMMANDS else f"{config.BOT_PREFIX}help")
 intents = discord.Intents.all()
 intents.presences = False
+
 bot = commands.AutoShardedBot(
-    shard_count=2,
-    command_prefix=config["bot"]["prefix"],
+    shard_count=config.SHARD_COUNT,
+    command_prefix=config.BOT_PREFIX,
     intents=intents,
     activity=activity,
     help_command=None,
-    reconnect=False
+    reconnect=False,
 )
-flask_task = None
-flask_thread = None
-mongodb = config["bot"]["mongodb"]
-bot.db = MongoClient(mongodb)
-bot_token, bot.poli_token = start(bot.db)
 
+bot.db = MongoClient(config.MONGODB_URI)
+bot.poli_token = config.POLLINATIONS_TOKEN
 bot.start_time = time.time()
 bot.is_generating = {}
 bot.history = {}
 
-bot.panel_api_key = config['pterodactyl']['api_key']
 
 @bot.event
 async def on_ready():
-    print(f'We have logged in as {bot.user}')
+    print(f"We have logged in as {bot.user}")
 
-    # Initialize credits cache
-    cache = CreditsCache()
-    cache.initialize(bot.panel_api_key)
-    
-    # Start background cache updates
-    asyncio.create_task(cache.start_background_updates())
+    if config.ENABLE_PREFIX_COMMANDS:
+        await bot.load_extension("bot.cogs.prefix.owner")
+        await bot.load_extension("bot.cogs.prefix.ai")
+        await bot.load_extension("bot.cogs.prefix.fun")
+        await bot.load_extension("bot.cogs.prefix.information")
 
-    await bot.load_extension("prefix.owner")
+    if config.ENABLE_SLASH_COMMANDS:
+        await bot.load_extension("bot.cogs.slash.ai")
+        await bot.load_extension("bot.cogs.slash.fun")
+        await bot.load_extension("bot.cogs.slash.information")
 
-    await bot.load_extension("slash.ai")
-    await bot.load_extension("slash.fun")
-    await bot.load_extension("slash.information")
+    await bot.load_extension("bot.events.on_messages")
+    await bot.load_extension("bot.events.on_cmd_error")
+    await bot.load_extension("bot.events.on_member_join")
 
-    await bot.load_extension("events.on_messages")
-    await bot.load_extension("events.on_cmd_error")
-    await bot.load_extension("events.on_member_join")
-    
     print(f"Booted in {time.time() - bot.start_time}s")
-    await bot.tree.sync()
-
-    if config['bot']['start_api']:
-        global flask_task
-        flask_task = asyncio.create_task(run_flask_app_async(asyncio))
-
-    if config['bot']['start_api']:
-        await asyncio.sleep(1)
-        requests.get(f'http://localhost:{config["api"]["port"]}/create-task')
+    if config.ENABLE_SLASH_COMMANDS:
+        await bot.tree.sync()
 
 
 @bot.event
 async def on_guild_join(guild):
-    channel = bot.get_channel(1189110778599575592)
-    embed = discord.Embed(title="Guild Joined", description=f"The bot has joined the server {guild.name}", color=0x00ff00)
+    if not config.GUILD_LOG_CHANNEL_ID:
+        return
+    channel = bot.get_channel(config.GUILD_LOG_CHANNEL_ID)
+    if not channel:
+        return
+    embed = discord.Embed(
+        title="Guild Joined",
+        description=f"The bot has joined the server {guild.name}",
+        color=config.EMBED_COLOR_SUCCESS,
+    )
     await channel.send(embed=embed)
+
 
 @bot.event
 async def on_guild_remove(guild):
-    channel = bot.get_channel(1189110778599575592)
-    embed = discord.Embed(title="Guild Left", description=f"The bot has left the server {guild.name}", color=0xff0000)
+    if not config.GUILD_LOG_CHANNEL_ID:
+        return
+    channel = bot.get_channel(config.GUILD_LOG_CHANNEL_ID)
+    if not channel:
+        return
+    embed = discord.Embed(
+        title="Guild Left",
+        description=f"The bot has left the server {guild.name}",
+        color=config.EMBED_COLOR_ERROR,
+    )
     await channel.send(embed=embed)
 
 
-def handle_shutdown(signal, frame):
+def handle_shutdown(signum, frame):
     print("Shutdown signal received. Shutting down...")
+    import asyncio
+
     loop = asyncio.get_event_loop()
     loop.create_task(shutdown_bot())
 
+
 async def shutdown_bot():
     try:
-        # Shutdown credits cache
-        cache = CreditsCache()
-        cache.shutdown()
-        
-        if config['bot']['start_api']: requests.get(f'http://localhost:{config["api"]["port"]}/shutdown')
         await bot.close()
-    except Exception as e:
+    except Exception:
         await bot.close()
+
 
 signal.signal(signal.SIGINT, handle_shutdown)
 signal.signal(signal.SIGTERM, handle_shutdown)
-bot.run(bot_token)
+bot.run(config.DISCORD_TOKEN)

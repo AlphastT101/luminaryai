@@ -1,9 +1,13 @@
-import io
-import discord
 import contextlib
+import io
+
+import discord
 from discord.ext import commands
-from bot_utilities.owner_utils import *
-from bot_utilities.embed_utils import create_embed
+
+from bot import config
+from bot.utils.blacklist import deletedb, insertdb
+from bot.utils.embeds import create_embed
+
 
 class Owner(commands.Cog):
     def __init__(self, bot):
@@ -12,13 +16,12 @@ class Owner(commands.Cog):
     @commands.command(name="server")
     @commands.is_owner()
     async def list_guilds(self, ctx):
-
         guilds = ctx.bot.guilds
-        per_page = 20  # Number of guilds to display per page
-        total_pages = (len(guilds) + per_page - 1) // per_page  # Calculate total pages
+        per_page = 20
+        total_pages = (len(guilds) + per_page - 1) // per_page
         pages = []
         for i in range(0, len(guilds), per_page):
-            page = "\n".join([f"{guild.name} - `{guild.id}`" for guild in guilds[i:i + per_page]])
+            page = "\n".join([f"{guild.name} - `{guild.id}`" for guild in guilds[i : i + per_page]])
             pages.append(page)
         current_page = 0
 
@@ -26,11 +29,8 @@ class Owner(commands.Cog):
             embed = create_embed(title="Guilds List")
             embed.description = pages[current_page]
             embed.set_footer(text=f"Page {current_page + 1}/{total_pages}")
-
-            # Disable buttons as needed
             previous_button.disabled = current_page == 0
             next_button.disabled = current_page == total_pages - 1
-
             await interaction.response.defer()
             await interaction.message.edit(embed=embed, view=view)
 
@@ -67,22 +67,16 @@ class Owner(commands.Cog):
         view.add_item(next_button)
         view.add_item(stop_button)
 
-        # Disable buttons initially for first page
         previous_button.disabled = True
         paginator_message = await ctx.send(embed=initial_embed, view=view)
 
         previous_button.callback = previous_callback
         next_button.callback = next_callback
         stop_button.callback = stop_callback
-
         view.timeout_callback = on_timeout
-
 
     @commands.command(name="say")
     async def say(self, ctx, *, message: str = None):
-        # 1026388699203772477 - alphast101
-        # 973461136680845382 - wqypp
-        # 885977942776246293 -jeydalio
         if message is None:
             return
         allowed = [973461136680845382, 1026388699203772477, 885977942776246293]
@@ -94,7 +88,7 @@ class Owner(commands.Cog):
 
     @commands.command(name="mp")
     @commands.is_owner()
-    async def mp(self, ctx,*,message):
+    async def mp(self, ctx, *, message):
         print(message)
         await ctx.message.delete()
         await ctx.send(message)
@@ -108,8 +102,7 @@ class Owner(commands.Cog):
 
     @commands.command(name="blist")
     @commands.is_owner()
-    async def blist(self, ctx, object, id = None):
-
+    async def blist(self, ctx, object, id=None):
         try:
             id = int(id)
         except TypeError:
@@ -119,26 +112,25 @@ class Owner(commands.Cog):
         if object == "server":
             guild = self.bot.get_guild(id)
             if guild:
-                insert = await insertdb('blist-servers', id, self.bot.db)
+                insert = await insertdb("blist-servers", id, self.bot.db)
                 await ctx.send(f"**{guild} is {insert}.**")
             else:
                 await ctx.send(f"**Guild not found, `{guild}`**")
-
-        elif object == 'user':
+        elif object == "user":
             user = self.bot.get_user(id)
             if user:
-                insert = await insertdb('blist-users', id, self.bot.db)
+                insert = await insertdb("blist-users", id, self.bot.db)
                 await ctx.send(f"**{user} is {insert}**")
             else:
                 await ctx.send(f"**User not found, `{user}`**")
         else:
-            await ctx.send(f"Invalid object")
+            await ctx.send("Invalid object")
 
     @commands.command(name="unblist")
     @commands.is_owner()
-    async def unblist(self, ctx, object, id = None):
-
-        try: id = int(id)
+    async def unblist(self, ctx, object, id=None):
+        try:
+            id = int(id)
         except TypeError:
             await ctx.send("> **Invalid Command or ID**")
             return
@@ -146,60 +138,59 @@ class Owner(commands.Cog):
         if object == "server":
             guild = self.bot.get_guild(id)
             if guild:
-                insert = await deletedb('blist-servers', id, self.bot.db)
+                insert = await deletedb("blist-servers", id, self.bot.db)
                 await ctx.send(f"**{guild} is {insert}.**")
             else:
                 await ctx.send(f"**Guild not found, `{guild}`**")
-
-        elif object == 'user':
+        elif object == "user":
             user = self.bot.get_user(id)
             if user:
-                insert = await deletedb('blist-users', id, self.bot.db)
+                insert = await deletedb("blist-users", id, self.bot.db)
                 await ctx.send(f"**{user} is {insert}**")
             else:
                 await ctx.send(f"**User not found, `{user}`**")
         else:
-            await ctx.send(f"> **Invalid object**")
-
+            await ctx.send("> **Invalid object**")
 
     @commands.command(name="eval")
     @commands.is_owner()
     async def eval(self, ctx, *, code: str):
-
-        code = code.strip('` ')
-        if code.startswith('python'):
+        code = code.strip("` ")
+        if code.startswith("python"):
             code = code[6:]
-        code = '\n'.join(f'    {i}' for i in code.splitlines())
+        code = "\n".join(f"    {i}" for i in code.splitlines())
         local_variables = {
             "discord": discord,
             "commands": commands,
             "bot": self.bot,
             "ctx": ctx,
-            "__import__": __import__
+            "__import__": __import__,
         }
 
         stdout = io.StringIO()
+
         def wrapped_exec():
             try:
                 exec(f"async def func():\n{code}", local_variables)
             except Exception as e:
                 stdout.write(f"{type(e).__name__}: {e}")
+
         with contextlib.redirect_stdout(stdout):
             wrapped_exec()
-            if 'func' in local_variables:
-                func = local_variables['func']
+            if "func" in local_variables:
+                func = local_variables["func"]
                 try:
                     await func()
                 except Exception as e:
                     stdout.write(f"{type(e).__name__}: {e}")
-        await ctx.send(f'{stdout.getvalue()}')
+        await ctx.send(f"{stdout.getvalue()}")
 
     @commands.command(name="cmd")
     @commands.is_owner()
     async def cmdd(self, ctx):
         cmd_list = []
         for command in self.bot.commands:
-            cmd_prefix = "ai." + command.name
+            cmd_prefix = config.BOT_PREFIX + command.name
             cmd_list.append(cmd_prefix)
         await ctx.send("\n".join(cmd_list))
 

@@ -1,11 +1,8 @@
-discord
+discord.py
 pymongo
-pyyaml
+python-dotenv
 requests
-bs4
-openai
+beautifulsoup4
 psutil
-fastapi
-uvicorn
-PyJWT
 Pillow
+aiohttp
