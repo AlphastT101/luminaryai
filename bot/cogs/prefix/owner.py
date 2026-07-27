@@ -5,7 +5,6 @@ import discord
 from discord.ext import commands
 
 from bot import config
-from bot.utils.blacklist import deletedb, insertdb
 from bot.utils.embeds import create_embed
 
 
@@ -99,58 +98,6 @@ class Owner(commands.Cog):
         await ctx.send("Syncing slash commands...")
         await self.bot.tree.sync()
         await ctx.send("Slash commands synced.")
-
-    @commands.command(name="blist")
-    @commands.is_owner()
-    async def blist(self, ctx, object, id=None):
-        try:
-            id = int(id)
-        except TypeError:
-            await ctx.send("Invalid Command or ID")
-            return
-
-        if object == "server":
-            guild = self.bot.get_guild(id)
-            if guild:
-                insert = await insertdb("blist-servers", id, self.bot.db)
-                await ctx.send(f"**{guild} is {insert}.**")
-            else:
-                await ctx.send(f"**Guild not found, `{guild}`**")
-        elif object == "user":
-            user = self.bot.get_user(id)
-            if user:
-                insert = await insertdb("blist-users", id, self.bot.db)
-                await ctx.send(f"**{user} is {insert}**")
-            else:
-                await ctx.send(f"**User not found, `{user}`**")
-        else:
-            await ctx.send("Invalid object")
-
-    @commands.command(name="unblist")
-    @commands.is_owner()
-    async def unblist(self, ctx, object, id=None):
-        try:
-            id = int(id)
-        except TypeError:
-            await ctx.send("> **Invalid Command or ID**")
-            return
-
-        if object == "server":
-            guild = self.bot.get_guild(id)
-            if guild:
-                insert = await deletedb("blist-servers", id, self.bot.db)
-                await ctx.send(f"**{guild} is {insert}.**")
-            else:
-                await ctx.send(f"**Guild not found, `{guild}`**")
-        elif object == "user":
-            user = self.bot.get_user(id)
-            if user:
-                insert = await deletedb("blist-users", id, self.bot.db)
-                await ctx.send(f"**{user} is {insert}**")
-            else:
-                await ctx.send(f"**User not found, `{user}`**")
-        else:
-            await ctx.send("> **Invalid object**")
 
     @commands.command(name="eval")
     @commands.is_owner()

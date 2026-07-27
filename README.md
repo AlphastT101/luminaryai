@@ -49,7 +49,6 @@ Edit `.env` and set at least:
 | Variable | Description |
 |---|---|
 | `DISCORD_TOKEN` | Bot token from the Discord Developer Portal |
-| `MONGODB_URI` | MongoDB connection string |
 | `POLLINATIONS_TOKEN` | Token for Pollinations image generation |
 | `BOT_NAME` | Display name used in embeds |
 | `BOT_PREFIX` | Prefix for text commands |

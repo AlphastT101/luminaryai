@@ -7,8 +7,7 @@ from discord import Interaction, app_commands
 from discord.ext import commands
 
 from bot import config
-from bot.utils.blacklist import check_blist
-from bot.utils.embeds import create_error_embed, create_success_embed
+from bot.utils.embeds import create_error_embed, create_success_embed, create_embed
 from bot.utils.fun import choices, facts, generate_wordle_image, outcomes, wordleScore, words_list
 
 
@@ -19,8 +18,6 @@ class FunSlash(commands.Cog):
     @app_commands.command(name="randomfact", description="Shows a random fact.")
     @app_commands.guild_only()
     async def randomfact(self, interaction: Interaction):
-        if await check_blist(interaction, self.bot.db):
-            return
         random_fact_embed = create_embed(
             title="Here is your random fact!",
             description=random.choice(facts),
@@ -38,9 +35,6 @@ class FunSlash(commands.Cog):
         ]
     )
     async def rps(self, interaction: Interaction, user_choice: str):
-        if await check_blist(interaction, self.bot.db):
-            return
-
         bot_choice = random.choice(choices)
         outcome = outcomes[user_choice.lower()][bot_choice]
         await interaction.response.send_message(
@@ -50,8 +44,6 @@ class FunSlash(commands.Cog):
     @app_commands.command(name="wordle", description="Play wordle!")
     @app_commands.guild_only()
     async def wordle(self, interaction: Interaction):
-        if await check_blist(interaction, self.bot.db):
-            return
         await interaction.response.defer(ephemeral=False)
         word = random.choice(words_list)
         now = datetime.now(timezone.utc)

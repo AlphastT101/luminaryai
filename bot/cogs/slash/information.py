@@ -8,7 +8,6 @@ from discord.ui import Button, View
 
 from bot import config
 from bot.utils.about import about_embed
-from bot.utils.blacklist import check_blist
 from bot.utils.embeds import create_embed
 from bot.utils.help import (
     admin_commands,
@@ -39,8 +38,7 @@ class InformationSlash(commands.Cog):
     @app_commands.guild_only()
     @app_commands.describe(user="Select a user.")
     async def user(self, interaction: Interaction, user: discord.Member = None):
-        if await check_blist(interaction, self.bot.db):
-            return
+
         await interaction.response.defer(ephemeral=False)
 
         if user is None:
@@ -70,8 +68,7 @@ class InformationSlash(commands.Cog):
     @app_commands.command(name="support", description="Shows support server invite link")
     @app_commands.guild_only()
     async def support(self, interaction: discord.Interaction):
-        if await check_blist(interaction, self.bot.db):
-            return
+
         await interaction.response.defer(ephemeral=False)
         await interaction.followup.send(
             embed=create_embed(description=f"**Support server:** [here]({config.SUPPORT_SERVER_URL})")
@@ -80,8 +77,7 @@ class InformationSlash(commands.Cog):
     @app_commands.command(name="owner", description="Shows bot owner")
     @app_commands.guild_only()
     async def owner(self, interaction: discord.Interaction):
-        if await check_blist(interaction, self.bot.db):
-            return
+
         await interaction.response.defer(ephemeral=False)
         await interaction.followup.send(
             embed=create_embed(description=f"My owner is [{config.OWNER_NAME}]({config.OWNER_URL})")
@@ -90,8 +86,7 @@ class InformationSlash(commands.Cog):
     @app_commands.command(name="ping", description="See bot ping")
     @app_commands.guild_only()
     async def check(self, interaction: discord.Interaction):
-        if await check_blist(interaction, self.bot.db):
-            return
+
         await interaction.response.defer(ephemeral=False)
         await interaction.followup.send(
             embed=create_embed(description=f"**Latency:** `{round(self.bot.latency * 1000)}ms`")
@@ -100,8 +95,7 @@ class InformationSlash(commands.Cog):
     @app_commands.command(name="uptime", description="Shows bot uptime")
     @app_commands.guild_only()
     async def uptime(self, interaction: discord.Interaction):
-        if await check_blist(interaction, self.bot.db):
-            return
+
         await interaction.response.defer(ephemeral=False)
         uptime = str(datetime.timedelta(seconds=int(round(time.time() - self.bot.start_time))))
         await interaction.followup.send(embed=create_embed(description=f"**Uptime:** `{uptime}`"))
@@ -109,8 +103,7 @@ class InformationSlash(commands.Cog):
     @app_commands.command(name="about", description="about the bot")
     @app_commands.guild_only()
     async def about(self, interaction: discord.Interaction):
-        if await check_blist(interaction, self.bot.db):
-            return
+
         await interaction.response.defer(ephemeral=False)
         about = await about_embed(self.bot.start_time, self.bot)
         about.set_author(name=config.OWNER_NAME)
@@ -122,8 +115,7 @@ class InformationSlash(commands.Cog):
     @app_commands.command(name="help", description="Help/command list")
     @app_commands.guild_only()
     async def help(self, interaction: discord.Interaction):
-        if await check_blist(interaction, self.bot.db):
-            return
+
         await interaction.response.defer(ephemeral=False)
 
         help_view = View()

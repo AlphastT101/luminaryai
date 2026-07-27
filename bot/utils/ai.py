@@ -7,33 +7,6 @@ import requests
 from bot import config
 
 
-async def poli(session, prompt, model, size, token):
-    parts = size.lower().split("x")
-    w, h = (
-        (int(parts[0]), int(parts[1]))
-        if len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit()
-        else (None, None)
-    )
-
-    image_url = (
-        f"https://image.pollinations.ai/prompt/{prompt}"
-        f"?nologo=true&model={model}&width={w}&height={h}&token={token}"
-    )
-    async with session.get(image_url) as response:
-        image_data = await response.read()
-        return io.BytesIO(image_data)
-
-
-async def gentext(history):
-    data = {
-        "model": "openai-large",
-        "private": True,
-        "messages": history,
-    }
-    response = requests.post("https://text.pollinations.ai/", json=data)
-    return response.text
-
-
 def web_search(query):
     api_url = "https://api.duckduckgo.com/"
     params = {

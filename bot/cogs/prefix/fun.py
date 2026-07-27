@@ -5,7 +5,6 @@ import discord
 from discord.ext import commands
 
 from bot import config
-from bot.utils.blacklist import check_blist_msg
 from bot.utils.embeds import create_embed, create_error_embed, create_success_embed
 from bot.utils.fun import choices, facts, generate_wordle_image, outcomes, wordleScore, words_list
 
@@ -17,14 +16,10 @@ class Fun(commands.Cog):
     @commands.command(name="randomfact")
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def randomfact(self, ctx):
-        if await check_blist_msg(ctx, self.bot.db):
-            return
         await ctx.reply(embed=create_embed(description=random.choice(facts)), mention_author=False)
 
     @commands.command(name="rps")
     async def rps(self, ctx, user_choice: str = None):
-        if await check_blist_msg(ctx, self.bot.db):
-            return
         if user_choice is None or user_choice.lower() not in choices:
             await ctx.reply(
                 embed=create_error_embed(description="Invalid choice, please choose rock, paper, or scissors."),
@@ -43,9 +38,6 @@ class Fun(commands.Cog):
 
     @commands.command(name="wordle")
     async def wordle(self, ctx):
-        if await check_blist_msg(ctx, self.bot.db):
-            return
-
         word = random.choice(words_list)
         await ctx.send(
             embed=create_embed(

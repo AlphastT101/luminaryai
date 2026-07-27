@@ -1,7 +1,6 @@
 from discord.ext import commands
 
 from bot.utils.ai import create_and_send_embed, search_image
-from bot.utils.blacklist import check_blist_msg
 from bot.utils.embeds import create_error_embed, create_processing_embed
 
 
@@ -12,8 +11,6 @@ class Ai(commands.Cog):
     @commands.command(name="search")
     @commands.cooldown(1, 1, commands.BucketType.user)
     async def search(self, ctx, *, query: str = None):
-        if await check_blist_msg(ctx, self.bot.db):
-            return
         if query is None:
             await ctx.reply(
                 embed=create_error_embed(description="Please enter your query."),

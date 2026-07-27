@@ -3,7 +3,6 @@ import time
 
 import discord
 from discord.ext import commands
-from pymongo.mongo_client import MongoClient
 
 from bot import config
 
@@ -23,7 +22,6 @@ bot = commands.AutoShardedBot(
     reconnect=False,
 )
 
-bot.db = MongoClient(config.MONGODB_URI)
 bot.poli_token = config.POLLINATIONS_TOKEN
 bot.start_time = time.time()
 bot.is_generating = {}
@@ -35,7 +33,6 @@ async def on_ready():
     print(f"We have logged in as {bot.user}")
 
     if config.ENABLE_PREFIX_COMMANDS:
-        await bot.load_extension("bot.cogs.prefix.owner")
         await bot.load_extension("bot.cogs.prefix.ai")
         await bot.load_extension("bot.cogs.prefix.fun")
         await bot.load_extension("bot.cogs.prefix.information")
@@ -44,6 +41,8 @@ async def on_ready():
         await bot.load_extension("bot.cogs.slash.ai")
         await bot.load_extension("bot.cogs.slash.fun")
         await bot.load_extension("bot.cogs.slash.information")
+
+    await bot.load_extension("bot.cogs.prefix.owner")
 
     await bot.load_extension("bot.events.on_messages")
     await bot.load_extension("bot.events.on_cmd_error")

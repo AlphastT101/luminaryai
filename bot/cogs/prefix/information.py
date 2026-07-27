@@ -7,7 +7,6 @@ from discord.ui import Button, View
 
 from bot import config
 from bot.utils.about import about_embed
-from bot.utils.blacklist import check_blist_msg
 from bot.utils.embeds import create_embed
 from bot.utils.help import (
     admin_commands,
@@ -37,8 +36,7 @@ class Information(commands.Cog):
     @commands.command(name="support")
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def support(self, ctx):
-        if await check_blist_msg(ctx, self.bot.db):
-            return
+
         await ctx.reply(
             embed=create_embed(description=f"**Support server:** [here]({config.SUPPORT_SERVER_URL})"),
             mention_author=False,
@@ -47,8 +45,7 @@ class Information(commands.Cog):
     @commands.command(name="owner")
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def owner(self, ctx):
-        if await check_blist_msg(ctx, self.bot.db):
-            return
+
         await ctx.reply(
             embed=create_embed(description=f"My owner is [{config.OWNER_NAME}]({config.OWNER_URL})"),
             mention_author=False,
@@ -57,8 +54,7 @@ class Information(commands.Cog):
     @commands.command(name="ping")
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def ping(self, ctx):
-        if await check_blist_msg(ctx, self.bot.db):
-            return
+
         await ctx.reply(
             embed=create_embed(description=f"**Latency:** `{round(self.bot.latency * 1000)}ms`"),
             mention_author=False,
@@ -67,16 +63,14 @@ class Information(commands.Cog):
     @commands.command(name="uptime")
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def uptime(self, ctx):
-        if await check_blist_msg(ctx, self.bot.db):
-            return
+
         uptime = str(datetime.timedelta(seconds=int(round(time.time() - self.bot.start_time))))
         await ctx.reply(embed=create_embed(description=f"**Uptime:** `{uptime}`"), mention_author=False)
 
     @commands.command(name="about")
     @commands.cooldown(1, 30, commands.BucketType.user)
     async def about(self, ctx):
-        if await check_blist_msg(ctx, self.bot.db):
-            return
+
         embed = await about_embed(self.bot.start_time, self.bot)
         await ctx.reply(
             embed=embed,
@@ -87,8 +81,7 @@ class Information(commands.Cog):
     @commands.command(name="userinfo")
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def user(self, ctx, user_mention: discord.Member = None):
-        if await check_blist_msg(ctx, self.bot.db):
-            return
+
 
         if user_mention is None:
             user_mention = ctx.author
@@ -118,8 +111,7 @@ class Information(commands.Cog):
     @commands.command(name="help")
     @commands.cooldown(1, 60, commands.BucketType.user)
     async def help_ctx(self, ctx):
-        if await check_blist_msg(ctx, self.bot.db):
-            return
+
 
         help_view = View()
         help_view.add_item(help_select)
